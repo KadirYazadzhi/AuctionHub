@@ -1,0 +1,32 @@
+# User-specific documentation (Ignored as per request)
+PROJECT_PLAN.md
+softuni-goals.md
+project-goals.md
+
+# Build results
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio / Rider
+.vs/
+.idea/
+*.user
+*.suo
+*.userprefs
+*.sln.docstates
+
+# Database
+*.db
+*.mdf
+*.ldf
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Environment variables
+appsettings.Development.json
+.env
+
+# Logs
+*.log
