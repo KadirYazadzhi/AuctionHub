@@ -47,4 +47,13 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}");
 app.MapRazorPages();
 
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var context = services.GetRequiredService<AuctionHubDbContext>();
+    // Automatic migration for development
+    context.Database.Migrate();
+    await DbSeeder.SeedAsync(context);
+}
+
 app.Run();
