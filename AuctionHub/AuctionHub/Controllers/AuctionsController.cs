@@ -19,6 +19,29 @@ public class AuctionsController : Controller
         _context = context;
     }
 
+    [AllowAnonymous]
+    [HttpGet]
+    public async Task<IActionResult> Index()
+    {
+        var auctions = await _context.Auctions
+            .Include(a => a.Category)
+            .Where(a => a.IsActive && a.EndTime > DateTime.Now)
+            .OrderBy(a => a.EndTime)
+            .Select(a => new AuctionListViewModel
+            {
+                Id = a.Id,
+                Title = a.Title,
+                ImageUrl = a.ImageUrl,
+                CurrentPrice = a.CurrentPrice,
+                EndTime = a.EndTime,
+                Category = a.Category.Name,
+                IsActive = a.IsActive
+            })
+            .ToListAsync();
+
+        return View(auctions);
+    }
+
     [HttpGet]
     public async Task<IActionResult> Create()
     {
