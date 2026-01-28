@@ -1,18 +1,18 @@
 @model IEnumerable<AuctionHub.Models.ViewModels.AuctionListViewModel>
 
 @{
-    ViewData["Title"] = "Active Auctions";
+    ViewData["Title"] = "My Auctions";
 }
 
 <div class="text-center mb-5">
-    <h1 class="display-4">Active Auctions</h1>
-    <p class="lead">Find your next treasure or <a asp-action="Create">start selling today</a>.</p>
+    <h1 class="display-4">My Auctions</h1>
+    <p class="lead">Manage the items you are selling.</p>
 </div>
 
 @if (!Model.Any())
 {
     <div class="alert alert-info text-center">
-        No active auctions found. Be the first to <a asp-action="Create">create one!</a>
+        You haven't created any auctions yet. <a asp-action="Create">Start selling now!</a>
     </div>
 }
 else
