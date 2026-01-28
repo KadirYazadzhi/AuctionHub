@@ -338,7 +338,7 @@ public class AuctionsController : Controller
         _context.Auctions.Add(auction);
         await _context.SaveChangesAsync();
 
-        return RedirectToAction("Index", "Home");
+        return RedirectToAction(nameof(Index));
     }
 
     private async Task<IEnumerable<SelectListItem>> GetCategoriesAsync()
