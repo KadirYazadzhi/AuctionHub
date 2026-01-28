@@ -1,0 +1,120 @@
+@model AuctionHub.Models.ViewModels.AuctionDetailsViewModel
+
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <!-- Auction Image -->
+        <div class="col-md-6">
+            @if (!string.IsNullOrEmpty(Model.ImageUrl))
+            {
+                <img src="@Model.ImageUrl" class="img-fluid rounded shadow" alt="@Model.Title">
+            }
+            else
+            {
+                <img src="https://via.placeholder.com/600x400?text=No+Image" class="img-fluid rounded shadow" alt="No image">
+            }
+        </div>
+
+        <!-- Auction Info -->
+        <div class="col-md-6">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-action="Index">Auctions</a></li>
+                    <li class="breadcrumb-item active">@Model.Category</li>
+                </ol>
+            </nav>
+
+            <h1 class="display-5">@Model.Title</h1>
+            <p class="text-muted">Listed by: <strong>@Model.Seller</strong></p>
+            <hr>
+
+            <div class="p-3 bg-light rounded border mb-4">
+                <h3 class="mb-0">Current Price: <span class="text-success">@Model.CurrentPrice.ToString("C")</span></h3>
+                <small class="text-muted">Starting Price: @Model.StartPrice.ToString("C")</small>
+            </div>
+
+            <div class="mb-4">
+                <p><strong>Ends in:</strong> <span class="badge bg-danger" id="timer">@Model.EndTime.ToString("f")</span></p>
+                <p><strong>Description:</strong></p>
+                <p class="lead">@Model.Description</p>
+            </div>
+
+            <!-- Bidding Form -->
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                @if (Model.IsActive)
+                {
+                    <div class="card border-primary mb-3">
+                        <div class="card-header bg-primary text-white">Place a Bid</div>
+                        <div class="card-body">
+                            <form asp-action="PlaceBid" method="post" class="row g-3">
+                                <input type="hidden" name="AuctionId" value="@Model.Id" />
+                                <div class="col-auto">
+                                    <label class="visually-hidden">Bid Amount</label>
+                                    <div class="input-group">
+                                        <div class="input-group-text">$</div>
+                                        <input type="number" step="0.01" class="form-control" name="Amount" value="@Model.NewBidAmount" min="@(Model.CurrentPrice + 0.01)">
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <button type="submit" class="btn btn-primary px-4">Place Bid</button>
+                                </div>
+                            </form>
+                            <small class="text-muted d-block mt-2">Minimum next bid: @((Model.CurrentPrice + 0.01).ToString("C"))</small>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-warning">This auction has ended.</div>
+                }
+            }
+            else
+            {
+                <div class="alert alert-info">
+                    Please <a asp-area="Identity" asp-page="/Account/Login">login</a> to place a bid.
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Bidding History -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <h4>Bidding History</h4>
+            <div class="table-responsive">
+                <table class="table table-striped border">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Bidder</th>
+                            <th>Amount</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Bids.Any())
+                        {
+                            foreach (var bid in Model.Bids)
+                            {
+                                <tr>
+                                    <td>@bid.Bidder</td>
+                                    <td>@bid.Amount.ToString("C")</td>
+                                    <td>@bid.BidTime.ToString("g")</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="3" class="text-center italic">No bids yet. Be the first to bid!</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
