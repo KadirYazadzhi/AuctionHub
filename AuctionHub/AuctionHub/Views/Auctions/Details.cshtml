@@ -4,142 +4,145 @@
     ViewData["Title"] = Model.Title;
 }
 
-<div class="container mt-4">
+<div class="container py-4">
     @if (TempData["Success"] != null)
     {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            @TempData["Success"]
+        <div class="alert alert-success alert-dismissible fade show rounded-4 shadow-sm mb-4 border-0" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["Success"]
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
 
     @if (TempData["Error"] != null)
     {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            @TempData["Error"]
+        <div class="alert alert-danger alert-dismissible fade show rounded-4 shadow-sm mb-4 border-0" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["Error"]
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
 
-    <div class="row">
-        <!-- Auction Image -->
-        <div class="col-md-6">
-            @if (!string.IsNullOrEmpty(Model.ImageUrl))
-            {
-                <img src="@Model.ImageUrl" class="img-fluid rounded shadow" alt="@Model.Title">
-            }
-            else
-            {
-                <img src="https://via.placeholder.com/600x400?text=No+Image" class="img-fluid rounded shadow" alt="No image">
-            }
+    <div class="row g-5">
+        <!-- Left Column: Media -->
+        <div class="col-lg-7">
+            <div class="sticky-top" style="top: 100px;">
+                <div class="card border-0 shadow-lg rounded-5 overflow-hidden">
+                    <img src="@(string.IsNullOrEmpty(Model.ImageUrl) ? "https://via.placeholder.com/800x600?text=No+Image" : Model.ImageUrl)" 
+                         class="img-fluid w-100" alt="@Model.Title">
+                </div>
+                
+                <div class="mt-5 p-4 bg-card rounded-4 border shadow-sm">
+                    <h4 class="fw-bold mb-3">Item Description</h4>
+                    <p class="lead text-muted" style="white-space: pre-wrap;">@Model.Description</p>
+                </div>
+            </div>
         </div>
 
-        <!-- Auction Info -->
-        <div class="col-md-6">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a asp-action="Index">Auctions</a></li>
-                    <li class="breadcrumb-item active">@Model.Category</li>
-                </ol>
-            </nav>
+        <!-- Right Column: Info & Bidding -->
+        <div class="col-lg-5">
+            <div class="p-4 rounded-5 bg-card border shadow-sm h-100">
+                <nav aria-label="breadcrumb" class="mb-3">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a asp-action="Index" class="text-decoration-none">Auctions</a></li>
+                        <li class="breadcrumb-item active">@Model.Category</li>
+                    </ol>
+                </nav>
 
-            <h1 class="display-5">@Model.Title</h1>
-            <p class="text-muted">Listed by: <strong>@Model.Seller</strong></p>
-            
-            @if (User.Identity?.IsAuthenticated == true && Model.SellerId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
-            {
-                <div class="mb-3">
-                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Edit Auction</a>
-                    <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this auction?');">
-                        <button type="submit" class="btn btn-danger">Delete Auction</button>
-                    </form>
-                </div>
-            }
-            <hr>
-
-            <div class="p-3 bg-light rounded border mb-4">
-                <h3 class="mb-0">Current Price: <span class="text-success">@Model.CurrentPrice.ToString("C")</span></h3>
-                <small class="text-muted">Starting Price: @Model.StartPrice.ToString("C")</small>
-            </div>
-
-            <div class="mb-4">
-                <p><strong>Ends in:</strong> <span class="badge bg-danger" id="timer">@Model.EndTime.ToString("f")</span></p>
-                <p><strong>Description:</strong></p>
-                <p class="lead">@Model.Description</p>
-            </div>
-
-            <!-- Bidding Form -->
-            @if (User.Identity?.IsAuthenticated == true)
-            {
-                @if (Model.IsActive)
-                {
-                    <div class="card border-primary mb-3">
-                        <div class="card-header bg-primary text-white">Place a Bid</div>
-                        <div class="card-body">
-                            <form asp-action="PlaceBid" method="post" class="row g-3">
-                                <input type="hidden" name="AuctionId" value="@Model.Id" />
-                                <div class="col-auto">
-                                    <label class="visually-hidden">Bid Amount</label>
-                                    <div class="input-group">
-                                        <div class="input-group-text">$</div>
-                                        <input type="number" step="0.01" class="form-control" name="Amount" value="@Model.NewBidAmount" min="@(Model.CurrentPrice + 0.01)">
-                                    </div>
-                                </div>
-                                <div class="col-auto">
-                                    <button type="submit" class="btn btn-primary px-4">Place Bid</button>
-                                </div>
-                            </form>
-                            <small class="text-muted d-block mt-2">Minimum next bid: @((Model.CurrentPrice + 0.01).ToString("C"))</small>
-                        </div>
+                <h1 class="display-5 fw-bold mb-2">@Model.Title</h1>
+                <div class="d-flex align-items-center mb-4">
+                    <div class="avatar-sm bg-primary-subtle text-primary rounded-circle p-2 me-2">
+                        <i class="bi bi-person-fill"></i>
                     </div>
+                    <span class="text-muted">Listed by <strong class="text-main">@Model.Seller</strong></span>
+                </div>
+
+                @if (User.Identity?.IsAuthenticated == true && Model.SellerId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
+                {
+                    <div class="d-flex gap-2 mb-4">
+                        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning rounded-pill px-4">
+                            <i class="bi bi-pencil-square me-1"></i> Edit
+                        </a>
+                        <form asp-action="Delete" asp-route-id="@Model.Id" method="post" onsubmit="return confirm('Are you sure?');">
+                            <button type="submit" class="btn btn-danger rounded-pill px-4">
+                                <i class="bi bi-trash3-fill me-1"></i> Delete
+                            </button>
+                        </form>
+                    </div>
+                }
+
+                <div class="p-4 bg-primary-subtle rounded-4 mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="text-primary-emphasis fw-semibold">Current High Bid</span>
+                        <span class="badge bg-primary rounded-pill">Active</span>
+                    </div>
+                    <div class="display-4 fw-bolder text-primary">@Model.CurrentPrice.ToString("C")</div>
+                    <small class="text-primary-emphasis opacity-75">Starting from @Model.StartPrice.ToString("C")</small>
+                </div>
+
+                <div class="mb-4">
+                    <div class="d-flex align-items-center text-danger mb-2">
+                        <i class="bi bi-alarm-fill fs-4 me-2"></i>
+                        <span class="fw-bold">Time Left: @Model.EndTime.ToString("f")</span>
+                    </div>
+                </div>
+
+                <!-- Bidding Card -->
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    @if (Model.IsActive)
+                    {
+                        <div class="card border-primary border-2 rounded-4 mb-4 active-bid">
+                            <div class="card-body p-4">
+                                <h5 class="fw-bold mb-3">Place Your Bid</h5>
+                                <form asp-action="PlaceBid" method="post" class="row g-2">
+                                    <input type="hidden" name="AuctionId" value="@Model.Id" />
+                                    <div class="col-8">
+                                        <div class="input-group input-group-lg">
+                                            <span class="input-group-text bg-white border-end-0">$</span>
+                                            <input type="number" step="0.01" class="form-control border-start-0" 
+                                                   name="Amount" value="@Model.NewBidAmount" min="@(Model.CurrentPrice + 0.01m)">
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <button type="submit" class="btn btn-primary btn-lg w-100 rounded-3">Bid</button>
+                                    </div>
+                                </form>
+                                <p class="text-muted small mt-3 mb-0">
+                                    <i class="bi bi-info-circle me-1"></i> Minimum next bid must be higher than @Model.CurrentPrice.ToString("C")
+                                </p>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-secondary rounded-4 border-0 py-3">
+                            <i class="bi bi-lock-fill me-2"></i> This auction has concluded.
+                        </div>
+                    }
                 }
                 else
                 {
-                    <div class="alert alert-warning">This auction has ended.</div>
+                    <div class="alert bg-primary-subtle text-primary rounded-4 border-0 p-4">
+                        <p class="mb-3 fw-bold">Ready to participate?</p>
+                        <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-primary w-100 rounded-pill">Login to Bid</a>
+                    </div>
                 }
-            }
-            else
-            {
-                <div class="alert alert-info">
-                    Please <a asp-area="Identity" asp-page="/Account/Login">login</a> to place a bid.
-                </div>
-            }
-        </div>
-    </div>
 
-    <!-- Bidding History -->
-    <div class="row mt-5">
-        <div class="col-12">
-            <h4>Bidding History</h4>
-            <div class="table-responsive">
-                <table class="table table-striped border">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Bidder</th>
-                            <th>Amount</th>
-                            <th>Time</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (Model.Bids.Any())
+                <!-- History Preview -->
+                <div class="mt-5">
+                    <h5 class="fw-bold mb-4">Bid History (@Model.Bids.Count())</h5>
+                    <div class="list-group list-group-flush border-top">
+                        @foreach (var bid in Model.Bids.Take(5))
                         {
-                            foreach (var bid in Model.Bids)
-                            {
-                                <tr>
-                                    <td>@bid.Bidder</td>
-                                    <td>@bid.Amount.ToString("C")</td>
-                                    <td>@bid.BidTime.ToString("g")</td>
-                                </tr>
-                            }
+                            <div class="list-group-item bg-transparent px-0 py-3 border-bottom d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0 fw-bold">@bid.Bidder</h6>
+                                    <small class="text-muted">@bid.BidTime.ToString("g")</small>
+                                </div>
+                                <span class="fw-bold text-primary fs-5">@bid.Amount.ToString("C")</span>
+                            </div>
                         }
-                        else
-                        {
-                            <tr>
-                                <td colspan="3" class="text-center italic">No bids yet. Be the first to bid!</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

@@ -1,59 +1,77 @@
 @{
-    ViewData["Title"] = "Welcome to AuctionHub";
+    ViewData["Title"] = "Experience Premium Auctions";
 }
 
-<div class="p-5 mb-4 bg-light rounded-3 border shadow-sm">
-    <div class="container-fluid py-5 text-center">
-        <h1 class="display-4 fw-bold text-primary">AuctionHub</h1>
-        <p class="col-md-8 fs-4 mx-auto text-muted">
-            The best place to find unique items, collectibles, and great deals. 
-            Join our community today and start bidding!
+<div class="container py-5">
+    <!-- Hero Section -->
+    <div class="hero-gradient mb-5 shadow-lg text-center d-flex flex-column align-items-center justify-content-center">
+        <h1 class="display-2 fw-bolder mb-3">Bid. Win. Own.</h1>
+        <p class="fs-4 mb-4 opacity-75 max-width-700">
+            The future of online auctions is here. Transparent, fast, and secure. 
+            Join thousands of collectors and find your next masterpiece.
         </p>
-        <div class="d-grid gap-2 d-sm-flex justify-content-sm-center mt-4">
-            <a asp-controller="Auctions" asp-action="Index" class="btn btn-primary btn-lg px-4 gap-3">Browse Auctions</a>
-            @if (User.Identity?.IsAuthenticated == true)
+        <div class="d-flex gap-3">
+            <a asp-controller="Auctions" asp-action="Index" class="btn btn-light btn-lg px-5 rounded-pill fw-bold text-primary">Explore Marketplace</a>
+            @if (!(User.Identity?.IsAuthenticated ?? false))
             {
-                <a asp-controller="Auctions" asp-action="Create" class="btn btn-outline-secondary btn-lg px-4">Start Selling</a>
-            }
-            else
-            {
-                <a asp-area="Identity" asp-page="/Account/Register" class="btn btn-outline-secondary btn-lg px-4">Sign Up Now</a>
+                <a asp-area="Identity" asp-page="/Account/Register" class="btn btn-outline-light btn-lg px-5 rounded-pill fw-bold">Join Community</a>
             }
         </div>
     </div>
-</div>
 
-<div class="row text-center mt-5">
-    <div class="col-md-4">
-        <div class="p-3">
-            <div class="mb-3">
-                <i class="bi bi-tag-fill text-primary" style="font-size: 3rem;"></i>
+    <!-- Stats Section -->
+    <div class="row g-4 mb-5 text-center">
+        <div class="col-md-4">
+            <div class="p-4 border rounded-4 bg-card shadow-sm h-100">
+                <h2 class="fw-bold text-primary mb-1">10k+</h2>
+                <p class="text-muted mb-0">Active Auctions</p>
             </div>
-            <h3>Easy Selling</h3>
-            <p>Create a listing in minutes with our simple and intuitive interface.</p>
+        </div>
+        <div class="col-md-4">
+            <div class="p-4 border rounded-4 bg-card shadow-sm h-100">
+                <h2 class="fw-bold text-primary mb-1">$2.5M+</h2>
+                <p class="text-muted mb-0">Total Bid Volume</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="p-4 border rounded-4 bg-card shadow-sm h-100">
+                <h2 class="fw-bold text-primary mb-1">50k+</h2>
+                <p class="text-muted mb-0">Verified Users</p>
+            </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="p-3">
-            <div class="mb-3">
-                <i class="bi bi-gavel text-primary" style="font-size: 3rem;"></i>
+
+    <!-- Features Section -->
+    <div class="row g-5 py-5">
+        <div class="col-md-4 feature-card">
+            <div class="feature-icon">
+                <i class="bi bi-shield-lock-fill fs-2"></i>
             </div>
-            <h3>Safe Bidding</h3>
-            <p>Our real-time bidding system ensures fairness and transparency for all users.</p>
+            <h3 class="fw-bold">Secured Bidding</h3>
+            <p class="text-muted">Our advanced encryption and identity verification system ensures every bid is legitimate and every transaction is safe.</p>
+        </div>
+        <div class="col-md-4 feature-card">
+            <div class="feature-icon">
+                <i class="bi bi-lightning-charge-fill fs-2"></i>
+            </div>
+            <h3 class="fw-bold">Real-time Feedback</h3>
+            <p class="text-muted">Stay ahead of the competition with instant notifications and real-time updates on your favorite listings.</p>
+        </div>
+        <div class="col-md-4 feature-card">
+            <div class="feature-icon">
+                <i class="bi bi-gem fs-2"></i>
+            </div>
+            <h3 class="fw-bold">Premium Curation</h3>
+            <p class="text-muted">From rare antiques to the latest tech, our category-based system helps you find high-quality items effortlessly.</p>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="p-3">
-            <div class="mb-3">
-                <i class="bi bi-shield-check text-primary" style="font-size: 3rem;"></i>
-            </div>
-            <h3>Secure Platform</h3>
-            <p>Your data is protected with the latest security standards in ASP.NET Core.</p>
+
+    <!-- Call to Action -->
+    <div class="mt-5 p-5 bg-primary text-white rounded-5 shadow-lg d-flex align-items-center justify-content-between flex-wrap gap-4">
+        <div>
+            <h2 class="fw-bold mb-2">Ready to clear your attic?</h2>
+            <p class="mb-0 opacity-75">Start selling today and reach global buyers in minutes.</p>
         </div>
+        <a asp-controller="Auctions" asp-action="Create" class="btn btn-light btn-lg rounded-pill fw-bold">Start Selling Now</a>
     </div>
 </div>
-
-@section Scripts {
-    <!-- Add Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-}

@@ -332,7 +332,7 @@ public class AuctionsController : Controller
             CreatedOn = DateTime.Now,
             IsActive = true,
             CategoryId = model.CategoryId,
-            SellerId = currentUserId
+            SellerId = currentUserId!
         };
 
         _context.Auctions.Add(auction);
