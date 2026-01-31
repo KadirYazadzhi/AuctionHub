@@ -3,25 +3,25 @@
 }
 
 <!-- Hero Section -->
-<section class="hero-section text-center position-relative overflow-hidden">
+<section class="hero-section text-center position-relative overflow-hidden py-5 my-5">
     <div class="container position-relative z-2">
         <div class="row justify-content-center">
             <div class="col-lg-8">
-                <span class="badge bg-primary-subtle text-primary mb-3 px-3 py-2 rounded-pill">
+                <span class="badge bg-primary-subtle text-primary mb-4 px-4 py-2 rounded-pill animate-fade-up">
                     <i class="bi bi-stars me-1"></i> New: Vintage Collection Live
                 </span>
-                <h1 class="hero-title mb-4">
+                <h1 class="hero-title mb-5 animate-fade-up delay-100">
                     Discover Extraordinary <br> <span class="text-primary">Items & Stories</span>
                 </h1>
-                <p class="hero-subtitle mx-auto mb-5">
+                <p class="hero-subtitle mx-auto mb-5 animate-fade-up delay-200">
                     The premier marketplace for collectors and enthusiasts. 
                     Bid on exclusive items, rare antiques, and modern treasures in real-time.
                 </p>
-                <div class="d-flex justify-content-center gap-3">
-                    <a asp-controller="Auctions" asp-action="Index" class="btn btn-primary btn-lg rounded-pill px-5 py-3 shadow-lg">
+                <div class="d-flex justify-content-center gap-3 animate-fade-up delay-300">
+                    <a asp-controller="Auctions" asp-action="Index" class="btn btn-primary btn-lg rounded-pill px-5 py-3 shadow-lg hover-lift">
                         Start Exploring
                     </a>
-                    <a asp-controller="Auctions" asp-action="Create" class="btn btn-outline-primary btn-lg rounded-pill px-5 py-3 bg-white">
+                    <a asp-controller="Auctions" asp-action="Create" class="btn btn-outline-primary btn-lg rounded-pill px-5 py-3 bg-white hover-lift">
                         Sell Item
                     </a>
                 </div>
@@ -29,17 +29,17 @@
         </div>
         
         <!-- Floating Elements (Decorative) -->
-        <div class="d-none d-lg-block position-absolute top-50 start-0 translate-middle-y ms-5 opacity-50" style="z-index: -1;">
-            <div class="card p-3 shadow-soft transform-rotate-n6" style="width: 200px; transform: rotate(-6deg);">
-                <div class="bg-light rounded mb-2" style="height: 120px;"></div>
+        <div class="d-none d-lg-block position-absolute top-50 start-0 translate-middle-y ms-5 opacity-50 animate-fade-up delay-300" style="z-index: -1;">
+            <div class="card p-4 shadow-soft transform-rotate-n6" style="width: 220px; transform: rotate(-6deg);">
+                <div class="bg-light rounded mb-3" style="height: 140px;"></div>
                 <small class="fw-bold">Vintage Camera</small>
                 <div class="text-primary fw-bold small">$450.00</div>
             </div>
         </div>
         
-        <div class="d-none d-lg-block position-absolute top-50 end-0 translate-middle-y me-5 opacity-50" style="z-index: -1;">
-             <div class="card p-3 shadow-soft" style="width: 200px; transform: rotate(6deg);">
-                <div class="bg-light rounded mb-2" style="height: 120px;"></div>
+        <div class="d-none d-lg-block position-absolute top-50 end-0 translate-middle-y me-5 opacity-50 animate-fade-up delay-300" style="z-index: -1;">
+             <div class="card p-4 shadow-soft" style="width: 220px; transform: rotate(6deg);">
+                <div class="bg-light rounded mb-3" style="height: 140px;"></div>
                 <small class="fw-bold">Rare Coin 1890</small>
                 <div class="text-primary fw-bold small">$1,200.00</div>
             </div>
@@ -48,9 +48,9 @@
 </section>
 
 <!-- Stats Section -->
-<section class="py-5 border-bottom bg-white">
-    <div class="container">
-        <div class="row text-center g-4">
+<section class="py-6 border-bottom bg-white">
+    <div class="container py-4">
+        <div class="row text-center g-5">
             <div class="col-md-4">
                 <h2 class="fw-bold display-6 text-primary mb-0">10k+</h2>
                 <p class="text-muted">Active Auctions</p>
