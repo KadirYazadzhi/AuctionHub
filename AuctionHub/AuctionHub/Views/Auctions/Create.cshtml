@@ -5,54 +5,92 @@
 }
 
 <div class="row">
-    <div class="col-md-6 offset-md-3">
+    <div class="col-md-8 offset-md-2">
         <h2 class="text-center mb-4">Start a New Auction</h2>
 
-        <form asp-action="Create" method="post">
-            <div class="mb-3">
-                <label asp-for="Title" class="form-label"></label>
-                <input asp-for="Title" class="form-control" placeholder="Enter item title..." />
-                <span asp-validation-for="Title" class="text-danger"></span>
-            </div>
-
-            <div class="mb-3">
-                <label asp-for="CategoryId" class="form-label"></label>
-                <select asp-for="CategoryId" asp-items="Model.Categories" class="form-select">
-                    <option value="" disabled selected>-- Select Category --</option>
-                </select>
-                <span asp-validation-for="CategoryId" class="text-danger"></span>
-            </div>
-
-            <div class="mb-3">
-                <label asp-for="StartPrice" class="form-label"></label>
-                <div class="input-group">
-                    <span class="input-group-text">$</span>
-                    <input asp-for="StartPrice" class="form-control" type="number" step="0.01" min="0.01" />
+        <form asp-action="Create" method="post" enctype="multipart/form-data">
+            <div class="card shadow-sm border-0 rounded-4 p-4">
+                <div class="mb-3">
+                    <label asp-for="Title" class="form-label fw-bold"></label>
+                    <input asp-for="Title" class="form-control" placeholder="Enter item title..." />
+                    <span asp-validation-for="Title" class="text-danger"></span>
                 </div>
-                <span asp-validation-for="StartPrice" class="text-danger"></span>
-            </div>
 
-            <div class="mb-3">
-                <label asp-for="EndTime" class="form-label"></label>
-                <input asp-for="EndTime" class="form-control" type="datetime-local" />
-                <span asp-validation-for="EndTime" class="text-danger"></span>
-            </div>
+                <div class="mb-3">
+                    <label asp-for="CategoryId" class="form-label fw-bold"></label>
+                    <select asp-for="CategoryId" asp-items="Model.Categories" class="form-select">
+                        <option value="" disabled selected>-- Select Category --</option>
+                    </select>
+                    <span asp-validation-for="CategoryId" class="text-danger"></span>
+                </div>
 
-            <div class="mb-3">
-                <label asp-for="ImageUrl" class="form-label"></label>
-                <input asp-for="ImageUrl" class="form-control" placeholder="https://example.com/image.jpg" />
-                <span asp-validation-for="ImageUrl" class="text-danger"></span>
-            </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="StartPrice" class="form-label fw-bold"></label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input asp-for="StartPrice" class="form-control" type="number" step="0.01" min="0.01" />
+                        </div>
+                        <span asp-validation-for="StartPrice" class="text-danger"></span>
+                    </div>
 
-            <div class="mb-3">
-                <label asp-for="Description" class="form-label"></label>
-                <textarea asp-for="Description" class="form-control" rows="5"></textarea>
-                <span asp-validation-for="Description" class="text-danger"></span>
-            </div>
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="MinIncrease" class="form-label fw-bold"></label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input asp-for="MinIncrease" class="form-control" type="number" step="0.01" min="0.01" value="1.00" />
+                        </div>
+                        <span asp-validation-for="MinIncrease" class="text-danger"></span>
+                    </div>
+                </div>
 
-            <div class="d-grid gap-2">
-                <button type="submit" class="btn btn-primary btn-lg">Publish Auction</button>
-                <a asp-controller="Home" asp-action="Index" class="btn btn-secondary">Cancel</a>
+                <div class="mb-3">
+                    <label asp-for="EndTime" class="form-label fw-bold"></label>
+                    <input asp-for="EndTime" class="form-control" type="datetime-local" />
+                    <span asp-validation-for="EndTime" class="text-danger"></span>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Item Image</label>
+                    
+                    <ul class="nav nav-tabs mb-3" id="imageTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload-pane" type="button" role="tab">Upload File</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="url-tab" data-bs-toggle="tab" data-bs-target="#url-pane" type="button" role="tab">Image URL</button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content" id="imageTabsContent">
+                        <div class="tab-pane fade show active" id="upload-pane" role="tabpanel">
+                            <div class="drop-zone p-5 bg-light rounded-3 border border-2 border-dashed text-center" id="dropZone">
+                                <i class="bi bi-cloud-arrow-up display-4 text-primary mb-3"></i>
+                                <p class="mb-2">Drag and drop your image here</p>
+                                <p class="text-muted small">or</p>
+                                <input asp-for="ImageFile" type="file" class="form-control d-none" id="fileInput" accept="image/*" />
+                                <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('fileInput').click()">Browse Files</button>
+                                <p class="mt-2 text-success fw-bold d-none" id="fileNamePreview"></p>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="url-pane" role="tabpanel">
+                            <input asp-for="ImageUrl" class="form-control" placeholder="https://example.com/image.jpg" />
+                            <small class="text-muted">Paste a direct link to an image.</small>
+                        </div>
+                    </div>
+                    <span asp-validation-for="ImageUrl" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Description" class="form-label fw-bold"></label>
+                    <textarea asp-for="Description" class="form-control" rows="5"></textarea>
+                    <span asp-validation-for="Description" class="text-danger"></span>
+                </div>
+
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a asp-controller="Home" asp-action="Index" class="btn btn-light px-4">Cancel</a>
+                    <button type="submit" class="btn btn-primary btn-lg px-5">Publish Auction</button>
+                </div>
             </div>
         </form>
     </div>
@@ -60,4 +98,41 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileNamePreview = document.getElementById('fileNamePreview');
+
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('bg-primary-subtle', 'border-primary');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('bg-primary-subtle', 'border-primary');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('bg-primary-subtle', 'border-primary');
+            
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                updatePreview();
+            }
+        });
+
+        fileInput.addEventListener('change', updatePreview);
+
+        function updatePreview() {
+            if (fileInput.files.length > 0) {
+                fileNamePreview.textContent = "Selected: " + fileInput.files[0].name;
+                fileNamePreview.classList.remove('d-none');
+            } else {
+                fileNamePreview.classList.add('d-none');
+            }
+        }
+    </script>
 }

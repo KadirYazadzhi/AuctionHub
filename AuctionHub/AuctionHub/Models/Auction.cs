@@ -26,12 +26,19 @@ public class Auction
     public decimal CurrentPrice { get; set; }
 
     [Required]
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal MinIncrease { get; set; }
+
+    [Required]
     public DateTime CreatedOn { get; set; }
 
     [Required]
     public DateTime EndTime { get; set; }
 
     public bool IsActive { get; set; } = true;
+
+    [Timestamp]
+    public byte[] RowVersion { get; set; } = null!;
 
     [Required]
     public string SellerId { get; set; } = null!;

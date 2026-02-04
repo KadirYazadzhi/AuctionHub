@@ -16,6 +16,8 @@ public class AuctionDetailsViewModel
 
     public decimal StartPrice { get; set; }
 
+    public decimal MinIncrease { get; set; }
+
     public DateTime EndTime { get; set; }
 
     public string Category { get; set; } = null!;

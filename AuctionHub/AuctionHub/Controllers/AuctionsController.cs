@@ -13,10 +13,12 @@ namespace AuctionHub.Controllers;
 public class AuctionsController : Controller
 {
     private readonly AuctionHubDbContext _context;
+    private readonly IWebHostEnvironment _webHostEnvironment;
 
-    public AuctionsController(AuctionHubDbContext context)
+    public AuctionsController(AuctionHubDbContext context, IWebHostEnvironment webHostEnvironment)
     {
         _context = context;
+        _webHostEnvironment = webHostEnvironment;
     }
 
     [AllowAnonymous]
@@ -25,11 +27,13 @@ public class AuctionsController : Controller
     {
         var query = _context.Auctions
             .Include(a => a.Category)
-            .Where(a => a.IsActive && a.EndTime > DateTime.Now);
+            .Where(a => a.IsActive && a.EndTime > DateTime.UtcNow);
 
         if (!string.IsNullOrEmpty(searchTerm))
         {
-            query = query.Where(a => a.Title.Contains(searchTerm) || a.Description.Contains(searchTerm));
+            var normalizedSearch = searchTerm.ToLower();
+            query = query.Where(a => a.Title.ToLower().Contains(normalizedSearch) || 
+                             a.Description.ToLower().Contains(normalizedSearch));
         }
 
         if (categoryId.HasValue)
@@ -82,11 +86,12 @@ public class AuctionsController : Controller
             ImageUrl = auction.ImageUrl,
             CurrentPrice = auction.CurrentPrice,
             StartPrice = auction.StartPrice,
+            MinIncrease = auction.MinIncrease,
             EndTime = auction.EndTime,
             Category = auction.Category.Name,
             Seller = auction.Seller.UserName ?? auction.Seller.Email ?? "Unknown",
             SellerId = auction.SellerId,
-            IsActive = auction.IsActive && auction.EndTime > DateTime.Now,
+            IsActive = auction.IsActive && auction.EndTime > DateTime.UtcNow,
             Bids = auction.Bids
                 .OrderByDescending(b => b.BidTime)
                 .Select(b => new BidViewModel
@@ -96,7 +101,7 @@ public class AuctionsController : Controller
                     Bidder = b.Bidder.UserName ?? b.Bidder.Email ?? "Unknown"
                 })
                 .ToList(),
-            NewBidAmount = auction.CurrentPrice + 1 // Suggest a bid
+            NewBidAmount = auction.CurrentPrice + auction.MinIncrease
         };
 
         return View(model);
@@ -105,53 +110,90 @@ public class AuctionsController : Controller
     [HttpPost]
     public async Task<IActionResult> PlaceBid(int auctionId, decimal amount)
     {
-        var auction = await _context.Auctions
-            .Include(a => a.Bids)
-            .FirstOrDefaultAsync(a => a.Id == auctionId);
-
-        if (auction == null)
-        {
-            return NotFound();
-        }
-
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (currentUserId == null) return Challenge();
 
-        // Validations
-        if (auction.SellerId == currentUserId)
+        using var transaction = await _context.Database.BeginTransactionAsync();
+
+        try
         {
-            TempData["Error"] = "You cannot bid on your own auction.";
+            var auction = await _context.Auctions
+                .Include(a => a.Bids)
+                .ThenInclude(b => b.Bidder)
+                .FirstOrDefaultAsync(a => a.Id == auctionId);
+
+            if (auction == null) return NotFound();
+
+            if (auction.SellerId == currentUserId)
+            {
+                TempData["Error"] = "You cannot bid on your own auction.";
+                return RedirectToAction(nameof(Details), new { id = auctionId });
+            }
+
+            if (auction.EndTime <= DateTime.UtcNow || !auction.IsActive)
+            {
+                TempData["Error"] = "This auction has already ended.";
+                return RedirectToAction(nameof(Details), new { id = auctionId });
+            }
+
+            if (amount < auction.CurrentPrice + auction.MinIncrease)
+            {
+                TempData["Error"] = $"Your bid must be at least {auction.CurrentPrice + auction.MinIncrease:C}.";
+                return RedirectToAction(nameof(Details), new { id = auctionId });
+            }
+
+            var currentUser = await _context.Users.FindAsync(currentUserId);
+            if (currentUser == null || currentUser.WalletBalance < amount)
+            {
+                TempData["Error"] = "Insufficient funds in your wallet.";
+                return RedirectToAction(nameof(Details), new { id = auctionId });
+            }
+
+            currentUser.WalletBalance -= amount;
+
+            var previousHighBid = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault();
+            if (previousHighBid != null)
+            {
+                if (previousHighBid.BidderId == currentUserId)
+                {
+                    currentUser.WalletBalance += previousHighBid.Amount;
+                }
+                else
+                {
+                    var previousBidder = previousHighBid.Bidder; 
+                    previousBidder.WalletBalance += previousHighBid.Amount;
+                }
+            }
+
+            var bid = new Bid
+            {
+                AuctionId = auctionId,
+                BidderId = currentUserId,
+                Amount = amount,
+                BidTime = DateTime.UtcNow
+            };
+
+            auction.CurrentPrice = amount;
+            auction.Bids.Add(bid);
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            TempData["Success"] = "Your bid was placed successfully!";
             return RedirectToAction(nameof(Details), new { id = auctionId });
         }
-
-        if (auction.EndTime <= DateTime.Now || !auction.IsActive)
+        catch (DbUpdateConcurrencyException)
         {
-            TempData["Error"] = "This auction has already ended.";
+            await transaction.RollbackAsync();
+            TempData["Error"] = "Someone else placed a bid just now. Please review the new price and try again.";
             return RedirectToAction(nameof(Details), new { id = auctionId });
         }
-
-        if (amount <= auction.CurrentPrice)
+        catch (Exception)
         {
-            TempData["Error"] = $"Your bid must be higher than {auction.CurrentPrice:C}.";
+            await transaction.RollbackAsync();
+            TempData["Error"] = "An error occurred while placing your bid. Please try again.";
             return RedirectToAction(nameof(Details), new { id = auctionId });
         }
-
-        // Create the bid
-        var bid = new Bid
-        {
-            AuctionId = auctionId,
-            BidderId = currentUserId!,
-            Amount = amount,
-            BidTime = DateTime.Now
-        };
-
-        // Update auction current price
-        auction.CurrentPrice = amount;
-
-        _context.Bids.Add(bid);
-        await _context.SaveChangesAsync();
-
-        TempData["Success"] = "Your bid was placed successfully!";
-        return RedirectToAction(nameof(Details), new { id = auctionId });
     }
 
     [HttpGet]
@@ -183,7 +225,6 @@ public class AuctionsController : Controller
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        // Get auctions where the user has placed at least one bid
         var auctions = await _context.Bids
             .Where(b => b.BidderId == currentUserId)
             .Select(b => b.Auction)
@@ -207,17 +248,19 @@ public class AuctionsController : Controller
     [HttpGet]
     public async Task<IActionResult> Edit(int id)
     {
-        var auction = await _context.Auctions.FindAsync(id);
+        var auction = await _context.Auctions
+            .Include(a => a.Bids)
+            .FirstOrDefaultAsync(a => a.Id == id);
 
-        if (auction == null)
-        {
-            return NotFound();
-        }
+        if (auction == null) return NotFound();
 
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (auction.SellerId != currentUserId)
+        if (auction.SellerId != currentUserId) return Forbid();
+
+        if (auction.Bids.Any())
         {
-            return Forbid();
+            TempData["Error"] = "You cannot edit an auction that has existing bids.";
+            return RedirectToAction(nameof(Details), new { id = id });
         }
 
         var model = new AuctionFormModel
@@ -226,6 +269,7 @@ public class AuctionsController : Controller
             Description = auction.Description,
             ImageUrl = auction.ImageUrl,
             StartPrice = auction.StartPrice,
+            MinIncrease = auction.MinIncrease,
             EndTime = auction.EndTime,
             CategoryId = auction.CategoryId,
             Categories = await GetCategoriesAsync()
@@ -237,17 +281,19 @@ public class AuctionsController : Controller
     [HttpPost]
     public async Task<IActionResult> Edit(int id, AuctionFormModel model)
     {
-        var auction = await _context.Auctions.FindAsync(id);
+        var auction = await _context.Auctions
+            .Include(a => a.Bids)
+            .FirstOrDefaultAsync(a => a.Id == id);
 
-        if (auction == null)
-        {
-            return NotFound();
-        }
+        if (auction == null) return NotFound();
 
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (auction.SellerId != currentUserId)
+        if (auction.SellerId != currentUserId) return Forbid();
+
+        if (auction.Bids.Any())
         {
-            return Forbid();
+             TempData["Error"] = "You cannot edit an auction that has existing bids.";
+             return RedirectToAction(nameof(Details), new { id = id });
         }
 
         if (!ModelState.IsValid)
@@ -256,9 +302,21 @@ public class AuctionsController : Controller
             return View(model);
         }
 
+        string? imagePath = model.ImageUrl;
+        if (model.ImageFile != null)
+        {
+            imagePath = await SaveImageAsync(model.ImageFile);
+        }
+
         auction.Title = model.Title;
         auction.Description = model.Description;
-        auction.ImageUrl = model.ImageUrl;
+        if (!string.IsNullOrEmpty(imagePath)) 
+        {
+            auction.ImageUrl = imagePath;
+        }
+        
+        auction.StartPrice = model.StartPrice;
+        auction.MinIncrease = model.MinIncrease;
         auction.EndTime = model.EndTime;
         auction.CategoryId = model.CategoryId;
 
@@ -274,16 +332,10 @@ public class AuctionsController : Controller
             .Include(a => a.Bids)
             .FirstOrDefaultAsync(a => a.Id == id);
 
-        if (auction == null)
-        {
-            return NotFound();
-        }
+        if (auction == null) return NotFound();
 
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (auction.SellerId != currentUserId)
-        {
-            return Forbid();
-        }
+        if (auction.SellerId != currentUserId) return Forbid();
 
         if (auction.Bids.Any())
         {
@@ -304,7 +356,9 @@ public class AuctionsController : Controller
         var model = new AuctionFormModel
         {
             Categories = await GetCategoriesAsync(),
-            EndTime = DateTime.Now.AddDays(7)
+            EndTime = DateTime.UtcNow.AddDays(7),
+            StartPrice = 10.00m,
+            MinIncrease = 1.00m
         };
 
         return View(model);
@@ -313,6 +367,17 @@ public class AuctionsController : Controller
     [HttpPost]
     public async Task<IActionResult> Create(AuctionFormModel model)
     {
+        string? imagePath = model.ImageUrl;
+        if (model.ImageFile != null)
+        {
+            imagePath = await SaveImageAsync(model.ImageFile);
+        }
+
+        if (string.IsNullOrEmpty(imagePath))
+        {
+             ModelState.AddModelError("ImageUrl", "Please provide either an Image URL or upload a file.");
+        }
+
         if (!ModelState.IsValid)
         {
             model.Categories = await GetCategoriesAsync();
@@ -325,11 +390,12 @@ public class AuctionsController : Controller
         {
             Title = model.Title,
             Description = model.Description,
-            ImageUrl = model.ImageUrl,
+            ImageUrl = imagePath!,
             StartPrice = model.StartPrice,
-            CurrentPrice = model.StartPrice, // Initially same as start price
+            CurrentPrice = model.StartPrice,
+            MinIncrease = model.MinIncrease,
             EndTime = model.EndTime,
-            CreatedOn = DateTime.Now,
+            CreatedOn = DateTime.UtcNow,
             IsActive = true,
             CategoryId = model.CategoryId,
             SellerId = currentUserId!
@@ -339,6 +405,22 @@ public class AuctionsController : Controller
         await _context.SaveChangesAsync();
 
         return RedirectToAction(nameof(Index));
+    }
+
+    private async Task<string> SaveImageAsync(IFormFile file)
+    {
+        string uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "images", "auctions");
+        Directory.CreateDirectory(uploadsFolder);
+        
+        string uniqueFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(file.FileName);
+        string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+        
+        using (var fileStream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.CopyToAsync(fileStream);
+        }
+        
+        return "/images/auctions/" + uniqueFileName;
     }
 
     private async Task<IEnumerable<SelectListItem>> GetCategoriesAsync()
