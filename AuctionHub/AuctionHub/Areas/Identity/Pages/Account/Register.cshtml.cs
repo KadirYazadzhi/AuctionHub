@@ -42,6 +42,22 @@ namespace AuctionHub.Areas.Identity.Pages.Account
         public class InputModel
         {
             [Required]
+            [StringLength(15, MinimumLength = 3, ErrorMessage = "Username must be between 3 and 15 characters.")]
+            [RegularExpression(@"^[a-zA-Z0-9_-]+$", ErrorMessage = "Username can only contain letters, numbers, hyphens and underscores.")]
+            [Display(Name = "Username")]
+            public string Username { get; set; } = null!;
+
+            [Required]
+            [StringLength(50, MinimumLength = 2)]
+            [Display(Name = "First Name")]
+            public string FirstName { get; set; } = null!;
+
+            [Required]
+            [StringLength(50, MinimumLength = 2)]
+            [Display(Name = "Last Name")]
+            public string LastName { get; set; } = null!;
+
+            [Required]
             [EmailAddress]
             [Display(Name = "Email")]
             public string Email { get; set; } = null!;
@@ -70,12 +86,15 @@ namespace AuctionHub.Areas.Identity.Pages.Account
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
             if (ModelState.IsValid)
             {
-                            var user = CreateUser();
-                            
-                            // Give initial bonus
-                            user.WalletBalance = 500.00m;
-                
-                            await _userStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);                await _emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
+                var user = CreateUser();
+
+                user.FirstName = Input.FirstName;
+                user.LastName = Input.LastName;
+                // Give initial bonus
+                user.WalletBalance = 500.00m;
+
+                await _userStore.SetUserNameAsync(user, Input.Username, CancellationToken.None);
+                await _emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
 
                 var result = await _userManager.CreateAsync(user, Input.Password);
 
