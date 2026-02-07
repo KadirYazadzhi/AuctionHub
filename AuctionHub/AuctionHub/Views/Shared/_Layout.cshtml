@@ -40,6 +40,14 @@
                         <li class="nav-item">
                             <a class="nav-link" asp-controller="Auctions" asp-action="MyBids">Bidding</a>
                         </li>
+                        @if (User.IsInRole("Administrator"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-warning fw-bold" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">
+                                    <i class="bi bi-shield-lock me-1"></i>Admin
+                                </a>
+                            </li>
+                        }
                     }
                 </ul>
                 
