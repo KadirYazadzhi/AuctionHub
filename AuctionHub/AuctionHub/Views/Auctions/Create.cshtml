@@ -112,7 +112,14 @@
         const fileInput = document.getElementById('fileInput');
         const fileNamePreview = document.getElementById('fileNamePreview');
 
-        dropZone.addEventListener('click', () => fileInput.click());
+        // Prevent clicking the input itself from triggering the dropzone click
+        fileInput.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+
+        dropZone.addEventListener('click', (e) => {
+            fileInput.click();
+        });
 
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
