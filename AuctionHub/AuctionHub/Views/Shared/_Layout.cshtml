@@ -58,7 +58,11 @@
                     
                     @if (User.Identity?.IsAuthenticated ?? false)
                     {
-                        <a class="btn btn-link nav-link position-relative me-2" asp-controller="Notifications" asp-action="Index">
+                        <a class="btn btn-link nav-link me-1" asp-controller="Auctions" asp-action="MyWatchlist" title="My Watchlist">
+                            <i class="bi bi-star-fill fs-5"></i>
+                        </a>
+
+                        <a class="btn btn-link nav-link position-relative me-2" asp-controller="Notifications" asp-action="Index" title="Notifications">
                             <i class="bi bi-bell-fill fs-5"></i>
                             <span id="notificationBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" style="font-size: 0.6rem;">
                                 0
