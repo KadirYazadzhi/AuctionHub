@@ -103,7 +103,7 @@ public class AuctionService : IAuctionService
             await dbTransaction.RollbackAsync();
             return (false, "Concurrency error: Someone else placed a bid. Please try again.");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             await dbTransaction.RollbackAsync();
             // Log ex

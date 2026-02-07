@@ -81,7 +81,7 @@
                     @foreach (var item in Model)
                     {
                         <div class="col position-relative">
-                            @if (item.IsWinning)
+                            @if (item.IsWinning == true)
                             {
                                 <div class="position-absolute top-0 end-0 m-3 z-3">
                                     <span class="badge bg-success shadow-sm rounded-pill px-3 py-2">
