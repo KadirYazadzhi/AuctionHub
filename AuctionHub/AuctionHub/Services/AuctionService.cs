@@ -15,7 +15,7 @@ public class AuctionService : IAuctionService
 
     public async Task<(bool Success, string Message)> PlaceBidAsync(int auctionId, string userId, decimal amount)
     {
-        using var transaction = await _context.Database.BeginTransactionAsync();
+        using var dbTransaction = await _context.Database.BeginTransactionAsync();
 
         try
         {
@@ -30,29 +30,49 @@ public class AuctionService : IAuctionService
             if (auction.SellerId == userId) return (false, "You cannot bid on your own auction.");
             if (!auction.IsActive || auction.EndTime <= DateTime.UtcNow) return (false, "This auction has ended.");
             if (amount < auction.CurrentPrice + auction.MinIncrease) return (false, $"Bid must be at least {auction.CurrentPrice + auction.MinIncrease:C}.");
-            if (auction.BuyItNowPrice.HasValue && amount >= auction.BuyItNowPrice.Value)
-            {
-                 // Usually we redirect to BuyItNow logic, but here let's just allow it as a normal bid
-                 // or restrict it? Let's treat it as a bid.
-            }
 
             var currentUser = await _context.Users.FindAsync(userId);
             if (currentUser == null || currentUser.WalletBalance < amount) return (false, "Insufficient funds.");
 
-            // Money Logic
+            // 1. Charge User
             currentUser.WalletBalance -= amount;
+            _context.Transactions.Add(new Transaction
+            {
+                UserId = userId,
+                Amount = amount,
+                Description = $"Bid on '{auction.Title}'",
+                TransactionType = "Bid",
+                TransactionDate = DateTime.UtcNow
+            });
 
+            // 2. Refund Previous Bidder
             var previousHighBid = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault();
             if (previousHighBid != null)
             {
                 if (previousHighBid.BidderId == userId)
                 {
                     currentUser.WalletBalance += previousHighBid.Amount;
+                    _context.Transactions.Add(new Transaction
+                    {
+                        UserId = userId,
+                        Amount = previousHighBid.Amount,
+                        Description = $"Refund outbid on '{auction.Title}'",
+                        TransactionType = "Refund",
+                        TransactionDate = DateTime.UtcNow
+                    });
                 }
                 else
                 {
                     var previousBidder = previousHighBid.Bidder;
                     previousBidder.WalletBalance += previousHighBid.Amount;
+                     _context.Transactions.Add(new Transaction
+                    {
+                        UserId = previousBidder.Id,
+                        Amount = previousHighBid.Amount,
+                        Description = $"Refund outbid on '{auction.Title}'",
+                        TransactionType = "Refund",
+                        TransactionDate = DateTime.UtcNow
+                    });
                 }
             }
 
@@ -67,8 +87,6 @@ public class AuctionService : IAuctionService
             auction.CurrentPrice = amount;
             auction.Bids.Add(bid);
 
-            // Check if bid meets BuyItNow price to auto-close? 
-            // Optional: If bid >= BuyItNow, close it.
             if (auction.BuyItNowPrice.HasValue && amount >= auction.BuyItNowPrice.Value)
             {
                 auction.IsActive = false;
@@ -76,25 +94,26 @@ public class AuctionService : IAuctionService
             }
 
             await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
+            await dbTransaction.CommitAsync();
 
             return (true, "Bid placed successfully.");
         }
         catch (DbUpdateConcurrencyException)
         {
-            await transaction.RollbackAsync();
+            await dbTransaction.RollbackAsync();
             return (false, "Concurrency error: Someone else placed a bid. Please try again.");
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            await transaction.RollbackAsync();
+            await dbTransaction.RollbackAsync();
+            // Log ex
             return (false, "An error occurred while placing bid.");
         }
     }
 
     public async Task<(bool Success, string Message)> BuyItNowAsync(int auctionId, string userId)
     {
-        using var transaction = await _context.Database.BeginTransactionAsync();
+        using var dbTransaction = await _context.Database.BeginTransactionAsync();
 
         try
         {
@@ -114,22 +133,45 @@ public class AuctionService : IAuctionService
             var currentUser = await _context.Users.FindAsync(userId);
             if (currentUser == null || currentUser.WalletBalance < price) return (false, "Insufficient funds.");
 
-            // Money Logic
+            // 1. Charge User
             currentUser.WalletBalance -= price;
+            _context.Transactions.Add(new Transaction
+            {
+                UserId = userId,
+                Amount = price,
+                Description = $"Purchased '{auction.Title}' (Buy It Now)",
+                TransactionType = "Purchase",
+                TransactionDate = DateTime.UtcNow
+            });
 
-            // Refund any previous bidder
+            // 2. Refund Previous Bidder
             var previousHighBid = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault();
             if (previousHighBid != null)
             {
-                // Refund logic
                  if (previousHighBid.BidderId == userId)
                 {
                      currentUser.WalletBalance += previousHighBid.Amount;
+                     _context.Transactions.Add(new Transaction
+                    {
+                        UserId = userId,
+                        Amount = previousHighBid.Amount,
+                        Description = $"Refund (BIN upgrade) on '{auction.Title}'",
+                        TransactionType = "Refund",
+                        TransactionDate = DateTime.UtcNow
+                    });
                 }
                 else
                 {
                     var previousBidder = previousHighBid.Bidder;
                     previousBidder.WalletBalance += previousHighBid.Amount;
+                    _context.Transactions.Add(new Transaction
+                    {
+                        UserId = previousBidder.Id,
+                        Amount = previousHighBid.Amount,
+                        Description = $"Refund (Item Sold) on '{auction.Title}'",
+                        TransactionType = "Refund",
+                        TransactionDate = DateTime.UtcNow
+                    });
                 }
             }
 
@@ -150,13 +192,13 @@ public class AuctionService : IAuctionService
             auction.EndTime = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
+            await dbTransaction.CommitAsync();
 
             return (true, "Congratulations! You have purchased this item.");
         }
         catch (Exception)
         {
-            await transaction.RollbackAsync();
+            await dbTransaction.RollbackAsync();
             return (false, "An error occurred during purchase.");
         }
     }

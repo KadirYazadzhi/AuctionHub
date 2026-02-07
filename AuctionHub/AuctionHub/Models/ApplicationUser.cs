@@ -17,4 +17,6 @@ public class ApplicationUser : IdentityUser
 
     public virtual ICollection<Auction> MyAuctions { get; set; } = new HashSet<Auction>();
     public virtual ICollection<Bid> MyBids { get; set; } = new HashSet<Bid>();
+    public virtual ICollection<Transaction> Transactions { get; set; } = new HashSet<Transaction>();
+    public virtual ICollection<AuctionWatchlist> Watchlist { get; set; } = new HashSet<AuctionWatchlist>();
 }

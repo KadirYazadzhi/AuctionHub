@@ -53,6 +53,16 @@
                         <i class="bi bi-person-fill"></i>
                     </div>
                     <span class="text-muted">Listed by <strong class="text-main">@Model.Seller</strong></span>
+                    
+                    @if(User.Identity?.IsAuthenticated == true)
+                    {
+                        <form asp-action="ToggleWatchlist" asp-route-id="@Model.Id" method="post" class="ms-auto">
+                            <button type="submit" class="btn btn-sm @(Model.IsWatched ? "btn-warning" : "btn-outline-secondary") rounded-pill">
+                                <i class="bi @(Model.IsWatched ? "bi-star-fill" : "bi-star") me-1"></i> 
+                                @(Model.IsWatched ? "Watching" : "Watch")
+                            </button>
+                        </form>
+                    }
                 </div>
 
                 @if (User.Identity?.IsAuthenticated == true && Model.SellerId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)

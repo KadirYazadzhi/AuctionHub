@@ -26,15 +26,29 @@ public class AuctionsController : Controller
 
     [AllowAnonymous]
     [HttpGet]
-    public async Task<IActionResult> Index(string? searchTerm, int? categoryId, string? sortOrder, int? pageNumber)
+    public async Task<IActionResult> Index(string? searchTerm, int? categoryId, string? sortOrder, int? pageNumber, decimal? minPrice, decimal? maxPrice, string? status)
     {
         ViewData["CurrentSort"] = sortOrder;
         ViewData["CurrentSearch"] = searchTerm;
         ViewData["CurrentCategory"] = categoryId;
+        ViewData["MinPrice"] = minPrice;
+        ViewData["MaxPrice"] = maxPrice;
+        ViewData["Status"] = status;
         
         var query = _context.Auctions
             .Include(a => a.Category)
-            .Where(a => a.IsActive && a.EndTime > DateTime.UtcNow);
+            .AsQueryable();
+
+        // Status Filtering
+        if (string.IsNullOrEmpty(status) || status == "active")
+        {
+            query = query.Where(a => a.IsActive && a.EndTime > DateTime.UtcNow);
+        }
+        else if (status == "closed")
+        {
+            query = query.Where(a => !a.IsActive || a.EndTime <= DateTime.UtcNow);
+        }
+        // "all" shows everything
 
         if (!string.IsNullOrEmpty(searchTerm))
         {
@@ -46,6 +60,16 @@ public class AuctionsController : Controller
         if (categoryId.HasValue)
         {
             query = query.Where(a => a.CategoryId == categoryId.Value);
+        }
+
+        // Price Filtering
+        if (minPrice.HasValue)
+        {
+            query = query.Where(a => a.CurrentPrice >= minPrice.Value);
+        }
+        if (maxPrice.HasValue)
+        {
+            query = query.Where(a => a.CurrentPrice <= maxPrice.Value);
         }
 
         // Sorting
@@ -92,6 +116,13 @@ public class AuctionsController : Controller
             return NotFound();
         }
 
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        bool isWatched = false;
+        if (currentUserId != null)
+        {
+            isWatched = await _context.Watchlist.AnyAsync(w => w.AuctionId == id && w.UserId == currentUserId);
+        }
+
         var model = new AuctionDetailsViewModel
         {
             Id = auction.Id,
@@ -107,6 +138,7 @@ public class AuctionsController : Controller
             Seller = auction.Seller.UserName ?? auction.Seller.Email ?? "Unknown",
             SellerId = auction.SellerId,
             IsActive = auction.IsActive && auction.EndTime > DateTime.UtcNow,
+            IsWatched = isWatched,
             Bids = auction.Bids
                 .OrderByDescending(b => b.BidTime)
                 .Select(b => new BidViewModel
@@ -395,6 +427,60 @@ public class AuctionsController : Controller
         await _context.SaveChangesAsync();
 
         return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> ToggleWatchlist(int id)
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (currentUserId == null) return Challenge();
+
+        var existingItem = await _context.Watchlist
+            .FirstOrDefaultAsync(w => w.AuctionId == id && w.UserId == currentUserId);
+
+        if (existingItem != null)
+        {
+            _context.Watchlist.Remove(existingItem);
+            TempData["Success"] = "Removed from watchlist.";
+        }
+        else
+        {
+            var watchItem = new AuctionWatchlist
+            {
+                AuctionId = id,
+                UserId = currentUserId,
+                AddedOn = DateTime.UtcNow
+            };
+            _context.Watchlist.Add(watchItem);
+            TempData["Success"] = "Added to watchlist.";
+        }
+
+        await _context.SaveChangesAsync();
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> MyWatchlist()
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        
+        var auctions = await _context.Watchlist
+            .Where(w => w.UserId == currentUserId)
+            .Include(w => w.Auction)
+            .ThenInclude(a => a.Category)
+            .Select(w => new AuctionListViewModel
+            {
+                Id = w.Auction.Id,
+                Title = w.Auction.Title,
+                ImageUrl = w.Auction.ImageUrl,
+                CurrentPrice = w.Auction.CurrentPrice,
+                EndTime = w.Auction.EndTime,
+                Category = w.Auction.Category.Name,
+                IsActive = w.Auction.IsActive
+            })
+            .ToListAsync();
+
+        return View(auctions);
     }
 
     private void ValidateImage(IFormFile? file)

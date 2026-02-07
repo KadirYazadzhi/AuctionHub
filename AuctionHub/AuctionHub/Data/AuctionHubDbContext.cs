@@ -14,6 +14,8 @@ public class AuctionHubDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Auction> Auctions { get; set; } = null!;
     public DbSet<Category> Categories { get; set; } = null!;
     public DbSet<Bid> Bids { get; set; } = null!;
+    public DbSet<Transaction> Transactions { get; set; } = null!;
+    public DbSet<AuctionWatchlist> Watchlist { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -37,5 +39,19 @@ public class AuctionHubDbContext : IdentityDbContext<ApplicationUser>
             .WithMany(a => a.Bids)
             .HasForeignKey(b => b.AuctionId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Precision for money
+        builder.Entity<Auction>().Property(a => a.CurrentPrice).HasColumnType("decimal(18,2)");
+        builder.Entity<Auction>().Property(a => a.StartPrice).HasColumnType("decimal(18,2)");
+        builder.Entity<Auction>().Property(a => a.MinIncrease).HasColumnType("decimal(18,2)");
+        builder.Entity<Auction>().Property(a => a.BuyItNowPrice).HasColumnType("decimal(18,2)");
+        builder.Entity<Bid>().Property(b => b.Amount).HasColumnType("decimal(18,2)");
+        builder.Entity<Transaction>().Property(t => t.Amount).HasColumnType("decimal(18,2)");
+        builder.Entity<ApplicationUser>().Property(u => u.WalletBalance).HasColumnType("decimal(18,2)");
+
+        // Watchlist unique
+        builder.Entity<AuctionWatchlist>()
+            .HasIndex(w => new { w.UserId, w.AuctionId })
+            .IsUnique();
     }
 }

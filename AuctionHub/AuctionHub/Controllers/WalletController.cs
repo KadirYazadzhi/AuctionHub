@@ -4,6 +4,7 @@ using AuctionHub.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace AuctionHub.Controllers;
 
@@ -25,7 +26,15 @@ public class WalletController : Controller
         var user = await _userManager.GetUserAsync(User);
         if (user == null) return NotFound();
 
-        return View(user); // Pass user model to view to show balance
+        // Load transactions
+        var transactions = await _context.Transactions
+            .Where(t => t.UserId == user.Id)
+            .OrderByDescending(t => t.TransactionDate)
+            .ToListAsync();
+
+        ViewBag.Transactions = transactions;
+
+        return View(user);
     }
 
     [HttpPost]
@@ -43,7 +52,19 @@ public class WalletController : Controller
         // Update balance
         user.WalletBalance += amount;
         
+        // Log transaction
+        var transaction = new Transaction
+        {
+            UserId = user.Id,
+            Amount = amount,
+            Description = "Deposit funds",
+            TransactionType = "Deposit",
+            TransactionDate = DateTime.UtcNow
+        };
+        _context.Transactions.Add(transaction);
+        
         await _userManager.UpdateAsync(user);
+        await _context.SaveChangesAsync();
 
         TempData["Success"] = $"Successfully added {amount:C} to your wallet!";
         return RedirectToAction(nameof(Index));
