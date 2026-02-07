@@ -32,44 +32,23 @@
                     <li class="nav-item">
                         <a class="nav-link" asp-controller="Auctions" asp-action="Index">Explore</a>
                     </li>
-                    @if (User.Identity?.IsAuthenticated ?? false)
-                    {
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Auctions" asp-action="MyAuctions">Selling</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Auctions" asp-action="MyBids">Bidding</a>
-                        </li>
-                        @if (User.IsInRole("Administrator"))
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link text-warning fw-bold" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">
-                                    <i class="bi bi-shield-lock me-1"></i>Admin
-                                </a>
-                            </li>
-                        }
-                    }
                 </ul>
                 
-                <div class="d-flex align-items-center gap-3">
-                    <button class="btn btn-link nav-link p-0" id="themeToggler" type="button">
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-link nav-link p-0 me-2" id="themeToggler" type="button">
                         <i class="bi bi-sun-fill fs-5" id="themeIcon"></i>
                     </button>
                     
                     @if (User.Identity?.IsAuthenticated ?? false)
                     {
-                        <a class="btn btn-link nav-link me-1" asp-controller="Auctions" asp-action="MyWatchlist" title="My Watchlist">
-                            <i class="bi bi-star-fill fs-5"></i>
-                        </a>
-
-                        <a class="btn btn-link nav-link position-relative me-2" asp-controller="Notifications" asp-action="Index" title="Notifications">
+                        <a class="btn btn-link nav-link position-relative me-3" asp-controller="Notifications" asp-action="Index" title="Notifications">
                             <i class="bi bi-bell-fill fs-5"></i>
                             <span id="notificationBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" style="font-size: 0.6rem;">
                                 0
                             </span>
                         </a>
 
-                        <a class="btn btn-primary rounded-pill px-4" asp-controller="Auctions" asp-action="Create">
+                        <a class="btn btn-primary rounded-pill px-4 me-3" asp-controller="Auctions" asp-action="Create">
                             <i class="bi bi-plus-lg me-1"></i> Sell Item
                         </a>
                         <partial name="_LoginPartial" />
