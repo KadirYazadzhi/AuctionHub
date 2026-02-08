@@ -20,9 +20,14 @@ public class ApplicationUser : IdentityUser
     {
         get 
         {
-            if (!string.IsNullOrEmpty(UserName)) return UserName;
-            if (string.IsNullOrEmpty(Email)) return "Unknown";
-            return Email.Split('@')[0];
+            var name = !string.IsNullOrEmpty(UserName) ? UserName : Email;
+            if (string.IsNullOrEmpty(name)) return "Unknown";
+            
+            if (name.Contains('@'))
+            {
+                return name.Split('@')[0];
+            }
+            return name;
         }
     }
 

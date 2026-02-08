@@ -67,16 +67,17 @@ using (var scope = app.Services.CreateScope())
     // Automatic migration for development
     context.Database.Migrate();
     
-    // Fix users without UserNames
-    var usersWithNoNames = await context.Users.Where(u => u.UserName == null || u.UserName == "").ToListAsync();
-    foreach (var user in usersWithNoNames)
+    // Fix users without UserNames or with Email as UserName
+    var usersToFix = await context.Users.Where(u => u.UserName == null || u.UserName == "" || u.UserName.Contains("@")).ToListAsync();
+    foreach (var user in usersToFix)
     {
-        if (!string.IsNullOrEmpty(user.Email))
+        var source = !string.IsNullOrEmpty(user.UserName) ? user.UserName : user.Email;
+        if (!string.IsNullOrEmpty(source) && source.Contains("@"))
         {
-            user.UserName = user.Email.Split('@')[0];
+            user.UserName = source.Split('@')[0];
         }
     }
-    if (usersWithNoNames.Any()) await context.SaveChangesAsync();
+    if (usersToFix.Any()) await context.SaveChangesAsync();
 
     await DbSeeder.SeedAsync(services);
 }
