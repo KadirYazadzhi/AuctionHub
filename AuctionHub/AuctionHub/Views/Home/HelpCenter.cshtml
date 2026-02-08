@@ -6,7 +6,7 @@
     <div class="text-center mb-5 animate-fade-up">
         <span class="badge bg-primary-subtle text-primary mb-3 px-4 py-2 rounded-pill">Support</span>
         <h1 class="display-4 fw-bold mb-3">How can we help?</h1>
-        <p class="lead text-muted mx-auto" style="max-width: 600px;">Search our documentation or browse common questions below.</p>
+        <p class="lead text-muted mx-auto" style="max-width: 600px;">Explore our documentation or browse common questions below.</p>
     </div>
 
     <div class="row justify-content-center">
@@ -20,7 +20,7 @@
                         </button>
                     </h2>
                     <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
-                        <div class="accordion-body p-4 text-muted">
+                        <div class="accordion-body p-4 text-muted small" style="line-height: 1.6;">
                             To place a bid, you must first be logged in. Navigate to an active auction, enter your bid amount (must be higher than the current price plus minimum increment), and click "Place Bid".
                         </div>
                     </div>
@@ -33,7 +33,7 @@
                         </button>
                     </h2>
                     <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
-                        <div class="accordion-body p-4 text-muted">
+                        <div class="accordion-body p-4 text-muted small" style="line-height: 1.6;">
                             "Buy It Now" allows you to purchase an item immediately at a fixed price set by the seller, bypassing the bidding process. Once used, the auction ends instantly.
                         </div>
                     </div>
@@ -46,7 +46,7 @@
                         </button>
                     </h2>
                     <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
-                        <div class="accordion-body p-4 text-muted">
+                        <div class="accordion-body p-4 text-muted small" style="line-height: 1.6;">
                             Go to your Wallet page via the account dropdown. Click "Add Funds", enter the desired amount, and confirm. Your balance updates instantly.
                         </div>
                     </div>
@@ -59,17 +59,20 @@
                         </button>
                     </h2>
                     <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
-                        <div class="accordion-body p-4 text-muted">
+                        <div class="accordion-body p-4 text-muted small" style="line-height: 1.6;">
                             If someone places a higher bid than yours, your previous bid amount is automatically refunded to your wallet, and you will receive a notification.
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="mt-5 p-5 bg-primary rounded-5 text-white text-center shadow-lg animate-fade-up delay-100">
-                <h3 class="fw-bold mb-3">Still need help?</h3>
-                <p class="mb-4 opacity-75">Our support team is available 24/7 to assist you with any issues.</p>
-                <a asp-action="About" class="btn btn-light text-primary rounded-pill px-5 fw-bold">Contact Support</a>
+            <div class="mt-5 p-5 bg-primary rounded-5 text-white text-center shadow-lg animate-fade-up delay-100 position-relative overflow-hidden">
+                <div class="position-relative z-2">
+                    <h3 class="fw-bold mb-3">Still need help?</h3>
+                    <p class="mb-4 opacity-75">Our support team is available to assist you with any issues.</p>
+                    <a asp-action="About" class="btn btn-light text-primary rounded-pill px-5 py-3 fw-bold hover-lift shadow-sm">Contact Support</a>
+                </div>
+                <div class="position-absolute top-0 start-0 w-100 h-100 opacity-10 bg-white" style="background-image: radial-gradient(#fff 1px, transparent 1px); background-size: 20px 20px;"></div>
             </div>
         </div>
     </div>

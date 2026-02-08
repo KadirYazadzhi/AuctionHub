@@ -5,35 +5,55 @@
 <div class="container py-5">
     <div class="row align-items-center mb-5 animate-fade-up">
         <div class="col-lg-6">
-            <span class="badge bg-success-subtle text-success mb-3 px-4 py-2 rounded-pill">Security First</span>
-            <h1 class="display-4 fw-bold mb-4">Your safety is our <span class="text-success">top priority</span>.</h1>
-            <p class="lead text-muted">We use industry-leading technology and manual verification to keep our marketplace safe for everyone.</p>
+            <span class="badge bg-primary-subtle text-primary mb-3 px-4 py-2 rounded-pill">Security First</span>
+            <h1 class="display-4 fw-bold mb-4">Your safety is our <span class="text-primary">top priority</span>.</h1>
+            <p class="lead text-muted">We use industry-leading technology and rigorous manual verification to keep our marketplace secure and transparent for everyone.</p>
         </div>
-        <div class="col-lg-6 text-center">
-            <i class="bi bi-shield-lock-fill display-1 text-success opacity-25"></i>
+        <div class="col-lg-6 text-center d-none d-lg-block">
+            <div class="icon-box-xl bg-primary-subtle text-primary rounded-circle d-inline-flex align-items-center justify-content-center mx-auto opacity-75" style="width: 180px; height: 180px;">
+                <i class="bi bi-shield-lock-fill" style="font-size: 5rem;"></i>
+            </div>
         </div>
     </div>
 
     <div class="row g-4 animate-fade-up delay-100">
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm rounded-5 h-100 p-4 bg-white">
-                <i class="bi bi-wallet2 fs-1 text-success mb-3"></i>
-                <h4 class="fw-bold">Secure Escrow</h4>
-                <p class="text-muted small">All bid funds are held in a secure escrow system until the transaction is successfully completed.</p>
+            <div class="card border-0 shadow-sm rounded-5 h-100 p-5 bg-white text-center">
+                <div class="icon-box-md bg-primary text-white rounded-circle mb-4 mx-auto d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                    <i class="bi bi-wallet2 fs-3"></i>
+                </div>
+                <h4 class="fw-bold mb-3">Secure Escrow</h4>
+                <p class="text-muted small mb-0">All bid funds are held in a secure escrow system. Funds are only transferred to the seller once the item is confirmed as received and accurate.</p>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm rounded-5 h-100 p-4 bg-white">
-                <i class="bi bi-person-check fs-1 text-success mb-3"></i>
-                <h4 class="fw-bold">Verified Users</h4>
-                <p class="text-muted small">We verify seller identities and maintain a strict reporting system to eliminate fraudulent activity.</p>
+            <div class="card border-0 shadow-sm rounded-5 h-100 p-5 bg-white text-center">
+                <div class="icon-box-md bg-primary text-white rounded-circle mb-4 mx-auto d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                    <i class="bi bi-person-check fs-3"></i>
+                </div>
+                <h4 class="fw-bold mb-3">Verified Users</h4>
+                <p class="text-muted small mb-0">We verify identities and maintain a strict behavior-based reporting system. Bad actors are permanently removed to ensure a clean community.</p>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm rounded-5 h-100 p-4 bg-white">
-                <i class="bi bi-eye fs-1 text-success mb-3"></i>
-                <h4 class="fw-bold">Auction Audits</h4>
-                <p class="text-muted small">Our administration team manually reviews high-value auctions to ensure descriptions and images are accurate.</p>
+            <div class="card border-0 shadow-sm rounded-5 h-100 p-5 bg-white text-center">
+                <div class="icon-box-md bg-primary text-white rounded-circle mb-4 mx-auto d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                    <i class="bi bi-eye fs-3"></i>
+                </div>
+                <h4 class="fw-bold mb-3">Auction Audits</h4>
+                <p class="text-muted small mb-0">Our administration team manually reviews listings and bidding patterns to detect and prevent fraud, shilling, or deceptive descriptions.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-5 p-5 bg-light rounded-5 border-0 animate-fade-up delay-200">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h3 class="fw-bold mb-2">Reporting a Problem</h3>
+                <p class="text-muted mb-0">If you encounter any suspicious activity or have a dispute with a transaction, our safety team is here to help.</p>
+            </div>
+            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                <a asp-action="About" class="btn btn-primary rounded-pill px-5 py-3 fw-bold shadow-sm">Report Activity</a>
             </div>
         </div>
     </div>
