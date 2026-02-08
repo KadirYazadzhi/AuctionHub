@@ -21,17 +21,107 @@ public class HomeController : Controller {
 
     
 
-        public IActionResult About()
-
-        {
-
-            return View();
-
-        }
+            public IActionResult About()
 
     
 
-        public IActionResult Privacy()
+            {
+
+    
+
+                return View();
+
+    
+
+            }
+
+    
+
+        
+
+    
+
+            public IActionResult HelpCenter()
+
+    
+
+            {
+
+    
+
+                return View();
+
+    
+
+            }
+
+    
+
+        
+
+    
+
+            public IActionResult TrustAndSafety()
+
+    
+
+            {
+
+    
+
+                return View();
+
+    
+
+            }
+
+    
+
+        
+
+    
+
+            public IActionResult SellingTips()
+
+    
+
+            {
+
+    
+
+                return View();
+
+    
+
+            }
+
+    
+
+        
+
+    
+
+            public IActionResult TermsOfService()
+
+    
+
+            {
+
+    
+
+                return View();
+
+    
+
+            }
+
+    
+
+        
+
+    
+
+            public IActionResult Privacy()
 
         {
 
