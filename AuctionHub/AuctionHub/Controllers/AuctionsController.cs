@@ -340,6 +340,7 @@ public class AuctionsController : Controller
         if (user == null) return NotFound();
 
         ViewData["TargetUser"] = user.DisplayName;
+        ViewData["TargetUserImage"] = user.ProfilePictureUrl;
         ViewData["CurrentSort"] = sortOrder;
         ViewData["CurrentSearch"] = searchTerm;
         ViewData["CurrentCategory"] = categoryId;

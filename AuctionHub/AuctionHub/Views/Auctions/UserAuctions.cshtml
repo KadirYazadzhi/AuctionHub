@@ -1,6 +1,7 @@
 @model AuctionHub.Models.PaginatedList<AuctionHub.Models.ViewModels.AuctionListViewModel>
 @{
     var targetUser = ViewData["TargetUser"] as string;
+    var targetUserImage = ViewData["TargetUserImage"] as string;
     ViewData["Title"] = $"{targetUser}'s Auctions";
     var categories = ViewBag.Categories as IEnumerable<SelectListItem>;
     var currentSort = ViewData["CurrentSort"] as string;
@@ -16,8 +17,15 @@
     <div class="card border-0 shadow-sm rounded-5 bg-white mb-5 animate-fade-up">
         <div class="card-body p-4 p-lg-5">
             <div class="d-flex align-items-center">
-                <div class="avatar-lg bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-4" style="width: 80px; height: 80px;">
-                    <i class="bi bi-person-fill fs-1"></i>
+                <div class="avatar-lg bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-4 overflow-hidden" style="width: 80px; height: 80px;">
+                    @if (!string.IsNullOrEmpty(targetUserImage))
+                    {
+                        <img src="@targetUserImage" class="w-100 h-100 object-fit-cover" alt="@targetUser" />
+                    }
+                    else
+                    {
+                        <i class="bi bi-person-fill fs-1"></i>
+                    }
                 </div>
                 <div>
                     <h6 class="text-uppercase text-muted small fw-bold mb-1 letter-spacing-1">Seller Profile</h6>

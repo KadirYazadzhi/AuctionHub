@@ -17,8 +17,15 @@
 
     <li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <div class="avatar-xs bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
-                <i class="bi bi-person-fill"></i>
+            <div class="avatar-xs bg-primary text-white rounded-circle d-flex align-items-center justify-content-center overflow-hidden" style="width: 32px; height: 32px;">
+                @if (!string.IsNullOrEmpty(currentUser?.ProfilePictureUrl))
+                {
+                    <img src="@currentUser.ProfilePictureUrl" class="w-100 h-100 object-fit-cover" alt="@currentUser.DisplayName" />
+                }
+                else
+                {
+                    <i class="bi bi-person-fill"></i>
+                }
             </div>
             <span class="fw-bold d-none d-lg-inline">@currentUser?.DisplayName</span>
         </a>

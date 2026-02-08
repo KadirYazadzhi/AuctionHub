@@ -15,6 +15,9 @@ public class ApplicationUser : IdentityUser
     [Column(TypeName = "decimal(18,2)")]
     public decimal WalletBalance { get; set; } = 0.00m;
 
+    [StringLength(200)]
+    public string? ProfilePictureUrl { get; set; }
+
     [NotMapped]
     public string DisplayName 
     {

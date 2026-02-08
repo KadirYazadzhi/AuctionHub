@@ -10,16 +10,20 @@ namespace AuctionHub.Areas.Identity.Pages.Account.Manage
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly IWebHostEnvironment _webHostEnvironment;
 
         public IndexModel(
             UserManager<ApplicationUser> userManager,
-            SignInManager<ApplicationUser> signInManager)
+            SignInManager<ApplicationUser> signInManager,
+            IWebHostEnvironment webHostEnvironment)
         {
             _userManager = userManager;
             _signInManager = signInManager;
+            _webHostEnvironment = webHostEnvironment;
         }
 
         public string Username { get; set; } = null!;
+        public string? CurrentProfilePictureUrl { get; set; }
 
         [TempData]
         public string StatusMessage { get; set; } = null!;
@@ -42,6 +46,9 @@ namespace AuctionHub.Areas.Identity.Pages.Account.Manage
             [StringLength(50, MinimumLength = 2)]
             [Display(Name = "Last Name")]
             public string LastName { get; set; } = null!;
+
+            [Display(Name = "Profile Picture")]
+            public IFormFile? ProfilePicture { get; set; }
         }
 
         private async Task LoadAsync(ApplicationUser user)
@@ -50,6 +57,7 @@ namespace AuctionHub.Areas.Identity.Pages.Account.Manage
             var phoneNumber = await _userManager.GetPhoneNumberAsync(user);
 
             Username = userName!;
+            CurrentProfilePictureUrl = user.ProfilePictureUrl;
 
             Input = new InputModel
             {
@@ -83,6 +91,50 @@ namespace AuctionHub.Areas.Identity.Pages.Account.Manage
             {
                 await LoadAsync(user);
                 return Page();
+            }
+
+            // Image Upload Logic
+            if (Input.ProfilePicture != null)
+            {
+                if (Input.ProfilePicture.Length > 2 * 1024 * 1024) // 2MB limit
+                {
+                    ModelState.AddModelError("Input.ProfilePicture", "The profile picture must be less than 2MB.");
+                    await LoadAsync(user);
+                    return Page();
+                }
+
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+                var extension = Path.GetExtension(Input.ProfilePicture.FileName).ToLowerInvariant();
+                if (!allowedExtensions.Contains(extension))
+                {
+                    ModelState.AddModelError("Input.ProfilePicture", "Invalid file type. Only .jpg, .jpeg, .png, and .webp are allowed.");
+                    await LoadAsync(user);
+                    return Page();
+                }
+
+                // Delete old picture if exists and is local
+                if (!string.IsNullOrEmpty(user.ProfilePictureUrl) && user.ProfilePictureUrl.StartsWith("/images/profiles/"))
+                {
+                    var oldPath = Path.Combine(_webHostEnvironment.WebRootPath, user.ProfilePictureUrl.TrimStart('/'));
+                    if (System.IO.File.Exists(oldPath))
+                    {
+                        System.IO.File.Delete(oldPath);
+                    }
+                }
+
+                // Save new picture
+                string uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "images", "profiles");
+                Directory.CreateDirectory(uploadsFolder);
+                string uniqueFileName = $"{user.Id}_{Guid.NewGuid()}{extension}";
+                string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                {
+                    await Input.ProfilePicture.CopyToAsync(fileStream);
+                }
+
+                user.ProfilePictureUrl = $"/images/profiles/{uniqueFileName}";
+                await _userManager.UpdateAsync(user); // Save URL to DB
             }
 
             var phoneNumber = await _userManager.GetPhoneNumberAsync(user);
