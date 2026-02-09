@@ -27,13 +27,13 @@
             <div class="collapse navbar-collapse" id="navbarContent">
                 <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
                     <li class="nav-item">
-                        <a class="nav-link" asp-controller="Home" asp-action="Index">Home</a>
+                        <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" asp-controller="Auctions" asp-action="Index">Explore</a>
+                        <a class="nav-link" asp-area="" asp-controller="Auctions" asp-action="Index">Explore</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" asp-controller="Home" asp-action="About">About</a>
+                        <a class="nav-link" asp-area="" asp-controller="Home" asp-action="About">About</a>
                     </li>
                 </ul>
                 
@@ -44,14 +44,14 @@
                     
                     @if (User.Identity?.IsAuthenticated ?? false)
                     {
-                        <a class="btn btn-link nav-link position-relative me-3" asp-controller="Notifications" asp-action="Index" title="Notifications">
+                        <a class="btn btn-link nav-link position-relative me-3" asp-area="" asp-controller="Notifications" asp-action="Index" title="Notifications">
                             <i class="bi bi-bell-fill fs-5"></i>
                             <span id="notificationBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" style="font-size: 0.6rem;">
                                 0
                             </span>
                         </a>
 
-                        <a class="btn btn-primary rounded-pill px-4 me-3" asp-controller="Auctions" asp-action="Create">
+                        <a class="btn btn-primary rounded-pill px-4 me-3" asp-area="" asp-controller="Auctions" asp-action="Create">
                             <i class="bi bi-plus-lg me-1"></i> Sell Item
                         </a>
                         <partial name="_LoginPartial" />

@@ -10,7 +10,7 @@
     var balance = currentUser?.WalletBalance ?? 0.00m;
 
     <li class="nav-item me-2">
-        <a class="btn btn-sm btn-light rounded-pill border fw-bold text-primary px-3" asp-controller="Wallet" asp-action="Index" title="My Wallet">
+        <a class="btn btn-sm btn-light rounded-pill border fw-bold text-primary px-3" asp-area="" asp-controller="Wallet" asp-action="Index" title="My Wallet">
             <i class="bi bi-wallet2 me-1"></i> @balance.ToString("C")
         </a>
     </li>
@@ -51,22 +51,22 @@
                 </a>
             </li>
             <li>
-                <a class="dropdown-item py-2 px-3" asp-controller="Auctions" asp-action="MyWatchlist">
+                <a class="dropdown-item py-2 px-3" asp-area="" asp-controller="Auctions" asp-action="MyWatchlist">
                     <i class="bi bi-star-fill me-2 text-warning"></i>Watchlist
                 </a>
             </li>
             <li>
-                <a class="dropdown-item py-2 px-3" asp-controller="Auctions" asp-action="MyAuctions">
+                <a class="dropdown-item py-2 px-3" asp-area="" asp-controller="Auctions" asp-action="MyAuctions">
                     <i class="bi bi-tag-fill me-2"></i>My Listings
                 </a>
             </li>
             <li>
-                <a class="dropdown-item py-2 px-3" asp-controller="Auctions" asp-action="MyBids">
+                <a class="dropdown-item py-2 px-3" asp-area="" asp-controller="Auctions" asp-action="MyBids">
                     <i class="bi bi-hammer me-2"></i>My Bids
                 </a>
             </li>
             <li>
-                <a class="dropdown-item py-2 px-3" asp-controller="Wallet" asp-action="Index">
+                <a class="dropdown-item py-2 px-3" asp-area="" asp-controller="Wallet" asp-action="Index">
                     <i class="bi bi-credit-card-2-front me-2"></i>Wallet & History
                 </a>
             </li>
