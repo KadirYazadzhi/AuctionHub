@@ -1,137 +1,123 @@
-# 🔨 AuctionHub
+# 🔨 AuctionHub v2.0
 
 ![Build Status](https://img.shields.io/badge/Build-Passing-success?style=for-the-badge&logo=github)
 ![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?style=for-the-badge&logo=dotnet)
-![Status](https://img.shields.io/badge/Status-Active%20Development-blue?style=for-the-badge)
+![Status](https://img.shields.io/badge/Status-Completed-success?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
-> **Note:** This project is developed as part of the SoftUni ASP.NET Fundamentals course.
-
-## 📖 Overview
-
-**AuctionHub** is a sophisticated online auction marketplace designed to deliver a premium user experience. It bridges the gap between buyers and sellers with a modern, secure, and intuitive platform.
-
-Unlike standard template-based projects, AuctionHub features a completely **custom-designed user interface** focused on usability ("Glassmorphism" aesthetic), responsiveness, and smooth micro-interactions. It demonstrates a robust implementation of relational data models within a clean **ASP.NET Core MVC** architecture.
+> **AuctionHub** is a premium, feature-rich online auction marketplace built with ASP.NET Core 8.0. It bridges the gap between buyers and sellers with a modern "Glassmorphism" UI, real-time-like interactivity, and a robust financial system.
 
 ---
 
-## ✨ Key Features & Highlights
+## 🌟 Key Features & Implementation
 
-### 🎨 Modern User Interface (New in v2.0)
-The application has undergone a complete visual overhaul to meet 2026 web standards:
-*   **Glassmorphism Design:** Translucent navigation bars and frosted glass effects for a sleek, airy feel.
-*   **Inter Typography:** Utilizing the 'Inter' font family for professional-grade readability.
-*   **Interactive Elements:** Smooth `fade-in-up` animations, `hover-lift` card effects, and soft shadows.
-*   **Dark Mode Support:** Fully integrated, automatic dark theme that respects user preferences.
-*   **Responsive Layout:** Optimized for all screen sizes using Bootstrap 5 grid system.
-
-### 👤 Identity & Security
-*   **Custom Auth Pages:** Login and Register pages are fully customized to match the site's brand, moving away from the default Identity UI.
-*   **Role-Based Access:** 
-    *   **Guests:** Can browse auctions and search.
-    *   **Users:** Can create listings, place bids, and manage their profile.
-    *   **Admins:** (Coming Soon) Can moderate content.
-*   **Data Protection:** Secure password hashing and protection against CSRF/XSS attacks.
+### 🎨 Modern User Experience (UI/UX)
+*   **Glassmorphism Design:** A cohesive visual language using translucent cards (`rounded-5`), soft shadows, and gradients.
+*   **Responsive Layout:** Fully optimized for mobile, tablet, and desktop using Bootstrap 5 grid.
+*   **Public Profiles:** Clickable seller names lead to a dedicated profile page filtering their active listings.
+*   **Informational Pages:** Dedicated pages for *Help Center* (FAQ), *Trust & Safety*, and *Selling Tips* with consistent styling.
 
 ### 🛒 Auction Ecosystem
-*   **Create Listings:** Comprehensive form with validation for Title, Description, Start Price, Image URL, and End Date.
-*   **Smart Categorization:** Items are organized into visual categories (Electronics, Art, Antiques, Vehicles) for easy discovery.
-*   **My Auctions:** dedicated dashboard for sellers to track their active listings.
-*   **My Bids:** dedicated dashboard for buyers to see all auctions they are participating in.
+*   **Dynamic Listings:** Create auctions with Title, Description, Start Price, Min Increase, and "Buy It Now" options.
+*   **Advanced Filtering:** Filter by **Price Range**, **Category**, **Status** (Active/Closed), and Sorting (Price/Date) on all listing pages.
+*   **Image Handling:** Secure file upload with validation (Type/Size) and automatic replacement logic.
+*   **Watchlist:** Users can "star" items to track them in a dedicated dashboard.
 
-### 💸 Bidding Logic (Business Rules)
-*   **Validation:**
-    *   Bids must be strictly higher than the current price.
-    *   **Self-Bidding Prevention:** Sellers cannot bid on their own auctions.
-    *   **Time Check:** Bids are rejected if the auction end time has passed.
-*   **Real-Time Updates:** The "Current Price" updates instantly upon a successful bid.
-*   **History:** A transparent list of the last 5 bids is displayed on the auction details page.
+### 💰 Financial System (Wallet & Transactions)
+*   **Digital Wallet:** Every user has a secure wallet for deposits and payments.
+*   **Escrow Logic:**
+    *   When a bid is placed, funds are **locked** (deducted immediately).
+    *   If outbid, funds are **automatically refunded** to the previous bidder.
+    *   "Buy It Now" instantly transfers funds and closes the auction.
+*   **Transaction History:** A global ledger tracks every move (Deposit, Bid, Refund, Purchase) for full transparency.
+
+### 🛡️ Security & Administration
+*   **Admin Panel:** A powerful dashboard (`/Admin`) for system oversight.
+    *   **User Management:** Lock/Unlock accounts, adjust balances manually.
+    *   **Global Ledger:** View all financial transactions in the system.
+    *   **System Announcements:** Send global notifications to all users.
+*   **Roles:** Strict separation between `User` and `Administrator`.
+*   **Concurrency Control:** Uses database transactions to prevent **Race Conditions** (e.g., two users bidding at the exact same millisecond).
+
+### 🤖 Automation & Notifications
+*   **Background Service:** `AuctionCleanupService` runs every minute to:
+    *   Close expired auctions automatically.
+    *   Notify winners ("You won!") and sellers ("Item sold").
+*   **Notification System:** Internal inbox for outbid alerts, sales, and system messages.
+*   **Live Badge:** A notification bell in the navbar polls for new messages every 60 seconds.
+
+### ✅ Testing
+*   **Unit Tests (`AuctionHub.Tests`):** A dedicated xUnit project covers the core `AuctionService`.
+    *   Verifies bidding logic, refund accuracy, self-bidding prevention, and "Buy It Now" execution.
+    *   Uses **Moq** and **InMemoryDatabase** for isolated testing.
 
 ---
 
-## 💾 Data Model
-
-The application uses a relational database designed with **Entity Framework Core Code-First**:
-
-*   **ApplicationUser:** Extends `IdentityUser`. Has collections of `MyAuctions` and `MyBids`.
-*   **Auction:** The core entity.
-    *   `SellerId` (FK to User)
-    *   `CategoryId` (FK to Category)
-    *   `CurrentPrice` / `StartPrice`
-    *   `EndTime`
-*   **Bid:** Represents a transaction attempt.
-    *   `BidderId` (FK to User)
-    *   `AuctionId` (FK to Auction)
-    *   `Amount` / `Timestamp`
-*   **Category:** Grouping entity (`Name`, `Auctions` collection).
-
----
-
-## 🛠️ Tech Stack
+## 🛠️ Technical Stack
 
 | Component | Technology | Description |
 | :--- | :--- | :--- |
-| **Backend** | ASP.NET Core 8.0 | High-performance, cross-platform framework. |
-| **Language** | C# 12 | Using latest language features. |
-| **ORM** | Entity Framework Core | Database access and migration management. |
-| **Database** | Microsoft SQL Server | Reliable relational database storage. |
-| **Frontend** | Razor Views + Bootstrap 5 | Server-side rendering with responsive styling. |
-| **Design** | Custom CSS + Google Fonts | "Inter" font and Glassmorphism custom styles. |
-| **Icons** | Bootstrap Icons | Vector icons for UI elements. |
+| **Framework** | ASP.NET Core 8.0 MVC | The backbone of the application. |
+| **Database** | SQL Server + EF Core | Relational data storage with Code-First migrations. |
+| **Identity** | ASP.NET Core Identity | Secure authentication, registration, and role management. |
+| **Background Tasks** | IHostedService | For the automated auction closer. |
+| **Testing** | xUnit + Moq | For verifying business logic stability. |
+| **Frontend** | Razor + Bootstrap 5 | Server-side rendering with custom CSS variables. |
 
 ---
 
 ## 🚀 Getting Started
 
-Follow these steps to set up the project locally.
-
-### Prerequisites
-*   [.NET 8.0 SDK](https://dotnet.microsoft.com/download) installed.
-*   [SQL Server](https://www.microsoft.com/en-us/sql-server/sql-server-downloads) (LocalDB or full instance).
-*   A code editor like **Visual Studio 2022** or **VS Code**.
-
-### Installation Steps
-
 1.  **Clone the repository**
     ```bash
     git clone https://github.com/YourUsername/AuctionHub.git
-    cd AuctionHub
     ```
-
 2.  **Configure Database**
-    Open `appsettings.json` and ensure the `DefaultConnection` string points to your SQL Server instance.
-    ```json
-    "ConnectionStrings": {
-      "DefaultConnection": "Server=.;Database=AuctionHub;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"
-    }
-    ```
-
+    Update `appsettings.json` with your connection string.
 3.  **Apply Migrations**
-    This will create the database and the schema.
     ```bash
     dotnet ef database update
     ```
-    *Note: The project includes a `DbSeeder` that will automatically populate initial Categories and Test Auctions upon first run.*
-
-4.  **Run the Application**
+4.  **Run the App**
     ```bash
     dotnet run
     ```
-    Open your browser to `https://localhost:7000` (or the port shown in your terminal).
+    *Note: The first run seeds an Admin user (`admin@auctionhub.com` / `Admin123!`) and default categories.*
 
 ---
 
-## 🔮 Roadmap (Future Improvements)
+## 🔮 Roadmap (Future Ideas)
 
-*   [ ] **Admin Panel:** Functionality to delete/edit any auction and manage users.
-*   [ ] **Search & Filtering:** Advanced filters by price range and end date.
-*   [ ] **Images Upload:** Replace Image URL with real file upload handling.
-*   [ ] **SignalR Integration:** Live price updates without refreshing the page.
-*   [ ] **Watchlist:** Ability to "star" auctions and get notifications.
+Here is a comprehensive list of features planned for future development (e.g., for the ASP.NET Advanced course):
+
+### 1. Real-Time Interactivity (SignalR)
+*   **Live Bidding:** Price updates instantly on everyone's screen without refreshing.
+*   **Live Chat:** A chat room for each auction or direct messages between buyer and seller.
+*   **Push Notifications:** Toast notifications that pop up even if you are on a different tab.
+
+### 2. Advanced Payments
+*   **Stripe/PayPal Integration:** Replace the "Mock Wallet" with real payment processing.
+*   **Payouts:** Allow sellers to withdraw their wallet balance to a bank account.
+
+### 3. Social & Reputation
+*   **Rating System:** Buyers and Sellers rate each other (1-5 stars) after a transaction.
+*   **Comments/Q&A:** A public comment section under each auction for asking details about the item.
+*   **Social Login:** Login with Google/Facebook.
+
+### 4. Technical Enhancements
+*   **Web API:** Expose listing data via REST API for a future mobile app (React Native/Flutter).
+*   **Cloud Storage:** Move images to Azure Blob Storage or AWS S3 instead of local `wwwroot`.
+*   **Redis Caching:** Cache the "Explore" page to handle thousands of concurrent users.
+
+### 5. Gamification
+*   **Badges:** Awards for "Top Seller", "Early Adopter", or "Verified Collector".
+*   **Leaderboards:** "Most Active Bidders" or "Highest Sales" lists.
+
+---
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please fork the repository and create a Pull Request for any features or bug fixes.
+This project was developed as part of the SoftUni ASP.NET Fundamentals course. Contributions are welcome!
 
 ## 📜 License
 
