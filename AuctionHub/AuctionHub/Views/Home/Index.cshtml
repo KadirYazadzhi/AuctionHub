@@ -76,13 +76,15 @@
 <style>
     .stat-card {
         background-color: transparent;
+        border-radius: 2rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
         transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
     }
     .stat-card:hover {
         background-color: var(--bs-primary);
         border-color: var(--bs-primary) !important;
         transform: translateY(-10px);
-        shadow: 0 1rem 3rem rgba(67, 97, 238, 0.175);
+        box-shadow: 0 1rem 3rem rgba(67, 97, 238, 0.15);
     }
     .stat-card:hover h2, 
     .stat-card:hover p {
