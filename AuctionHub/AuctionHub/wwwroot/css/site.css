@@ -196,6 +196,8 @@ footer {
 .text-muted-custom { color: var(--text-muted) !important; }
 .shadow-soft { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
 .rounded-xl { border-radius: var(--radius-xl) !important; }
+.rounded-4 { border-radius: 1rem !important; }
+.rounded-5 { border-radius: 2rem !important; }
 
 /* Form Controls */
 .form-control, .form-select {
