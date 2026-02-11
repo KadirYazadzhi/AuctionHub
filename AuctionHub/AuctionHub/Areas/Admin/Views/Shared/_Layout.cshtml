@@ -6,45 +6,45 @@
     <div class="row g-4">
         <!-- Sidebar Navigation -->
         <div class="col-lg-2">
-            <div class="card border-0 shadow-sm rounded-4 sticky-top" style="top: 100px;">
+            <div class="card admin-sidebar-card border-0 shadow-sm rounded-4 sticky-top" style="top: 100px;">
                 <div class="card-body p-0 overflow-hidden">
                     <div class="bg-primary bg-gradient p-4 text-center text-white">
                         <div class="icon-box-lg bg-white text-primary rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center shadow-sm" style="width: 60px; height: 60px;">
-                            <i class="bi bi-shield-lock-fill fs-3"></i>
+                            <i class="bi bi-shield-lock-fill fs-3 text-primary"></i>
                         </div>
-                        <h6 class="fw-bold mb-0">Admin Panel</h6>
-                        <small class="opacity-75">Management Console</small>
+                        <h6 class="fw-bold mb-0 text-white">Admin Panel</h6>
+                        <small class="text-white opacity-75">Management Console</small>
                     </div>
                     
                     <div class="list-group list-group-flush border-0">
                         <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" 
-                           class="list-group-item list-group-item-action border-0 px-4 py-3 @(ViewContext.RouteData.Values["controller"]?.ToString() == "Dashboard" ? "active-admin-link bg-primary-subtle text-primary fw-bold" : "text-muted hover-bg-light")">
+                           class="list-group-item list-group-item-action border-0 px-4 py-3 @(ViewContext.RouteData.Values["controller"]?.ToString() == "Dashboard" ? "active-admin-link" : "admin-nav-link")">
                             <i class="bi bi-speedometer2 me-3"></i> Dashboard
                         </a>
                         <a asp-area="Admin" asp-controller="Auctions" asp-action="Index" 
-                           class="list-group-item list-group-item-action border-0 px-4 py-3 @(ViewContext.RouteData.Values["controller"]?.ToString() == "Auctions" ? "active-admin-link bg-primary-subtle text-primary fw-bold" : "text-muted hover-bg-light")">
-                            <i class="bi bi-hammer me-3"></i> Manage Auctions
+                           class="list-group-item list-group-item-action border-0 px-4 py-3 @(ViewContext.RouteData.Values["controller"]?.ToString() == "Auctions" ? "active-admin-link" : "admin-nav-link")">
+                            <i class="bi bi-hammer me-3"></i> Auctions
                         </a>
                         <a asp-area="Admin" asp-controller="Users" asp-action="Index" 
-                           class="list-group-item list-group-item-action border-0 px-4 py-3 @(ViewContext.RouteData.Values["controller"]?.ToString() == "Users" ? "active-admin-link bg-primary-subtle text-primary fw-bold" : "text-muted hover-bg-light")">
+                           class="list-group-item list-group-item-action border-0 px-4 py-3 @(ViewContext.RouteData.Values["controller"]?.ToString() == "Users" ? "active-admin-link" : "admin-nav-link")">
                             <i class="bi bi-people me-3"></i> Users
                         </a>
                         <a asp-area="Admin" asp-controller="Transactions" asp-action="Index" 
-                           class="list-group-item list-group-item-action border-0 px-4 py-3 @(ViewContext.RouteData.Values["controller"]?.ToString() == "Transactions" ? "active-admin-link bg-primary-subtle text-primary fw-bold" : "text-muted hover-bg-light")">
+                           class="list-group-item list-group-item-action border-0 px-4 py-3 @(ViewContext.RouteData.Values["controller"]?.ToString() == "Transactions" ? "active-admin-link" : "admin-nav-link")">
                             <i class="bi bi-cash-stack me-3"></i> Transactions
                         </a>
                         <a asp-area="Admin" asp-controller="Messages" asp-action="Index" 
-                           class="list-group-item list-group-item-action border-0 px-4 py-3 @(ViewContext.RouteData.Values["controller"]?.ToString() == "Messages" ? "active-admin-link bg-primary-subtle text-primary fw-bold" : "text-muted hover-bg-light")">
+                           class="list-group-item list-group-item-action border-0 px-4 py-3 @(ViewContext.RouteData.Values["controller"]?.ToString() == "Messages" ? "active-admin-link" : "admin-nav-link")">
                             <i class="bi bi-inbox-fill me-3"></i> Inbox
                         </a>
                         <a asp-area="Admin" asp-controller="Categories" asp-action="Index" 
-                           class="list-group-item list-group-item-action border-0 px-4 py-3 @(ViewContext.RouteData.Values["controller"]?.ToString() == "Categories" ? "active-admin-link bg-primary-subtle text-primary fw-bold" : "text-muted hover-bg-light")">
+                           class="list-group-item list-group-item-action border-0 px-4 py-3 @(ViewContext.RouteData.Values["controller"]?.ToString() == "Categories" ? "active-admin-link" : "admin-nav-link")">
                             <i class="bi bi-tags me-3"></i> Categories
                         </a>
                     </div>
                     
                     <div class="p-4 border-top">
-                        <a asp-area="" asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary w-100 rounded-pill">
+                        <a asp-area="" asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary w-100 rounded-pill border-opacity-25">
                             <i class="bi bi-arrow-left me-2"></i> Exit Admin
                         </a>
                     </div>
@@ -54,7 +54,7 @@
 
         <!-- Main Admin Content -->
         <div class="col-lg-10">
-            <div class="card border-0 shadow-sm rounded-4 min-vh-100">
+            <div class="admin-content-card border-0 shadow-sm rounded-4 min-vh-100">
                 <div class="card-body p-4 p-lg-5">
                     @if (TempData["Success"] != null)
                     {
@@ -79,12 +79,38 @@
 </div>
 
 <style>
+    /* Fixed color for Admin Header icon always text-primary regardless of theme */
+    .icon-box-lg i {
+        color: #4f46e5 !important;
+    }
+
+    /* Support for both Light and Dark modes */
+    .admin-nav-link {
+        color: var(--text-muted) !important;
+        background-color: transparent !important;
+    }
+    
+    .admin-nav-link:hover {
+        background-color: rgba(var(--bs-primary-rgb), 0.05) !important;
+        color: var(--bs-primary) !important;
+    }
+
     .active-admin-link {
+        background-color: rgba(var(--bs-primary-rgb), 0.1) !important;
+        color: var(--bs-primary) !important;
+        font-weight: 700 !important;
         border-left: 4px solid var(--bs-primary) !important;
     }
-    .hover-bg-light:hover {
-        background-color: var(--bs-light);
-        color: var(--bs-primary) !important;
+
+    /* Card consistency in dark mode */
+    [data-bs-theme="dark"] .admin-content-card,
+    [data-bs-theme="dark"] .admin-sidebar-card {
+        background-color: var(--bg-white) !important;
+        border: 1px solid var(--border-color) !important;
+    }
+
+    [data-bs-theme="dark"] .list-group-item {
+        background-color: transparent !important;
     }
 </style>
 

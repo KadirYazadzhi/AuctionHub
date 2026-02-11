@@ -3,7 +3,7 @@
     ViewData["Title"] = "User Details";
 }
 
-<div class="row g-4 animate-fade-up">
+<div class="row g-4">
     <!-- User Info Card -->
     <div class="col-md-4">
         <div class="card border-0 shadow-sm rounded-5 overflow-hidden text-center p-4 h-100">
@@ -35,7 +35,7 @@
     </div>
 
     <!-- Activity Tabs -->
-    <div class="col-md-8">
+    <div class="col-md-8 animate-fade-up delay-100">
         <div class="card border-0 shadow-sm rounded-5 h-100">
             <div class="card-header bg-white border-0 p-4">
                 <ul class="nav nav-pills nav-fill bg-light rounded-pill p-1" id="userTabs" role="tablist">
@@ -101,7 +101,13 @@
     </div>
 </div>
 
-<!-- Balance Modal -->
+<style>
+    #userTabs .nav-link.active {
+        color: white !important;
+    }
+</style>
+
+<!-- Modal - PLACED OUTSIDE THE ANIMATED DIV TO FIX UI BUG -->
 <div class="modal fade" id="balanceModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 rounded-5 shadow-lg">

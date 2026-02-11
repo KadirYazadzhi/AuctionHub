@@ -130,6 +130,13 @@ a {
     background-color: var(--bg-white);
 }
 
+.admin-content-card {
+    background-color: var(--bg-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
 /* Footer */
 footer {
     background-color: var(--bg-white);

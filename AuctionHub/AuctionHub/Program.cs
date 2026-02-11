@@ -71,22 +71,29 @@ using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     var context = services.GetRequiredService<AuctionHubDbContext>();
-    // Automatic migration for development
-    context.Database.Migrate();
     
-    // Fix users without UserNames or with Email as UserName
-    var usersToFix = await context.Users.Where(u => u.UserName == null || u.UserName == "" || u.UserName.Contains("@")).ToListAsync();
-    foreach (var user in usersToFix)
+    // Use Async Migration to prevent blocking the main thread
+    await context.Database.MigrateAsync();
+    
+    // Fix users without UserNames or with Email as UserName (Optimized)
+    var usersToFix = await context.Users
+        .Where(u => string.IsNullOrEmpty(u.UserName) || u.UserName.Contains("@"))
+        .ToListAsync();
+
+    if (usersToFix.Any())
     {
-        var source = !string.IsNullOrEmpty(user.UserName) ? user.UserName : user.Email;
-        if (!string.IsNullOrEmpty(source) && source.Contains("@"))
+        foreach (var user in usersToFix)
         {
-            user.UserName = source.Split('@')[0];
+            var source = !string.IsNullOrEmpty(user.UserName) ? user.UserName : user.Email;
+            if (!string.IsNullOrEmpty(source) && source.Contains("@"))
+            {
+                user.UserName = source.Split('@')[0];
+            }
         }
+        await context.SaveChangesAsync();
     }
-    if (usersToFix.Any()) await context.SaveChangesAsync();
 
     await DbSeeder.SeedAsync(services);
 }
 
-app.Run();
+await app.RunAsync();
