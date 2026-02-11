@@ -35,8 +35,15 @@ public class AuctionsController : Controller
         ViewData["MaxPrice"] = maxPrice;
         ViewData["Status"] = status;
         
+        // Get Admin IDs to exclude their test auctions from public view
+        var adminRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Administrator");
+        var adminIds = adminRole != null 
+            ? await _context.UserRoles.Where(ur => ur.RoleId == adminRole.Id).Select(ur => ur.UserId).ToListAsync() 
+            : new List<string>();
+
         var query = _context.Auctions
             .Include(a => a.Category)
+            .Where(a => !adminIds.Contains(a.SellerId)) // Hide Admin auctions
             .AsQueryable();
 
         // Status Filtering
@@ -275,9 +282,14 @@ public class AuctionsController : Controller
 
         var myBids = _context.Bids.Where(b => b.BidderId == currentUserId);
         
+        var adminRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Administrator");
+        var adminIds = adminRole != null 
+            ? await _context.UserRoles.Where(ur => ur.RoleId == adminRole.Id).Select(ur => ur.UserId).ToListAsync() 
+            : new List<string>();
+
         var query = _context.Auctions
             .Include(a => a.Category)
-            .Where(a => myBids.Any(b => b.AuctionId == a.Id));
+            .Where(a => myBids.Any(b => b.AuctionId == a.Id) && !adminIds.Contains(a.SellerId));
 
         // Filtering
         if (!string.IsNullOrEmpty(status))
@@ -338,6 +350,16 @@ public class AuctionsController : Controller
 
         var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == username);
         if (user == null) return NotFound();
+
+        // Check if target user is an Admin
+        var adminRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Administrator");
+        bool targetIsAdmin = adminRole != null && await _context.UserRoles.AnyAsync(ur => ur.UserId == user.Id && ur.RoleId == adminRole.Id);
+        
+        // If target is admin and current viewer is not admin, hide content
+        if (targetIsAdmin && !User.IsInRole("Administrator"))
+        {
+            return NotFound(); // Or redirect to Home with a message
+        }
 
         ViewData["TargetUser"] = user.DisplayName;
         ViewData["TargetUserImage"] = user.ProfilePictureUrl;
@@ -620,11 +642,17 @@ public class AuctionsController : Controller
         ViewData["MaxPrice"] = maxPrice;
         ViewData["Status"] = status;
         
+        var adminRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Administrator");
+        var adminIds = adminRole != null 
+            ? await _context.UserRoles.Where(ur => ur.RoleId == adminRole.Id).Select(ur => ur.UserId).ToListAsync() 
+            : new List<string>();
+
         var query = _context.Watchlist
             .Where(w => w.UserId == currentUserId)
             .Include(w => w.Auction)
             .ThenInclude(a => a.Category)
             .Select(w => w.Auction)
+            .Where(a => !adminIds.Contains(a.SellerId))
             .AsQueryable();
 
         // Filtering Logic (Reused)
