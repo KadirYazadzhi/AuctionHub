@@ -40,6 +40,8 @@ public class Auction
 
     public bool IsActive { get; set; } = true;
 
+    public bool IsSuspended { get; set; } = false;
+
     [Timestamp]
     public byte[] RowVersion { get; set; } = null!;
 

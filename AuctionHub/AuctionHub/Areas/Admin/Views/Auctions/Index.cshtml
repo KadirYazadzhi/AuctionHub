@@ -50,6 +50,10 @@
                                 {
                                     <span class="badge bg-success-subtle text-success rounded-pill px-3">Active</span>
                                 }
+                                else if (item.IsSuspended)
+                                {
+                                    <span class="badge bg-danger-subtle text-danger rounded-pill px-3">Suspended</span>
+                                }
                                 else
                                 {
                                     <span class="badge bg-secondary-subtle text-secondary rounded-pill px-3">Closed</span>
@@ -61,11 +65,14 @@
                                        class="btn btn-sm btn-outline-primary rounded-pill" title="View">
                                         <i class="bi bi-eye-fill"></i>
                                     </a>
-                                    <form asp-action="Delete" asp-route-id="@item.Id" method="post" onsubmit="return confirm('ADMIN WARNING: This will permanently delete the auction and all associated bids. Continue?');">
-                                        <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3 shadow-sm" title="Delete">
-                                            <i class="bi bi-trash-fill"></i>
-                                        </button>
-                                    </form>
+                                    @if (!item.IsSuspended)
+                                    {
+                                        <form asp-action="Delete" asp-route-id="@item.Id" method="post" onsubmit="return confirm('ADMIN WARNING: This will SUSPEND the auction and refund all bids. Continue?');">
+                                            <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3 shadow-sm" title="Suspend">
+                                                <i class="bi bi-ban"></i> Suspend
+                                            </button>
+                                        </form>
+                                    }
                                 </div>
                             </td>
                         </tr>

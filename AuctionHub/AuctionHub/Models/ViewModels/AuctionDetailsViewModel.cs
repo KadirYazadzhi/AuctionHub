@@ -30,6 +30,8 @@ public class AuctionDetailsViewModel
 
     public bool IsActive { get; set; }
 
+    public bool IsSuspended { get; set; }
+
     public bool IsWatched { get; set; } // Added
 
     public IEnumerable<BidViewModel> Bids { get; set; } = new List<BidViewModel>();

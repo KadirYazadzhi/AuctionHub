@@ -109,4 +109,18 @@
             <a asp-controller="Transactions" asp-action="Index" class="btn btn-outline-warning w-100 rounded-pill fw-bold">View Ledger</a>
         </div>
     </div>
+
+    <!-- Inbox -->
+    <div class="col-md-4">
+        <div class="p-4 bg-white rounded-5 shadow-sm h-100 border-0">
+            <div class="d-flex align-items-center mb-3">
+                <div class="icon-box-md bg-info-subtle text-info rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                    <i class="bi bi-inbox-fill"></i>
+                </div>
+                <h5 class="fw-bold mb-0">Inbox</h5>
+            </div>
+            <p class="text-muted small mb-4">Read and manage inquiries from the public contact form.</p>
+            <a asp-controller="Messages" asp-action="Index" class="btn btn-outline-info w-100 rounded-pill fw-bold">View Messages</a>
+        </div>
+    </div>
 </div>

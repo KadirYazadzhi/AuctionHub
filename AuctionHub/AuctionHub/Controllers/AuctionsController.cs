@@ -146,6 +146,7 @@ public class AuctionsController : Controller
             Seller = auction.Seller.DisplayName,
             SellerId = auction.SellerId,
             IsActive = auction.IsActive && auction.EndTime > DateTime.UtcNow,
+            IsSuspended = auction.IsSuspended,
             IsWatched = isWatched,
             Bids = auction.Bids
                 .OrderByDescending(b => b.BidTime)

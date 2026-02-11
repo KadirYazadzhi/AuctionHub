@@ -93,11 +93,18 @@
 
                     <!-- Pricing Display -->
                     <div class="p-4 rounded-5 mb-4 text-center" style="background: linear-gradient(135deg, rgba(67, 97, 238, 0.05) 0%, rgba(67, 97, 238, 0.1) 100%); border: 1px solid rgba(67, 97, 238, 0.1);">
+                        @if (Model.IsSuspended)
+                        {
+                            <div class="badge bg-danger rounded-pill px-4 py-2 mb-3 shadow-sm">
+                                <i class="bi bi-slash-circle-fill me-2"></i> SUSPENDED BY ADMIN
+                            </div>
+                        }
+                        
                         <span class="text-muted small text-uppercase letter-spacing-1 fw-bold mb-2 d-block">Current High Bid</span>
                         <div class="display-3 fw-bolder text-primary mb-1">@Model.CurrentPrice.ToString("C")</div>
                         <div class="d-flex justify-content-center gap-3 mt-3">
-                            <span class="badge @(Model.IsActive ? "bg-success" : "bg-secondary") rounded-pill px-3 py-2">
-                                @(Model.IsActive ? "Active" : "Closed")
+                            <span class="badge @(Model.IsActive ? "bg-success" : (Model.IsSuspended ? "bg-danger" : "bg-secondary")) rounded-pill px-3 py-2">
+                                @(Model.IsActive ? "Active" : (Model.IsSuspended ? "Suspended" : "Closed"))
                             </span>
                             @if(Model.IsActive)
                             {
