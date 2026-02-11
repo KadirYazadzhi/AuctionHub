@@ -1,4 +1,5 @@
 using AuctionHub.Data;
+using AuctionHub.Models;
 using AuctionHub.Models.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
