@@ -1,144 +1,217 @@
 # 🔨 AuctionHub - Premium Digital Marketplace
 
-![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?style=for-the-badge&logo=dotnet)
-![Status](https://img.shields.io/badge/Status-Completed-success?style=for-the-badge)
-![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
-![MVC](https://img.shields.io/badge/Architecture-MVC%20%2B%20Services-blue?style=for-the-badge)
+[![.NET 8.0](https://img.shields.io/badge/.NET-8.0-512BD4?style=flat&logo=dotnet)](https://dotnet.microsoft.com/)
+[![EF Core](https://img.shields.io/badge/EF%20Core-8.0-cyan?style=flat&logo=nuget)](https://docs.microsoft.com/en-us/ef/core/)
+[![Bootstrap](https://img.shields.io/badge/Bootstrap-5.0-7952B3?style=flat&logo=bootstrap)](https://getbootstrap.com/)
+[![License](https://img.shields.io/badge/License-MIT-green?style=flat)](LICENSE)
+[![Status](https://img.shields.io/badge/Status-Completed-success?style=flat)]()
 
-**AuctionHub** is a comprehensive online auction platform designed to provide a secure and engaging environment for trading unique items. Built with a focus on reliability and user experience, the system handles complex financial logic, real-time-like notifications, and advanced administration through a modern, responsive interface.
-
----
-
-## 📖 Table of Contents
-1. [Overview](#-overview)
-2. [Key Features](#-key-features)
-3. [Technical Stack](#-technical-stack)
-4. [Project Architecture](#-architecture)
-5. [Database Schema](#-database-model)
-6. [Project Structure](#-directory-structure)
-7. [Security & Integrity](#-security--data-integrity)
-8. [Testing](#-testing)
-9. [Installation](#-installation--setup)
-10. [Roadmap](#-future-roadmap)
+> **AuctionHub** is a robust, full-stack ASP.NET Core application designed to simulate a real-world auction environment. It features a complete financial ledger system, real-time bidding logic with concurrency protection, and a comprehensive administration dashboard.
 
 ---
 
-## 🧐 Overview
-AuctionHub was created to solve the challenges of online bidding: transparency, security, and speed. The platform allows users to list items for auction, participate in competitive bidding, and manage their finances through an integrated secure wallet. It acts as an escrow between buyers and sellers, ensuring that funds are only transferred when the auction rules are met.
+## 📑 Table of Contents
+1. [🌟 Key Features](#-key-features)
+2. [📸 Gallery & UI](#-gallery--ui)
+3. [⚙️ How It Works](#-how-it-works)
+4. [🏗️ Technical Architecture](#-technical-architecture)
+5. [💾 Database Schema](#-database-schema)
+6. [📂 Project Structure](#-project-structure)
+7. [🚀 Installation](#-installation--setup)
+8. [🧪 Testing](#-testing)
 
 ---
 
 ## 🌟 Key Features
 
-### 1. Auction Ecosystem
-*   **Dynamic Lifecycle**: Auctions transition through states (Active, Ended, Suspended) automatically based on time and administrative actions.
-*   **Bidding Logic**: Supports standard bidding with minimum increments and a "Buy It Now" feature for immediate acquisition.
-*   **Advanced Discovery**: Users can search and filter auctions by category, price range, and status.
+### 🛒 Auction System
+* **Dynamic Listings:** Users can create auctions with start time, end time, and starting price.
+* **Smart Bidding:**
+    * **Validation:** Prevents bids lower than the current price.
+    * **Self-Outbid Protection:** Users cannot bid on their own auctions.
+    * **Concurrency Control:** Uses `RowVersion` to handle simultaneous bids seamlessly.
+* **Buy It Now:** Option for immediate purchase functionality.
+* **Watchlist:** Users can "star" items to track them without bidding.
 
-### 2. Integrated Financial System
-*   **Digital Wallet**: Each user maintains a balance used for bidding and receiving proceeds from sales.
-*   **Automated Escrow**: Funds are deducted the moment a bid is placed and automatically refunded if the user is outbid.
-*   **Transaction Ledger**: A complete, unchangeable history of every deposit, bid, refund, and purchase.
+### 💰 Financial Ecosystem (Wallet)
+* **Internal Banking:** Every user has a digital wallet.
+* **Escrow Service:** When a bid is placed, funds are **locked** (hold) immediately.
+* **Auto-Refund:** If a user is outbid, their held funds are automatically released back to their available balance.
+* **Transaction Ledger:** A persistent history of all Deposits, Withdrawals, Holds, and Releases.
 
-### 3. User Experience
-*   **Custom Identity**: Bespoke registration and login pages featuring unique usernames and profile management.
-*   **Notifications**: Internal system alerting users about outbid status, auction wins, or administrative updates.
-*   **Watchlist**: Allows users to monitor specific items without participating in the bidding immediately.
+### 🛡️ Administration Area
+* **Dashboard:** Real-time metrics (Total Users, Active Auctions, Volume).
+* **User Management:** Ability to view user details and history.
+* **Moderation:** Admins can edit categories and suspend suspicious auctions.
 
-### 4. Admin Management
-*   **Dashboard**: High-level statistics on system health and economic activity.
-*   **User Moderation**: Ability to lock accounts or manually adjust balances for support purposes.
-*   **Content Control**: Global oversight of all listings with the ability to suspend auctions violating terms.
-
----
-
-## 🛠 Technical Stack
-
-### Backend
-*   **C# 12 / .NET 8.0**: Latest language features and performance.
-*   **ASP.NET Core MVC**: Robust routing and server-side rendering.
-*   **Entity Framework Core**: Code-First approach for database management.
-*   **Identity Framework**: Secured authentication and authorization.
-
-### Frontend
-*   **Razor Views**: Dynamic HTML generation.
-*   **Bootstrap 5**: Responsive layout and base components.
-*   **Custom CSS3**: Glassmorphism aesthetic, animations, and dark mode support.
+### 🔔 User Engagement
+* **Notifications:** Alert system for "Auction Won", "Outbid", or "Auction Ended".
+* **Search & Filter:** Advanced filtering by Category, Price Range, and Status.
 
 ---
 
-## 🏗 Architecture
-The project follows a **Layered Architecture** to ensure maintainability:
-*   **Controllers**: Handle HTTP requests and manage navigation.
-*   **Services**: Contain the core business logic (Bidding, Wallet transfers, Notifications).
-*   **Data Models**: Represent the database structure and relationships.
-*   **ViewModels**: Optimized data structures for specific UI views.
-*   **Background Services**: Automated workers handling time-sensitive tasks like closing auctions.
+## 📸 Gallery & UI
+
+### 1. The Marketplace (Home)
+*Browse active auctions with advanced filtering and search.*
+<img src="https://via.placeholder.com/800x400?text=Screenshot:+Home+Page+and+Filters" width="100%" />
+
+### 2. Auction Details & Bidding
+*Detailed view showing current bid, bid history, and countdown timer.*
+<img src="https://via.placeholder.com/800x400?text=Screenshot:+Auction+Details+Page" width="100%" />
+
+### 3. My Wallet & Transactions
+*The financial hub showing balance and transaction history.*
+<img src="https://via.placeholder.com/800x400?text=Screenshot:+Wallet+and+Transactions" width="100%" />
+
+### 4. Admin Dashboard
+*High-level overview for platform administrators.*
+<img src="https://via.placeholder.com/800x400?text=Screenshot:+Admin+Dashboard" width="100%" />
 
 ---
 
-## 💾 Database Model
-*   **ApplicationUser**: Extends Identity with wallet balance and personal info.
-*   **Auction**: Central entity containing pricing, timing, and status.
-*   **Bid**: Represents individual bidding attempts.
-*   **Category**: Categorization for better item discovery.
-*   **Transaction**: Detailed log of financial movements.
-*   **Notification**: Internal messaging system for users.
-*   **ContactMessage**: Stores inquiries from the "About Us" form.
+## ⚙️ How It Works
+
+1.  **Registration:** User creates an account via ASP.NET Identity.
+2.  **Deposit:** User adds virtual funds to their Wallet via the "Deposit" action.
+3.  **Bid:**
+    * User places a bid on an item.
+    * System checks `AvailableBalance`.
+    * Funds are moved to `HeldBalance` (Escrow).
+    * Previous highest bidder gets their funds refunded instantly.
+4.  **Win:**
+    * Auction timer expires (handled by `AuctionCleanupService`).
+    * Winner's held funds are transferred to the Seller.
+    * Ownership of the item is transferred.
 
 ---
 
-## 📁 Directory Structure
-```text
-AuctionHub/
-├── Areas/
-│   └── Admin/              # Admin-only controllers and views
-├── Controllers/            # Main application controllers
-├── Data/                   # DbContext and seeding logic
-├── Migrations/             # Database version history
-├── Models/                 # Database entities
-│   └── ViewModels/         # UI-specific DTOs
-├── Services/               # Business logic and background tasks
-├── Views/                  # Razor HTML templates
-└── wwwroot/                # Static assets (CSS, Images, JS)
+## 🏗️ Technical Architecture
+
+The solution uses a **Monolithic Architecture** with clear separation of concerns, following the **Service-Repository Pattern**.
+
+* **Presentation Layer:** ASP.NET MVC (Controllers & Views).
+* **Service Layer:** Business logic resides here (e.g., `AuctionService`, `WalletService`). This makes the code testable and reusable.
+* **Data Layer:** Entity Framework Core with SQL Server.
+* **Background Services:**
+    * `AuctionCleanupService`: A hosted service (`IHostedService`) that runs in the background to automatically close expired auctions and process transfers.
+
+### Tech Stack
+| Component | Technology |
+|-----------|------------|
+| **Framework** | .NET 8.0 (C# 12) |
+| **Web App** | ASP.NET Core MVC |
+| **Database** | MS SQL Server 2019+ |
+| **ORM** | Entity Framework Core (Code-First) |
+| **Frontend** | Razor, Bootstrap 5, jQuery |
+| **Testing** | xUnit, Moq, EF Core InMemory |
+
+---
+
+## 💾 Database Schema
+
+The database relies on strong relationships to ensure data integrity.
+
+```mermaid
+erDiagram
+    ApplicationUser ||--o{ Auction : "Creates"
+    ApplicationUser ||--o{ Bid : "Places"
+    ApplicationUser ||--o{ Transaction : "Has"
+    ApplicationUser ||--o{ Notification : "Receives"
+    
+    Auction ||--o{ Bid : "Contains"
+    Auction }|--|| Category : "In"
+    
+    Bid }|--|| ApplicationUser : "By"
+    
+    Transaction {
+        string Type "Deposit/Withdraw/Hold"
+        decimal Amount
+        datetime Date
+    }
+
 ```
 
 ---
 
-## 🛡 Security & Data Integrity
-*   **Optimistic Concurrency**: Uses `RowVersion` timestamps to prevent data loss during simultaneous bids.
-*   **Soft Delete**: Administrative actions use status flags instead of permanent data deletion.
-*   **Input Validation**: Strict server-side and client-side validation for all forms.
-*   **Role-Based Access**: Granular control over user and administrator capabilities.
+## 📂 Project Structure
+
+```text
+AuctionHub/
+├── Areas/
+│   ├── Admin/              # Administration Controllers & Views
+│   └── Identity/           # Auth Logic (Scaffolded)
+├── Controllers/            # MVC Controllers (Web Layer)
+├── Data/                   # DbContext & Seeding
+├── Models/                 # Database Entities
+│   └── ViewModels/         # DTOs for UI rendering
+├── Services/               # Business Logic Layer (The Core)
+│   ├── AuctionService.cs
+│   └── WalletService.cs
+├── Views/                  # Razor Pages
+└── wwwroot/                # Static files (CSS, JS, Images)
+
+```
+
+---
+
+## 🚀 Installation & Setup
+
+To run this project locally, follow these steps:
+
+1. **Prerequisites:**
+* .NET 8.0 SDK
+* SQL Server (LocalDB or full instance)
+
+
+2. **Clone the Repo:**
+```bash
+git clone [https://github.com/YourUsername/AuctionHub.git](https://github.com/YourUsername/AuctionHub.git)
+
+```
+
+
+3. **Configure Connection:**
+* Open `appsettings.json`.
+* Modify `"DefaultConnection"` string if necessary.
+
+
+4. **Database Migration:**
+```bash
+dotnet ef database update
+
+```
+
+
+*Note: The app includes a `DbSeeder` which will automatically create Categories and an Admin user.*
+5. **Run:**
+```bash
+dotnet run
+
+```
+
+
+6. **Login Credentials (Seed Data):**
+* **Admin:** `admin@auctionhub.com` / `admin123` (Check `DbSeeder.cs` to confirm)
+* **User:** You can register a new user normally.
+
+
 
 ---
 
 ## 🧪 Testing
-The logic is validated using a dedicated **xUnit** project:
-*   **AuctionServiceTests**: Comprehensive coverage of bidding workflows.
-*   **Mocking**: Uses `Moq` to simulate service dependencies.
-*   **In-Memory DB**: Fast, isolated database testing without external dependencies.
+
+The project utilizes **xUnit** for unit testing, focusing on the Service Layer to ensure business logic validity.
+
+* **Mocking:** `Moq` is used to simulate Database Context and repositories.
+* **Coverage:** Covers Bidding logic, Validation, and Wallet calculations.
+
+Run tests with:
+
+```bash
+dotnet test
+
+```
 
 ---
-
-## 🔧 Installation & Setup
-
-1. **Prerequisites**: .NET 8 SDK and SQL Server.
-2. **Clone**: `git clone https://github.com/YourUsername/AuctionHub.git`
-3. **Database**: Update connection string in `appsettings.json`.
-4. **Initialize**: 
-   ```bash
-   dotnet ef database update
-   ```
-5. **Run**: `dotnet run`
-
----
-
-## 🔮 Future Roadmap
-*   **Real-time Bidding**: Integrating SignalR for instant price updates.
-*   **Payment Integration**: Moving from mock wallet to Stripe/PayPal.
-*   **Rating System**: Trust-based reviews for buyers and sellers.
-*   **Web API**: Providing data for mobile applications.
-
----
-**Created by Kadir Yazadzhi** - *SoftUni ASP.NET Fundamentals Project*
+*Project created for SoftUni ASP.NET Fundamentals Course.*
