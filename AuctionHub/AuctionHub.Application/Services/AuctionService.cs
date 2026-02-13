@@ -10,6 +10,10 @@ public class AuctionService : IAuctionService
     private readonly IAuctionHubDbContext _context;
     private readonly INotificationService _notificationService;
 
+    // In-memory cache to track auctions currently being created (prevents race conditions)
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTime> _inFlightAuctions 
+        = new System.Collections.Concurrent.ConcurrentDictionary<string, DateTime>();
+
     public AuctionService(IAuctionHubDbContext context, INotificationService notificationService)
     {
         _context = context;
@@ -350,13 +354,30 @@ public class AuctionService : IAuctionService
 
     public async Task<int> CreateAuctionAsync(AuctionFormDto model, string sellerId)
     {
-        // Use standard transaction to prevent deadlocks while still ensuring atomicity
-        using var dbTransaction = await _context.Database.BeginTransactionAsync();
+        // 1. Generate a unique key for this specific submission
+        string idempotencyKey = $"{sellerId}_{model.Title.Trim().ToLower()}";
+        var now = DateTime.UtcNow;
+
+        // 2. Clean up expired keys from the dictionary (older than 30 seconds)
+        foreach (var key in _inFlightAuctions.Keys)
+        {
+            if (_inFlightAuctions.TryGetValue(key, out var timestamp) && (now - timestamp).TotalSeconds > 30)
+            {
+                _inFlightAuctions.TryRemove(key, out _);
+            }
+        }
+
+        // 3. Try to "lock" this submission in memory
+        if (!_inFlightAuctions.TryAdd(idempotencyKey, now))
+        {
+            // If we can't add it, it means an identical request is already processing or was just completed
+            return -1;
+        }
 
         try
         {
-            // Idempotency check: Ensure the same user hasn't published an identical auction title recently
-            var recentThreshold = DateTime.UtcNow.AddSeconds(-10);
+            // 4. Double check database just in case
+            var recentThreshold = now.AddSeconds(-10);
             var isDuplicate = await _context.Auctions.AnyAsync(a => 
                 a.SellerId == sellerId && 
                 a.Title == model.Title && 
@@ -378,7 +399,7 @@ public class AuctionService : IAuctionService
                 BuyItNowPrice = model.BuyItNowPrice,
                 EndTime = new DateTime(model.EndTime.Year, model.EndTime.Month, model.EndTime.Day, 
                                      model.EndTime.Hour, model.EndTime.Minute, 0, 0, model.EndTime.Kind),
-                CreatedOn = DateTime.UtcNow,
+                CreatedOn = now,
                 IsActive = true,
                 CategoryId = model.CategoryId,
                 SellerId = sellerId,
@@ -387,13 +408,13 @@ public class AuctionService : IAuctionService
 
             _context.Auctions.Add(auction);
             await _context.SaveChangesAsync();
-            await dbTransaction.CommitAsync();
 
             return auction.Id;
         }
         catch (Exception)
         {
-            await dbTransaction.RollbackAsync();
+            // Remove lock on failure so user can try again
+            _inFlightAuctions.TryRemove(idempotencyKey, out _);
             throw;
         }
     }
