@@ -1,5 +1,7 @@
 using AuctionHub.Domain.Models;
 using AuctionHub.Application.Interfaces;
+using AuctionHub.Application.DTOs;
+
 namespace AuctionHub.Application.Interfaces;
 
 public interface INotificationService
@@ -10,4 +12,5 @@ public interface INotificationService
     Task MarkAsReadAsync(int notificationId, string userId);
     Task MarkAllAsReadAsync(string userId);
     Task<int> GetUnreadCountAsync(string userId);
+    Task<IEnumerable<NotificationDto>> GetUserNotificationsAsync(string userId);
 }

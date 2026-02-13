@@ -1,4 +1,4 @@
-@model AuctionHub.Domain.Models.ApplicationUser
+@model AuctionHub.Application.DTOs.UserDetailsDto
 @{
     ViewData["Title"] = "User Details";
 }
@@ -40,10 +40,10 @@
             <div class="card-header bg-white border-0 p-4">
                 <ul class="nav nav-pills nav-fill bg-light rounded-pill p-1" id="userTabs" role="tablist">
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link active rounded-pill fw-bold" id="auctions-tab" data-bs-toggle="tab" data-bs-target="#auctions" type="button" role="tab">Auctions (@Model.MyAuctions.Count)</button>
+                        <button class="nav-link active rounded-pill fw-bold" id="auctions-tab" data-bs-toggle="tab" data-bs-target="#auctions" type="button" role="tab">Auctions (@Model.Auctions.Count)</button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link rounded-pill fw-bold" id="bids-tab" data-bs-toggle="tab" data-bs-target="#bids" type="button" role="tab">Bids (@Model.MyBids.Count)</button>
+                        <button class="nav-link rounded-pill fw-bold" id="bids-tab" data-bs-toggle="tab" data-bs-target="#bids" type="button" role="tab">Bids (@Model.Bids.Count)</button>
                     </li>
                 </ul>
             </div>
@@ -51,10 +51,10 @@
                 <div class="tab-content" id="userTabsContent">
                     <!-- Auctions Tab -->
                     <div class="tab-pane fade show active" id="auctions" role="tabpanel">
-                        @if (Model.MyAuctions.Any())
+                        @if (Model.Auctions.Any())
                         {
                             <div class="list-group list-group-flush">
-                                @foreach (var auction in Model.MyAuctions)
+                                @foreach (var auction in Model.Auctions)
                                 {
                                     <div class="list-group-item border-0 px-0 py-3 d-flex align-items-center">
                                         <img src="@auction.ImageUrl" class="rounded-3 me-3" style="width: 50px; height: 50px; object-fit: cover;">
@@ -75,14 +75,14 @@
 
                     <!-- Bids Tab -->
                     <div class="tab-pane fade" id="bids" role="tabpanel">
-                        @if (Model.MyBids.Any())
+                        @if (Model.Bids.Any())
                         {
                             <div class="list-group list-group-flush">
-                                @foreach (var bid in Model.MyBids)
+                                @foreach (var bid in Model.Bids)
                                 {
                                     <div class="list-group-item border-0 px-0 py-3 d-flex align-items-center">
                                         <div>
-                                            <h6 class="mb-0 fw-bold">Bid on @bid.Auction.Title</h6>
+                                            <h6 class="mb-0 fw-bold">Bid on @bid.AuctionTitle</h6>
                                             <small class="text-muted">@bid.BidTime.ToLocalTime()</small>
                                         </div>
                                         <span class="fw-bold text-primary ms-auto">@bid.Amount.ToString("C")</span>

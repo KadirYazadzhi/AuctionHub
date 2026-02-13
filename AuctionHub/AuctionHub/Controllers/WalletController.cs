@@ -12,12 +12,12 @@ namespace AuctionHub.Controllers;
 public class WalletController : Controller
 {
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly IAuctionHubDbContext _context;
+    private readonly IWalletService _walletService;
 
-    public WalletController(UserManager<ApplicationUser> userManager, IAuctionHubDbContext context)
+    public WalletController(UserManager<ApplicationUser> userManager, IWalletService walletService)
     {
         _userManager = userManager;
-        _context = context;
+        _walletService = walletService;
     }
 
     [HttpGet]
@@ -26,12 +26,7 @@ public class WalletController : Controller
         var user = await _userManager.GetUserAsync(User);
         if (user == null) return NotFound();
 
-        // Load transactions
-        var transactions = await _context.Transactions
-            .Where(t => t.UserId == user.Id)
-            .OrderByDescending(t => t.TransactionDate)
-            .ToListAsync();
-
+        var transactions = await _walletService.GetTransactionsAsync(user.Id);
         ViewBag.Transactions = transactions;
 
         return View(user);
@@ -40,33 +35,20 @@ public class WalletController : Controller
     [HttpPost]
     public async Task<IActionResult> AddFunds(decimal amount)
     {
-        if (amount <= 0)
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (currentUserId == null) return Challenge();
+
+        var result = await _walletService.AddFundsAsync(currentUserId, amount);
+
+        if (result.Success)
         {
-            TempData["Error"] = "Please enter a valid amount greater than 0.";
-            return RedirectToAction(nameof(Index));
+            TempData["Success"] = result.Message;
+        }
+        else
+        {
+            TempData["Error"] = result.Message;
         }
 
-        var user = await _userManager.GetUserAsync(User);
-        if (user == null) return NotFound();
-
-        // Update balance
-        user.WalletBalance += amount;
-        
-        // Log transaction
-        var transaction = new Transaction
-        {
-            UserId = user.Id,
-            Amount = amount,
-            Description = "Deposit funds",
-            TransactionType = "Deposit",
-            TransactionDate = DateTime.UtcNow
-        };
-        _context.Transactions.Add(transaction);
-        
-        await _userManager.UpdateAsync(user);
-        await _context.SaveChangesAsync();
-
-        TempData["Success"] = $"Successfully added {amount:C} to your wallet!";
         return RedirectToAction(nameof(Index));
     }
 }

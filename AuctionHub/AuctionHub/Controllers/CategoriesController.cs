@@ -1,4 +1,5 @@
 using AuctionHub.Application.Interfaces;
+using AuctionHub.Application.DTOs;
 using AuctionHub.Domain.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,16 +10,16 @@ namespace AuctionHub.Controllers;
 [Authorize(Roles = "Administrator")]
 public class CategoriesController : Controller
 {
-    private readonly IAuctionHubDbContext _context;
+    private readonly ICategoryService _categoryService;
 
-    public CategoriesController(IAuctionHubDbContext context)
+    public CategoriesController(ICategoryService categoryService)
     {
-        _context = context;
+        _categoryService = categoryService;
     }
 
     public async Task<IActionResult> Index()
     {
-        return View(await _context.Categories.ToListAsync());
+        return View(await _categoryService.GetAllAsync());
     }
 
     public IActionResult Create()
@@ -28,13 +29,11 @@ public class CategoriesController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(Category category)
+    public async Task<IActionResult> Create(CategoryDto category)
     {
-        // Simple validation since Category only has Id and Name [Required]
         if (ModelState.IsValid)
         {
-            _context.Add(category);
-            await _context.SaveChangesAsync();
+            await _categoryService.CreateAsync(category);
             return RedirectToAction(nameof(Index));
         }
         return View(category);
@@ -43,29 +42,20 @@ public class CategoriesController : Controller
     public async Task<IActionResult> Edit(int? id)
     {
         if (id == null) return NotFound();
-        var category = await _context.Categories.FindAsync(id);
+        var category = await _categoryService.GetByIdAsync(id.Value);
         if (category == null) return NotFound();
         return View(category);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, Category category)
+    public async Task<IActionResult> Edit(int id, CategoryDto category)
     {
         if (id != category.Id) return NotFound();
 
         if (ModelState.IsValid)
         {
-            try
-            {
-                _context.Update(category);
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!_context.Categories.Any(e => e.Id == category.Id)) return NotFound();
-                else throw;
-            }
+            await _categoryService.UpdateAsync(category);
             return RedirectToAction(nameof(Index));
         }
         return View(category);
@@ -74,7 +64,7 @@ public class CategoriesController : Controller
     public async Task<IActionResult> Delete(int? id)
     {
          if (id == null) return NotFound();
-        var category = await _context.Categories.FirstOrDefaultAsync(m => m.Id == id);
+        var category = await _categoryService.GetByIdAsync(id.Value);
         if (category == null) return NotFound();
 
         return View(category);
@@ -84,16 +74,15 @@ public class CategoriesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
-        var category = await _context.Categories.Include(c => c.Auctions).FirstOrDefaultAsync(c => c.Id == id);
+        var category = await _categoryService.GetByIdAsync(id);
         if (category != null)
         {
-            if (category.Auctions.Any())
+            if (category.AuctionsCount > 0)
             {
                 TempData["Error"] = "Cannot delete category with auctions.";
                 return RedirectToAction(nameof(Index));
             }
-            _context.Categories.Remove(category);
-            await _context.SaveChangesAsync();
+            await _categoryService.DeleteAsync(id);
         }
         return RedirectToAction(nameof(Index));
     }

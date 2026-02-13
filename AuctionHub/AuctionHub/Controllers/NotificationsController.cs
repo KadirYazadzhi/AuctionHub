@@ -10,23 +10,19 @@ namespace AuctionHub.Controllers;
 [Authorize]
 public class NotificationsController : Controller
 {
-    private readonly IAuctionHubDbContext _context;
     private readonly INotificationService _notificationService;
 
-    public NotificationsController(IAuctionHubDbContext context, INotificationService notificationService)
+    public NotificationsController(INotificationService notificationService)
     {
-        _context = context;
         _notificationService = notificationService;
     }
 
     public async Task<IActionResult> Index()
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        
-        var notifications = await _context.Notifications
-            .Where(n => n.UserId == userId)
-            .OrderByDescending(n => n.CreatedOn)
-            .ToListAsync();
+        if (userId == null) return Challenge();
+
+        var notifications = await _notificationService.GetUserNotificationsAsync(userId);
 
         return View(notifications);
     }

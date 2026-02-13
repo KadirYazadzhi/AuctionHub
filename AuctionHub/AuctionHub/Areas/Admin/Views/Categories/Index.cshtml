@@ -1,4 +1,4 @@
-@model IEnumerable<Category>
+@model IEnumerable<AuctionHub.Application.DTOs.CategoryDto>
 @{
     ViewData["Title"] = "Manage Categories";
 }
@@ -38,7 +38,7 @@
                             </td>
                             <td>
                                 <span class="badge bg-light text-dark border rounded-pill px-3">
-                                    @item.Auctions.Count items
+                                    @item.AuctionsCount items
                                 </span>
                             </td>
                             <td class="text-end pe-4">
@@ -47,7 +47,7 @@
                                         Edit
                                     </a>
                                     <form asp-action="Delete" asp-route-id="@item.Id" method="post" onsubmit="return confirm('Are you sure you want to delete this category?');">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3" @(item.Auctions.Any() ? "disabled title='Cannot delete category with auctions'" : "")>
+                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3" @(item.AuctionsCount > 0 ? "disabled title='Cannot delete category with auctions'" : "")>
                                             Delete
                                         </button>
                                     </form>

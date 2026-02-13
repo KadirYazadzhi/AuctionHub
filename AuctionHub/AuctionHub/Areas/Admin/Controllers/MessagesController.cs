@@ -6,18 +6,16 @@ namespace AuctionHub.Areas.Admin.Controllers;
 
 public class MessagesController : AdminBaseController
 {
-    private readonly IAuctionHubDbContext _context;
+    private readonly IMessageService _messageService;
 
-    public MessagesController(IAuctionHubDbContext context)
+    public MessagesController(IMessageService messageService)
     {
-        _context = context;
+        _messageService = messageService;
     }
 
     public async Task<IActionResult> Index()
     {
-        var messages = await _context.ContactMessages
-            .OrderByDescending(m => m.SentOn)
-            .ToListAsync();
+        var messages = await _messageService.GetAllAsync();
 
         return View(messages);
     }
@@ -25,25 +23,15 @@ public class MessagesController : AdminBaseController
     [HttpPost]
     public async Task<IActionResult> MarkRead(int id)
     {
-        var message = await _context.ContactMessages.FindAsync(id);
-        if (message != null)
-        {
-            message.IsRead = true;
-            await _context.SaveChangesAsync();
-        }
+        await _messageService.MarkReadAsync(id);
         return RedirectToAction(nameof(Index));
     }
 
     [HttpPost]
     public async Task<IActionResult> Delete(int id)
     {
-        var message = await _context.ContactMessages.FindAsync(id);
-        if (message != null)
-        {
-            _context.ContactMessages.Remove(message);
-            await _context.SaveChangesAsync();
-            TempData["Success"] = "Message deleted.";
-        }
+        await _messageService.DeleteAsync(id);
+        TempData["Success"] = "Message deleted.";
         return RedirectToAction(nameof(Index));
     }
 }

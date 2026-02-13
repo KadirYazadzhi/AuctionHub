@@ -1,5 +1,6 @@
 using AuctionHub.Domain.Models;
 using AuctionHub.Application.Interfaces;
+using AuctionHub.Application.DTOs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -127,5 +128,24 @@ public class NotificationService : INotificationService
 
         return await context.Notifications
             .CountAsync(n => n.UserId == userId && !n.IsRead);
+    }
+
+    public async Task<IEnumerable<NotificationDto>> GetUserNotificationsAsync(string userId)
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<IAuctionHubDbContext>();
+
+        return await context.Notifications
+            .Where(n => n.UserId == userId)
+            .OrderByDescending(n => n.CreatedOn)
+            .Select(n => new NotificationDto
+            {
+                Id = n.Id,
+                Message = n.Message,
+                Link = n.Link,
+                IsRead = n.IsRead,
+                CreatedOn = n.CreatedOn
+            })
+            .ToListAsync();
     }
 }

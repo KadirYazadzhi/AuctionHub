@@ -1,4 +1,6 @@
 using System.Security.Claims;
+using AuctionHub.Application.DTOs;
+using Microsoft.AspNetCore.Identity;
 using AuctionHub.Application.Interfaces;
 using AuctionHub.Domain.Models;
 using AuctionHub.Models.ViewModels;
@@ -12,15 +14,21 @@ namespace AuctionHub.Controllers;
 [Authorize]
 public class AuctionsController : Controller
 {
-    private readonly IAuctionHubDbContext _context;
     private readonly IWebHostEnvironment _webHostEnvironment;
     private readonly IAuctionService _auctionService;
+    private readonly IUserService _userService;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public AuctionsController(IAuctionHubDbContext context, IWebHostEnvironment webHostEnvironment, IAuctionService auctionService)
+    public AuctionsController(
+        IWebHostEnvironment webHostEnvironment, 
+        IAuctionService auctionService,
+        IUserService userService,
+        UserManager<ApplicationUser> userManager)
     {
-        _context = context;
         _webHostEnvironment = webHostEnvironment;
         _auctionService = auctionService;
+        _userService = userService;
+        _userManager = userManager;
     }
 
     [AllowAnonymous]
@@ -34,100 +42,42 @@ public class AuctionsController : Controller
         ViewData["MaxPrice"] = maxPrice;
         ViewData["Status"] = status;
         
-        // Get Admin IDs to exclude their test auctions from public view
-        var adminRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Administrator");
-        var adminIds = adminRole != null 
-            ? await _context.UserRoles.Where(ur => ur.RoleId == adminRole.Id).Select(ur => ur.UserId).ToListAsync() 
-            : new List<string>();
+        int pageSize = 9;
+        var paginatedDto = await _auctionService.GetAuctionsAsync(
+            searchTerm, categoryId, sortOrder, pageNumber ?? 1, pageSize, minPrice, maxPrice, status);
 
-        var query = _context.Auctions
-            .Include(a => a.Category)
-            .Where(a => !adminIds.Contains(a.SellerId)) // Hide Admin auctions
-            .AsQueryable();
-
-        // Status Filtering
-        if (string.IsNullOrEmpty(status) || status == "active")
-        {
-            query = query.Where(a => a.IsActive && a.EndTime > DateTime.UtcNow);
-        }
-        else if (status == "closed")
-        {
-            query = query.Where(a => !a.IsActive || a.EndTime <= DateTime.UtcNow);
-        }
-        // "all" shows everything
-
-        if (!string.IsNullOrEmpty(searchTerm))
-        {
-            var normalizedSearch = searchTerm.ToLower();
-            query = query.Where(a => a.Title.ToLower().Contains(normalizedSearch) || 
-                             a.Description.ToLower().Contains(normalizedSearch));
-        }
-
-        if (categoryId.HasValue)
-        {
-            query = query.Where(a => a.CategoryId == categoryId.Value);
-        }
-
-        // Price Filtering
-        if (minPrice.HasValue)
-        {
-            query = query.Where(a => a.CurrentPrice >= minPrice.Value);
-        }
-        if (maxPrice.HasValue)
-        {
-            query = query.Where(a => a.CurrentPrice <= maxPrice.Value);
-        }
-
-        // Sorting
-        query = sortOrder switch
-        {
-            "price_desc" => query.OrderByDescending(a => a.CurrentPrice),
-            "price_asc" => query.OrderBy(a => a.CurrentPrice),
-            "newest" => query.OrderByDescending(a => a.CreatedOn),
-            _ => query.OrderBy(a => a.EndTime) // Default: Ending soonest
-        };
-
-        var projectedQuery = query.Select(a => new AuctionListViewModel
+        var viewModelItems = paginatedDto.Select(a => new AuctionListViewModel
         {
             Id = a.Id,
             Title = a.Title,
             ImageUrl = a.ImageUrl,
             CurrentPrice = a.CurrentPrice,
             EndTime = a.EndTime,
-            Category = a.Category.Name,
+            Category = a.Category,
             CategoryId = a.CategoryId,
-            IsActive = a.IsActive
-        });
+            IsActive = a.IsActive,
+            IsSuspended = a.IsSuspended,
+            IsWinning = a.IsWinning
+        }).ToList();
 
-        int pageSize = 9;
-        var paginatedAuctions = await PaginatedList<AuctionListViewModel>.CreateAsync(projectedQuery, pageNumber ?? 1, pageSize);
+        var paginatedViewModel = new PaginatedList<AuctionListViewModel>(
+            viewModelItems, paginatedDto.TotalCount, paginatedDto.PageIndex, pageSize);
 
         ViewBag.Categories = await GetCategoriesAsync(); 
 
-        return View(paginatedAuctions);
+        return View(paginatedViewModel);
     }
 
     [AllowAnonymous]
     [HttpGet]
     public async Task<IActionResult> Details(int id)
     {
-        var auction = await _context.Auctions
-            .Include(a => a.Category)
-            .Include(a => a.Seller)
-            .Include(a => a.Bids)
-                .ThenInclude(b => b.Bidder)
-            .FirstOrDefaultAsync(a => a.Id == id);
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var auction = await _auctionService.GetAuctionDetailsAsync(id, currentUserId);
 
         if (auction == null)
         {
             return NotFound();
-        }
-
-        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        bool isWatched = false;
-        if (currentUserId != null)
-        {
-            isWatched = await _context.Watchlist.AnyAsync(w => w.AuctionId == id && w.UserId == currentUserId);
         }
 
         var model = new AuctionDetailsViewModel
@@ -141,19 +91,18 @@ public class AuctionsController : Controller
             MinIncrease = auction.MinIncrease,
             BuyItNowPrice = auction.BuyItNowPrice,
             EndTime = auction.EndTime,
-            Category = auction.Category.Name,
-            Seller = auction.Seller.DisplayName,
+            Category = auction.Category,
+            Seller = auction.Seller,
             SellerId = auction.SellerId,
-            IsActive = auction.IsActive && auction.EndTime > DateTime.UtcNow,
+            IsActive = auction.IsActive,
             IsSuspended = auction.IsSuspended,
-            IsWatched = isWatched,
+            IsWatched = auction.IsWatched,
             Bids = auction.Bids
-                .OrderByDescending(b => b.BidTime)
                 .Select(b => new BidViewModel
                 {
                     Amount = b.Amount,
                     BidTime = b.BidTime,
-                    Bidder = b.Bidder.DisplayName
+                    Bidder = b.Bidder
                 })
                 .ToList(),
             NewBidAmount = auction.CurrentPrice + auction.MinIncrease
@@ -206,7 +155,8 @@ public class AuctionsController : Controller
     public async Task<IActionResult> MyAuctions(string? searchTerm, int? categoryId, string? sortOrder, int? pageNumber, decimal? minPrice, decimal? maxPrice, string? status)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        
+        if (currentUserId == null) return Challenge();
+
         ViewData["CurrentSort"] = sortOrder;
         ViewData["CurrentSearch"] = searchTerm;
         ViewData["CurrentCategory"] = categoryId;
@@ -214,64 +164,36 @@ public class AuctionsController : Controller
         ViewData["MaxPrice"] = maxPrice;
         ViewData["Status"] = status;
 
-        var query = _context.Auctions
-            .Include(a => a.Category)
-            .Where(a => a.SellerId == currentUserId);
+        int pageSize = 6;
+        var paginatedDto = await _auctionService.GetMyAuctionsAsync(
+            currentUserId, searchTerm, categoryId, sortOrder, pageNumber ?? 1, pageSize, minPrice, maxPrice, status);
 
-        // Status Filtering
-        if (!string.IsNullOrEmpty(status))
-        {
-            if (status == "active") query = query.Where(a => a.IsActive && a.EndTime > DateTime.UtcNow);
-            else if (status == "closed") query = query.Where(a => !a.IsActive || a.EndTime <= DateTime.UtcNow);
-        }
-
-        if (!string.IsNullOrEmpty(searchTerm))
-        {
-            var normalizedSearch = searchTerm.ToLower();
-            query = query.Where(a => a.Title.ToLower().Contains(normalizedSearch) || 
-                             a.Description.ToLower().Contains(normalizedSearch));
-        }
-
-        if (categoryId.HasValue)
-        {
-            query = query.Where(a => a.CategoryId == categoryId.Value);
-        }
-
-        if (minPrice.HasValue) query = query.Where(a => a.CurrentPrice >= minPrice.Value);
-        if (maxPrice.HasValue) query = query.Where(a => a.CurrentPrice <= maxPrice.Value);
-
-        // Sorting
-        query = sortOrder switch
-        {
-            "price_desc" => query.OrderByDescending(a => a.CurrentPrice),
-            "price_asc" => query.OrderBy(a => a.CurrentPrice),
-            "oldest" => query.OrderBy(a => a.CreatedOn),
-            _ => query.OrderByDescending(a => a.CreatedOn)
-        };
-
-        var projectedQuery = query.Select(a => new AuctionListViewModel
+        var viewModelItems = paginatedDto.Select(a => new AuctionListViewModel
         {
             Id = a.Id,
             Title = a.Title,
             ImageUrl = a.ImageUrl,
             CurrentPrice = a.CurrentPrice,
             EndTime = a.EndTime,
-            Category = a.Category.Name,
+            Category = a.Category,
             CategoryId = a.CategoryId,
-            IsActive = a.IsActive
-        });
+            IsActive = a.IsActive,
+            IsSuspended = a.IsSuspended
+        }).ToList();
 
-        int pageSize = 6;
-        var paginated = await PaginatedList<AuctionListViewModel>.CreateAsync(projectedQuery, pageNumber ?? 1, pageSize);
+        var paginatedViewModel = new PaginatedList<AuctionListViewModel>(
+            viewModelItems, paginatedDto.TotalCount, paginatedDto.PageIndex, pageSize);
+
         ViewBag.Categories = await GetCategoriesAsync();
 
-        return View(paginated);
+        return View(paginatedViewModel);
     }
 
     [HttpGet]
     public async Task<IActionResult> MyBids(string? searchTerm, int? categoryId, string? sortOrder, int? pageNumber, decimal? minPrice, decimal? maxPrice, string? status)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (currentUserId == null) return Challenge();
         
         ViewData["CurrentSort"] = sortOrder;
         ViewData["CurrentSearch"] = searchTerm;
@@ -280,66 +202,30 @@ public class AuctionsController : Controller
         ViewData["MaxPrice"] = maxPrice;
         ViewData["Status"] = status;
 
-        var myBids = _context.Bids.Where(b => b.BidderId == currentUserId);
-        
-        var adminRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Administrator");
-        var adminIds = adminRole != null 
-            ? await _context.UserRoles.Where(ur => ur.RoleId == adminRole.Id).Select(ur => ur.UserId).ToListAsync() 
-            : new List<string>();
+        int pageSize = 6;
+        var paginatedDto = await _auctionService.GetMyBidsAsync(
+            currentUserId, searchTerm, categoryId, sortOrder, pageNumber ?? 1, pageSize, minPrice, maxPrice, status);
 
-        var query = _context.Auctions
-            .Include(a => a.Category)
-            .Where(a => myBids.Any(b => b.AuctionId == a.Id) && !adminIds.Contains(a.SellerId));
-
-        // Filtering
-        if (!string.IsNullOrEmpty(status))
-        {
-            if (status == "active") query = query.Where(a => a.IsActive && a.EndTime > DateTime.UtcNow);
-            else if (status == "closed") query = query.Where(a => !a.IsActive || a.EndTime <= DateTime.UtcNow);
-        }
-
-        if (!string.IsNullOrEmpty(searchTerm))
-        {
-            var normalizedSearch = searchTerm.ToLower();
-            query = query.Where(a => a.Title.ToLower().Contains(normalizedSearch) || 
-                             a.Description.ToLower().Contains(normalizedSearch));
-        }
-
-        if (categoryId.HasValue) query = query.Where(a => a.CategoryId == categoryId.Value);
-        if (minPrice.HasValue) query = query.Where(a => a.CurrentPrice >= minPrice.Value);
-        if (maxPrice.HasValue) query = query.Where(a => a.CurrentPrice <= maxPrice.Value);
-
-        // Sorting
-        query = sortOrder switch
-        {
-            "price_desc" => query.OrderByDescending(a => a.CurrentPrice),
-            "price_asc" => query.OrderBy(a => a.CurrentPrice),
-            _ => query.OrderByDescending(a => a.EndTime)
-        };
-
-        var myMaxBids = await myBids
-            .GroupBy(b => b.AuctionId)
-            .Select(g => new { AuctionId = g.Key, MaxAmount = g.Max(b => b.Amount) })
-            .ToDictionaryAsync(x => x.AuctionId, x => x.MaxAmount);
-
-        var projectedQuery = query.Select(a => new AuctionListViewModel
+        var viewModelItems = paginatedDto.Select(a => new AuctionListViewModel
         {
             Id = a.Id,
             Title = a.Title,
             ImageUrl = a.ImageUrl,
             CurrentPrice = a.CurrentPrice,
             EndTime = a.EndTime,
-            Category = a.Category.Name,
+            Category = a.Category,
             CategoryId = a.CategoryId,
             IsActive = a.IsActive,
-            IsWinning = myMaxBids.ContainsKey(a.Id) && myMaxBids[a.Id] >= a.CurrentPrice
-        });
+            IsSuspended = a.IsSuspended,
+            IsWinning = a.IsWinning
+        }).ToList();
 
-        int pageSize = 6;
-        var paginated = await PaginatedList<AuctionListViewModel>.CreateAsync(projectedQuery, pageNumber ?? 1, pageSize);
+        var paginatedViewModel = new PaginatedList<AuctionListViewModel>(
+            viewModelItems, paginatedDto.TotalCount, paginatedDto.PageIndex, pageSize);
+
         ViewBag.Categories = await GetCategoriesAsync();
 
-        return View(paginated);
+        return View(paginatedViewModel);
     }
 
     [AllowAnonymous]
@@ -348,17 +234,16 @@ public class AuctionsController : Controller
     {
         if (string.IsNullOrEmpty(username)) return NotFound();
 
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == username);
+        var user = await _userService.GetByUsernameAsync(username);
         if (user == null) return NotFound();
 
         // Check if target user is an Admin
-        var adminRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Administrator");
-        bool targetIsAdmin = adminRole != null && await _context.UserRoles.AnyAsync(ur => ur.UserId == user.Id && ur.RoleId == adminRole.Id);
+        bool targetIsAdmin = await _userManager.IsInRoleAsync(new ApplicationUser { Id = user.Id }, "Administrator");
         
         // If target is admin and current viewer is not admin, hide content
         if (targetIsAdmin && !User.IsInRole("Administrator"))
         {
-            return NotFound(); // Or redirect to Home with a message
+            return NotFound(); 
         }
 
         ViewData["TargetUser"] = user.DisplayName;
@@ -370,64 +255,35 @@ public class AuctionsController : Controller
         ViewData["MaxPrice"] = maxPrice;
         ViewData["Status"] = status;
 
-        var query = _context.Auctions
-            .Include(a => a.Category)
-            .Where(a => a.SellerId == user.Id);
+        int pageSize = 6;
+        var paginatedDto = await _auctionService.GetUserAuctionsAsync(
+            username, searchTerm, categoryId, sortOrder, pageNumber ?? 1, pageSize, minPrice, maxPrice, status);
 
-        // Status Filtering (Default: active)
-        if (status == "active")
-        {
-            query = query.Where(a => a.IsActive && a.EndTime > DateTime.UtcNow);
-        }
-        else if (status == "closed")
-        {
-            query = query.Where(a => !a.IsActive || a.EndTime <= DateTime.UtcNow);
-        }
-
-        if (!string.IsNullOrEmpty(searchTerm))
-        {
-            var normalizedSearch = searchTerm.ToLower();
-            query = query.Where(a => a.Title.ToLower().Contains(normalizedSearch) || 
-                             a.Description.ToLower().Contains(normalizedSearch));
-        }
-
-        if (categoryId.HasValue) query = query.Where(a => a.CategoryId == categoryId.Value);
-        if (minPrice.HasValue) query = query.Where(a => a.CurrentPrice >= minPrice.Value);
-        if (maxPrice.HasValue) query = query.Where(a => a.CurrentPrice <= maxPrice.Value);
-
-        // Sorting
-        query = sortOrder switch
-        {
-            "price_desc" => query.OrderByDescending(a => a.CurrentPrice),
-            "price_asc" => query.OrderBy(a => a.CurrentPrice),
-            _ => query.OrderByDescending(a => a.CreatedOn)
-        };
-
-        var projectedQuery = query.Select(a => new AuctionListViewModel
+        var viewModelItems = paginatedDto.Select(a => new AuctionListViewModel
         {
             Id = a.Id,
             Title = a.Title,
             ImageUrl = a.ImageUrl,
             CurrentPrice = a.CurrentPrice,
             EndTime = a.EndTime,
-            Category = a.Category.Name,
+            Category = a.Category,
             CategoryId = a.CategoryId,
-            IsActive = a.IsActive
-        });
+            IsActive = a.IsActive,
+            IsSuspended = a.IsSuspended
+        }).ToList();
 
-        int pageSize = 6;
-        var paginated = await PaginatedList<AuctionListViewModel>.CreateAsync(projectedQuery, pageNumber ?? 1, pageSize);
+        var paginatedViewModel = new PaginatedList<AuctionListViewModel>(
+            viewModelItems, paginatedDto.TotalCount, paginatedDto.PageIndex, pageSize);
+
         ViewBag.Categories = await GetCategoriesAsync();
 
-        return View(paginated);
+        return View(paginatedViewModel);
     }
 
     [HttpGet]
     public async Task<IActionResult> Edit(int id)
     {
-        var auction = await _context.Auctions
-            .Include(a => a.Bids)
-            .FirstOrDefaultAsync(a => a.Id == id);
+        var auction = await _auctionService.GetAuctionDetailsAsync(id);
 
         if (auction == null) return NotFound();
 
@@ -451,30 +307,19 @@ public class AuctionsController : Controller
             // Strip seconds/milliseconds for the view
             EndTime = new DateTime(auction.EndTime.Year, auction.EndTime.Month, auction.EndTime.Day, 
                                  auction.EndTime.Hour, auction.EndTime.Minute, 0, 0, auction.EndTime.Kind),
+            // Category needs to be ID for the dropdown
             CategoryId = auction.CategoryId,
-            Categories = await GetCategoriesAsync()
         };
 
+        model.Categories = await GetCategoriesAsync();
         return View(model);
     }
 
     [HttpPost]
     public async Task<IActionResult> Edit(int id, AuctionFormModel model)
     {
-        var auction = await _context.Auctions
-            .Include(a => a.Bids)
-            .FirstOrDefaultAsync(a => a.Id == id);
-
-        if (auction == null) return NotFound();
-
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (auction.SellerId != currentUserId) return Forbid();
-
-        if (auction.Bids.Any())
-        {
-             TempData["Error"] = "You cannot edit an auction that has existing bids.";
-             return RedirectToAction(nameof(Details), new { id = id });
-        }
+        if (currentUserId == null) return Challenge();
 
         ValidateImage(model.ImageFile);
 
@@ -487,59 +332,55 @@ public class AuctionsController : Controller
         string? imagePath = model.ImageUrl;
         if (model.ImageFile != null)
         {
-            // Delete old
-            DeleteImage(auction.ImageUrl);
-            // Save new
+            // Note: In a true Clean Architecture, Image Service would be injected
             imagePath = await SaveImageAsync(model.ImageFile);
         }
 
-        auction.Title = model.Title;
-        auction.Description = model.Description;
-        if (!string.IsNullOrEmpty(imagePath)) 
+        var dto = new AuctionFormDto
         {
-            auction.ImageUrl = imagePath;
+            Title = model.Title,
+            Description = model.Description,
+            ImageUrl = imagePath,
+            StartPrice = model.StartPrice,
+            MinIncrease = model.MinIncrease,
+            BuyItNowPrice = model.BuyItNowPrice,
+            EndTime = model.EndTime,
+            CategoryId = model.CategoryId
+        };
+
+        var result = await _auctionService.UpdateAuctionAsync(id, dto, currentUserId);
+
+        if (result.Success)
+        {
+            return RedirectToAction(nameof(Details), new { id = id });
         }
-        
-        auction.StartPrice = model.StartPrice;
-        auction.MinIncrease = model.MinIncrease;
-        auction.BuyItNowPrice = model.BuyItNowPrice;
-        
-        // Strip seconds/milliseconds
-        auction.EndTime = new DateTime(model.EndTime.Year, model.EndTime.Month, model.EndTime.Day, 
-                                     model.EndTime.Hour, model.EndTime.Minute, 0, 0, model.EndTime.Kind);
-                                     
-        auction.CategoryId = model.CategoryId;
-
-        await _context.SaveChangesAsync();
-
-        return RedirectToAction(nameof(Details), new { id = auction.Id });
+        else
+        {
+            if (result.Message == "Forbidden.") return Forbid();
+            TempData["Error"] = result.Message;
+            return RedirectToAction(nameof(Details), new { id = id });
+        }
     }
 
     [HttpPost]
     public async Task<IActionResult> Delete(int id)
     {
-        var auction = await _context.Auctions
-            .Include(a => a.Bids)
-            .FirstOrDefaultAsync(a => a.Id == id);
-
-        if (auction == null) return NotFound();
-
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (auction.SellerId != currentUserId) return Forbid();
+        if (currentUserId == null) return Challenge();
 
-        if (auction.Bids.Any())
+        var result = await _auctionService.DeleteAuctionAsync(id, currentUserId);
+
+        if (result.Success)
         {
-            TempData["Error"] = "Cannot delete an auction that already has bids.";
+            TempData["Success"] = result.Message;
+            return RedirectToAction(nameof(Index));
+        }
+        else
+        {
+            if (result.Message == "Forbidden.") return Forbid();
+            TempData["Error"] = result.Message;
             return RedirectToAction(nameof(Details), new { id = id });
         }
-
-        DeleteImage(auction.ImageUrl);
-
-        _context.Auctions.Remove(auction);
-        await _context.SaveChangesAsync();
-
-        TempData["Success"] = "Auction deleted successfully.";
-        return RedirectToAction(nameof(Index));
     }
 
     [HttpGet]
@@ -576,36 +417,26 @@ public class AuctionsController : Controller
 
         if (!ModelState.IsValid)
         {
-            // If upload happened but state is invalid, should we delete the uploaded file? 
-            // In a real app yes, here we skip for simplicity or do it.
-            DeleteImage(imagePath);
-            
             model.Categories = await GetCategoriesAsync();
             return View(model);
         }
 
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (currentUserId == null) return Challenge();
 
-        var auction = new Auction
+        var dto = new AuctionFormDto
         {
             Title = model.Title,
             Description = model.Description,
-            ImageUrl = imagePath!,
+            ImageUrl = imagePath,
             StartPrice = model.StartPrice,
-            CurrentPrice = model.StartPrice,
             MinIncrease = model.MinIncrease,
             BuyItNowPrice = model.BuyItNowPrice,
-            // Strip seconds/milliseconds
-            EndTime = new DateTime(model.EndTime.Year, model.EndTime.Month, model.EndTime.Day, 
-                                 model.EndTime.Hour, model.EndTime.Minute, 0, 0, model.EndTime.Kind),
-            CreatedOn = DateTime.UtcNow,
-            IsActive = true,
-            CategoryId = model.CategoryId,
-            SellerId = currentUserId!
+            EndTime = model.EndTime,
+            CategoryId = model.CategoryId
         };
 
-        _context.Auctions.Add(auction);
-        await _context.SaveChangesAsync();
+        var id = await _auctionService.CreateAuctionAsync(dto, currentUserId);
 
         return RedirectToAction(nameof(Index));
     }
@@ -616,27 +447,17 @@ public class AuctionsController : Controller
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (currentUserId == null) return Challenge();
 
-        var existingItem = await _context.Watchlist
-            .FirstOrDefaultAsync(w => w.AuctionId == id && w.UserId == currentUserId);
+        var result = await _auctionService.ToggleWatchlistAsync(id, currentUserId);
 
-        if (existingItem != null)
+        if (result.Success)
         {
-            _context.Watchlist.Remove(existingItem);
-            TempData["Success"] = "Removed from watchlist.";
+            TempData["Success"] = result.Message;
         }
         else
         {
-            var watchItem = new AuctionWatchlist
-            {
-                AuctionId = id,
-                UserId = currentUserId,
-                AddedOn = DateTime.UtcNow
-            };
-            _context.Watchlist.Add(watchItem);
-            TempData["Success"] = "Added to watchlist.";
+            TempData["Error"] = result.Message;
         }
 
-        await _context.SaveChangesAsync();
         return RedirectToAction(nameof(Details), new { id });
     }
 
@@ -644,6 +465,7 @@ public class AuctionsController : Controller
     public async Task<IActionResult> MyWatchlist(string? searchTerm, int? categoryId, string? sortOrder, int? pageNumber, decimal? minPrice, decimal? maxPrice, string? status)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (currentUserId == null) return Challenge();
 
         ViewData["CurrentSort"] = sortOrder;
         ViewData["CurrentSearch"] = searchTerm;
@@ -652,62 +474,29 @@ public class AuctionsController : Controller
         ViewData["MaxPrice"] = maxPrice;
         ViewData["Status"] = status;
         
-        var adminRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Administrator");
-        var adminIds = adminRole != null 
-            ? await _context.UserRoles.Where(ur => ur.RoleId == adminRole.Id).Select(ur => ur.UserId).ToListAsync() 
-            : new List<string>();
+        int pageSize = 6;
+        var paginatedDto = await _auctionService.GetMyWatchlistAsync(
+            currentUserId, searchTerm, categoryId, sortOrder, pageNumber ?? 1, pageSize, minPrice, maxPrice, status);
 
-        var query = _context.Watchlist
-            .Where(w => w.UserId == currentUserId)
-            .Include(w => w.Auction)
-            .ThenInclude(a => a.Category)
-            .Select(w => w.Auction)
-            .Where(a => !adminIds.Contains(a.SellerId))
-            .AsQueryable();
-
-        // Filtering Logic (Reused)
-        if (!string.IsNullOrEmpty(status))
-        {
-            if (status == "active") query = query.Where(a => a.IsActive && a.EndTime > DateTime.UtcNow);
-            else if (status == "closed") query = query.Where(a => !a.IsActive || a.EndTime <= DateTime.UtcNow);
-        }
-
-        if (!string.IsNullOrEmpty(searchTerm))
-        {
-            var normalizedSearch = searchTerm.ToLower();
-            query = query.Where(a => a.Title.ToLower().Contains(normalizedSearch) || 
-                             a.Description.ToLower().Contains(normalizedSearch));
-        }
-
-        if (categoryId.HasValue) query = query.Where(a => a.CategoryId == categoryId.Value);
-        if (minPrice.HasValue) query = query.Where(a => a.CurrentPrice >= minPrice.Value);
-        if (maxPrice.HasValue) query = query.Where(a => a.CurrentPrice <= maxPrice.Value);
-
-        // Sorting
-        query = sortOrder switch
-        {
-            "price_desc" => query.OrderByDescending(a => a.CurrentPrice),
-            "price_asc" => query.OrderBy(a => a.CurrentPrice),
-            _ => query.OrderByDescending(a => a.EndTime)
-        };
-
-        var projectedQuery = query.Select(a => new AuctionListViewModel
+        var viewModelItems = paginatedDto.Select(a => new AuctionListViewModel
         {
             Id = a.Id,
             Title = a.Title,
             ImageUrl = a.ImageUrl,
             CurrentPrice = a.CurrentPrice,
             EndTime = a.EndTime,
-            Category = a.Category.Name,
+            Category = a.Category,
             CategoryId = a.CategoryId,
-            IsActive = a.IsActive
-        });
+            IsActive = a.IsActive,
+            IsSuspended = a.IsSuspended
+        }).ToList();
 
-        int pageSize = 6;
-        var paginated = await PaginatedList<AuctionListViewModel>.CreateAsync(projectedQuery, pageNumber ?? 1, pageSize);
+        var paginatedViewModel = new PaginatedList<AuctionListViewModel>(
+            viewModelItems, paginatedDto.TotalCount, paginatedDto.PageIndex, pageSize);
+
         ViewBag.Categories = await GetCategoriesAsync();
 
-        return View(paginated);
+        return View(paginatedViewModel);
     }
 
     private void ValidateImage(IFormFile? file)
@@ -771,12 +560,11 @@ public class AuctionsController : Controller
 
     private async Task<IEnumerable<SelectListItem>> GetCategoriesAsync()
     {
-        return await _context.Categories
-            .Select(c => new SelectListItem
-            {
-                Value = c.Id.ToString(),
-                Text = c.Name
-            })
-            .ToListAsync();
+        var categories = await _auctionService.GetCategoriesAsync();
+        return categories.Select(c => new SelectListItem
+        {
+            Value = c.Id.ToString(),
+            Text = c.Name
+        }).ToList();
     }
 }

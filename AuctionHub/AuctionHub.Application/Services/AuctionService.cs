@@ -1,5 +1,6 @@
 using AuctionHub.Domain.Models;
 using AuctionHub.Application.Interfaces;
+using AuctionHub.Application.DTOs;
 using Microsoft.EntityFrameworkCore;
 
 namespace AuctionHub.Application.Services;
@@ -13,6 +14,462 @@ public class AuctionService : IAuctionService
     {
         _context = context;
         _notificationService = notificationService;
+    }
+
+    public async Task<PaginatedList<AuctionDto>> GetAuctionsAsync(
+        string? searchTerm, 
+        int? categoryId, 
+        string? sortOrder, 
+        int pageNumber, 
+        int pageSize, 
+        decimal? minPrice, 
+        decimal? maxPrice, 
+        string? status,
+        string? currentUserId = null)
+    {
+        // Get Admin IDs to exclude their test auctions from public view
+        var adminRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Administrator");
+        var adminIds = adminRole != null 
+            ? await _context.UserRoles.Where(ur => ur.RoleId == adminRole.Id).Select(ur => ur.UserId).ToListAsync() 
+            : new List<string>();
+
+        var query = _context.Auctions
+            .Include(a => a.Category)
+            .Where(a => !adminIds.Contains(a.SellerId)) // Hide Admin auctions
+            .AsQueryable();
+
+        // Status Filtering
+        if (string.IsNullOrEmpty(status) || status == "active")
+        {
+            query = query.Where(a => a.IsActive && a.EndTime > DateTime.UtcNow);
+        }
+        else if (status == "closed")
+        {
+            query = query.Where(a => !a.IsActive || a.EndTime <= DateTime.UtcNow);
+        }
+
+        if (!string.IsNullOrEmpty(searchTerm))
+        {
+            var normalizedSearch = searchTerm.ToLower();
+            query = query.Where(a => a.Title.ToLower().Contains(normalizedSearch) || 
+                             a.Description.ToLower().Contains(normalizedSearch));
+        }
+
+        if (categoryId.HasValue)
+        {
+            query = query.Where(a => a.CategoryId == categoryId.Value);
+        }
+
+        // Price Filtering
+        if (minPrice.HasValue)
+        {
+            query = query.Where(a => a.CurrentPrice >= minPrice.Value);
+        }
+        if (maxPrice.HasValue)
+        {
+            query = query.Where(a => a.CurrentPrice <= maxPrice.Value);
+        }
+
+        // Sorting
+        query = sortOrder switch
+        {
+            "price_desc" => query.OrderByDescending(a => a.CurrentPrice),
+            "price_asc" => query.OrderBy(a => a.CurrentPrice),
+            "newest" => query.OrderByDescending(a => a.CreatedOn),
+            _ => query.OrderBy(a => a.EndTime) // Default: Ending soonest
+        };
+
+        var projectedQuery = query.Select(a => new AuctionDto
+        {
+            Id = a.Id,
+            Title = a.Title,
+            ImageUrl = a.ImageUrl,
+            CurrentPrice = a.CurrentPrice,
+            EndTime = a.EndTime,
+            Category = a.Category.Name,
+            CategoryId = a.CategoryId,
+            IsActive = a.IsActive,
+            IsSuspended = a.IsSuspended
+        });
+
+        return await PaginatedList<AuctionDto>.CreateAsync(projectedQuery, pageNumber, pageSize);
+    }
+
+    public async Task<PaginatedList<AuctionDto>> GetMyAuctionsAsync(
+        string userId,
+        string? searchTerm, 
+        int? categoryId, 
+        string? sortOrder, 
+        int pageNumber, 
+        int pageSize, 
+        decimal? minPrice, 
+        decimal? maxPrice, 
+        string? status)
+    {
+        var query = _context.Auctions
+            .Include(a => a.Category)
+            .Where(a => a.SellerId == userId);
+
+        // Filtering & Sorting (Same logic)
+        query = ApplyFilters(query, searchTerm, categoryId, minPrice, maxPrice, status);
+        
+        query = sortOrder switch
+        {
+            "price_desc" => query.OrderByDescending(a => a.CurrentPrice),
+            "price_asc" => query.OrderBy(a => a.CurrentPrice),
+            "oldest" => query.OrderBy(a => a.CreatedOn),
+            _ => query.OrderByDescending(a => a.CreatedOn)
+        };
+
+        var projectedQuery = query.Select(a => new AuctionDto
+        {
+            Id = a.Id,
+            Title = a.Title,
+            ImageUrl = a.ImageUrl,
+            CurrentPrice = a.CurrentPrice,
+            EndTime = a.EndTime,
+            Category = a.Category.Name,
+            CategoryId = a.CategoryId,
+            IsActive = a.IsActive,
+            IsSuspended = a.IsSuspended
+        });
+
+        return await PaginatedList<AuctionDto>.CreateAsync(projectedQuery, pageNumber, pageSize);
+    }
+
+    public async Task<PaginatedList<AuctionDto>> GetMyBidsAsync(
+        string userId,
+        string? searchTerm, 
+        int? categoryId, 
+        string? sortOrder, 
+        int pageNumber, 
+        int pageSize, 
+        decimal? minPrice, 
+        decimal? maxPrice, 
+        string? status)
+    {
+        var myBids = _context.Bids.Where(b => b.BidderId == userId);
+        
+        var adminRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Administrator");
+        var adminIds = adminRole != null 
+            ? await _context.UserRoles.Where(ur => ur.RoleId == adminRole.Id).Select(ur => ur.UserId).ToListAsync() 
+            : new List<string>();
+
+        var query = _context.Auctions
+            .Include(a => a.Category)
+            .Where(a => myBids.Any(b => b.AuctionId == a.Id) && !adminIds.Contains(a.SellerId));
+
+        query = ApplyFilters(query, searchTerm, categoryId, minPrice, maxPrice, status);
+
+        query = sortOrder switch
+        {
+            "price_desc" => query.OrderByDescending(a => a.CurrentPrice),
+            "price_asc" => query.OrderBy(a => a.CurrentPrice),
+            _ => query.OrderByDescending(a => a.EndTime)
+        };
+
+        var myMaxBids = await myBids
+            .GroupBy(b => b.AuctionId)
+            .Select(g => new { AuctionId = g.Key, MaxAmount = g.Max(b => b.Amount) })
+            .ToDictionaryAsync(x => x.AuctionId, x => x.MaxAmount);
+
+        // Paginate before projection or after? Better after to get correct total count.
+        // Actually, we need to project to get IsWinning.
+        
+        var list = await query.ToListAsync();
+        var projectedList = list.Select(a => new AuctionDto
+        {
+            Id = a.Id,
+            Title = a.Title,
+            ImageUrl = a.ImageUrl,
+            CurrentPrice = a.CurrentPrice,
+            EndTime = a.EndTime,
+            Category = a.Category.Name,
+            CategoryId = a.CategoryId,
+            IsActive = a.IsActive,
+            IsSuspended = a.IsSuspended,
+            IsWinning = myMaxBids.ContainsKey(a.Id) && myMaxBids[a.Id] >= a.CurrentPrice
+        }).ToList();
+
+        var totalCount = projectedList.Count;
+        var items = projectedList.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
+
+        return new PaginatedList<AuctionDto>(items, totalCount, pageNumber, pageSize);
+    }
+
+    public async Task<PaginatedList<AuctionDto>> GetUserAuctionsAsync(
+        string username,
+        string? searchTerm, 
+        int? categoryId, 
+        string? sortOrder, 
+        int pageNumber, 
+        int pageSize, 
+        decimal? minPrice, 
+        decimal? maxPrice, 
+        string? status)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == username);
+        if (user == null) return new PaginatedList<AuctionDto>(new List<AuctionDto>(), 0, pageNumber, pageSize);
+
+        var query = _context.Auctions
+            .Include(a => a.Category)
+            .Where(a => a.SellerId == user.Id);
+
+        query = ApplyFilters(query, searchTerm, categoryId, minPrice, maxPrice, status);
+
+        query = sortOrder switch
+        {
+            "price_desc" => query.OrderByDescending(a => a.CurrentPrice),
+            "price_asc" => query.OrderBy(a => a.CurrentPrice),
+            _ => query.OrderByDescending(a => a.CreatedOn)
+        };
+
+        var projectedQuery = query.Select(a => new AuctionDto
+        {
+            Id = a.Id,
+            Title = a.Title,
+            ImageUrl = a.ImageUrl,
+            CurrentPrice = a.CurrentPrice,
+            EndTime = a.EndTime,
+            Category = a.Category.Name,
+            CategoryId = a.CategoryId,
+            IsActive = a.IsActive,
+            IsSuspended = a.IsSuspended
+        });
+
+        return await PaginatedList<AuctionDto>.CreateAsync(projectedQuery, pageNumber, pageSize);
+    }
+
+    public async Task<PaginatedList<AuctionDto>> GetMyWatchlistAsync(
+        string userId,
+        string? searchTerm, 
+        int? categoryId, 
+        string? sortOrder, 
+        int pageNumber, 
+        int pageSize, 
+        decimal? minPrice, 
+        decimal? maxPrice, 
+        string? status)
+    {
+        var adminRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Administrator");
+        var adminIds = adminRole != null 
+            ? await _context.UserRoles.Where(ur => ur.RoleId == adminRole.Id).Select(ur => ur.UserId).ToListAsync() 
+            : new List<string>();
+
+        var query = _context.Watchlist
+            .Where(w => w.UserId == userId)
+            .Include(w => w.Auction)
+            .ThenInclude(a => a.Category)
+            .Select(w => w.Auction)
+            .Where(a => !adminIds.Contains(a.SellerId))
+            .AsQueryable();
+
+        query = ApplyFilters(query, searchTerm, categoryId, minPrice, maxPrice, status);
+
+        query = sortOrder switch
+        {
+            "price_desc" => query.OrderByDescending(a => a.CurrentPrice),
+            "price_asc" => query.OrderBy(a => a.CurrentPrice),
+            _ => query.OrderByDescending(a => a.EndTime)
+        };
+
+        var projectedQuery = query.Select(a => new AuctionDto
+        {
+            Id = a.Id,
+            Title = a.Title,
+            ImageUrl = a.ImageUrl,
+            CurrentPrice = a.CurrentPrice,
+            EndTime = a.EndTime,
+            Category = a.Category.Name,
+            CategoryId = a.CategoryId,
+            IsActive = a.IsActive,
+            IsSuspended = a.IsSuspended
+        });
+
+        return await PaginatedList<AuctionDto>.CreateAsync(projectedQuery, pageNumber, pageSize);
+    }
+
+    public async Task<AuctionDetailsDto?> GetAuctionDetailsAsync(int id, string? currentUserId = null)
+    {
+        var auction = await _context.Auctions
+            .Include(a => a.Category)
+            .Include(a => a.Seller)
+            .Include(a => a.Bids)
+                .ThenInclude(b => b.Bidder)
+            .FirstOrDefaultAsync(a => a.Id == id);
+
+        if (auction == null) return null;
+
+        bool isWatched = false;
+        if (currentUserId != null)
+        {
+            isWatched = await _context.Watchlist.AnyAsync(w => w.AuctionId == id && w.UserId == currentUserId);
+        }
+
+        return new AuctionDetailsDto
+        {
+            Id = auction.Id,
+            Title = auction.Title,
+            Description = auction.Description,
+            ImageUrl = auction.ImageUrl,
+            CurrentPrice = auction.CurrentPrice,
+            StartPrice = auction.StartPrice,
+            MinIncrease = auction.MinIncrease,
+            BuyItNowPrice = auction.BuyItNowPrice,
+            EndTime = auction.EndTime,
+            Category = auction.Category.Name,
+            CategoryId = auction.CategoryId,
+            Seller = auction.Seller.DisplayName,
+            SellerId = auction.SellerId,
+            IsActive = auction.IsActive && auction.EndTime > DateTime.UtcNow,
+            IsSuspended = auction.IsSuspended,
+            IsWatched = isWatched,
+            Bids = auction.Bids
+                .OrderByDescending(b => b.BidTime)
+                .Select(b => new BidDto
+                {
+                    Amount = b.Amount,
+                    BidTime = b.BidTime,
+                    Bidder = b.Bidder.DisplayName
+                })
+                .ToList()
+        };
+    }
+
+    public async Task<IEnumerable<CategoryDto>> GetCategoriesAsync()
+    {
+        return await _context.Categories
+            .OrderBy(c => c.Name)
+            .Select(c => new CategoryDto
+            {
+                Id = c.Id,
+                Name = c.Name
+            })
+            .ToListAsync();
+    }
+
+    public async Task<int> CreateAuctionAsync(AuctionFormDto model, string sellerId)
+    {
+        var auction = new Auction
+        {
+            Title = model.Title,
+            Description = model.Description,
+            ImageUrl = model.ImageUrl,
+            StartPrice = model.StartPrice,
+            CurrentPrice = model.StartPrice,
+            MinIncrease = model.MinIncrease,
+            BuyItNowPrice = model.BuyItNowPrice,
+            EndTime = new DateTime(model.EndTime.Year, model.EndTime.Month, model.EndTime.Day, 
+                                 model.EndTime.Hour, model.EndTime.Minute, 0, 0, model.EndTime.Kind),
+            CreatedOn = DateTime.UtcNow,
+            IsActive = true,
+            CategoryId = model.CategoryId,
+            SellerId = sellerId
+        };
+
+        _context.Auctions.Add(auction);
+        await _context.SaveChangesAsync();
+
+        return auction.Id;
+    }
+
+    public async Task<(bool Success, string Message)> UpdateAuctionAsync(int id, AuctionFormDto model, string userId)
+    {
+        var auction = await _context.Auctions
+            .Include(a => a.Bids)
+            .FirstOrDefaultAsync(a => a.Id == id);
+
+        if (auction == null) return (false, "Auction not found.");
+        if (auction.SellerId != userId) return (false, "Forbidden.");
+        if (auction.Bids.Any()) return (false, "You cannot edit an auction that has existing bids.");
+
+        auction.Title = model.Title;
+        auction.Description = model.Description;
+        if (!string.IsNullOrEmpty(model.ImageUrl)) 
+        {
+            auction.ImageUrl = model.ImageUrl;
+        }
+        
+        auction.StartPrice = model.StartPrice;
+        auction.MinIncrease = model.MinIncrease;
+        auction.BuyItNowPrice = model.BuyItNowPrice;
+        auction.EndTime = new DateTime(model.EndTime.Year, model.EndTime.Month, model.EndTime.Day, 
+                                     model.EndTime.Hour, model.EndTime.Minute, 0, 0, model.EndTime.Kind);
+        auction.CategoryId = model.CategoryId;
+
+        await _context.SaveChangesAsync();
+        return (true, "Auction updated successfully.");
+    }
+
+    public async Task<(bool Success, string Message)> DeleteAuctionAsync(int id, string userId)
+    {
+        var auction = await _context.Auctions
+            .Include(a => a.Bids)
+            .FirstOrDefaultAsync(a => a.Id == id);
+
+        if (auction == null) return (false, "Auction not found.");
+        if (auction.SellerId != userId) return (false, "Forbidden.");
+        if (auction.Bids.Any()) return (false, "Cannot delete an auction that already has bids.");
+
+        _context.Auctions.Remove(auction);
+        await _context.SaveChangesAsync();
+
+        return (true, "Auction deleted successfully.");
+    }
+
+    public async Task<(bool Success, string Message)> ToggleWatchlistAsync(int auctionId, string userId)
+    {
+        var existingItem = await _context.Watchlist
+            .FirstOrDefaultAsync(w => w.AuctionId == auctionId && w.UserId == userId);
+
+        if (existingItem != null)
+        {
+            _context.Watchlist.Remove(existingItem);
+            await _context.SaveChangesAsync();
+            return (true, "Removed from watchlist.");
+        }
+        else
+        {
+            var watchItem = new AuctionWatchlist
+            {
+                AuctionId = auctionId,
+                UserId = userId,
+                AddedOn = DateTime.UtcNow
+            };
+            _context.Watchlist.Add(watchItem);
+            await _context.SaveChangesAsync();
+            return (true, "Added to watchlist.");
+        }
+    }
+
+    private IQueryable<Auction> ApplyFilters(IQueryable<Auction> query, string? searchTerm, int? categoryId, decimal? minPrice, decimal? maxPrice, string? status)
+    {
+        // Status Filtering
+        if (status == "active")
+        {
+            query = query.Where(a => a.IsActive && a.EndTime > DateTime.UtcNow);
+        }
+        else if (status == "closed")
+        {
+            query = query.Where(a => !a.IsActive || a.EndTime <= DateTime.UtcNow);
+        }
+
+        if (!string.IsNullOrEmpty(searchTerm))
+        {
+            var normalizedSearch = searchTerm.ToLower();
+            query = query.Where(a => a.Title.ToLower().Contains(normalizedSearch) || 
+                             a.Description.ToLower().Contains(normalizedSearch));
+        }
+
+        if (categoryId.HasValue)
+        {
+            query = query.Where(a => a.CategoryId == categoryId.Value);
+        }
+
+        if (minPrice.HasValue) query = query.Where(a => a.CurrentPrice >= minPrice.Value);
+        if (maxPrice.HasValue) query = query.Where(a => a.CurrentPrice <= maxPrice.Value);
+
+        return query;
     }
 
     public async Task<(bool Success, string Message)> PlaceBidAsync(int auctionId, string userId, decimal amount)

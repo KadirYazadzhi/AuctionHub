@@ -23,6 +23,10 @@ builder.Services.AddDbContext<AuctionHubDbContext>(options =>
 
 builder.Services.AddScoped<IAuctionHubDbContext, AuctionHubDbContext>();
 builder.Services.AddScoped<IAuctionService, AuctionService>();
+builder.Services.AddScoped<IWalletService, WalletService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IMessageService, MessageService>();
 builder.Services.AddSingleton<INotificationService, NotificationService>();
 builder.Services.AddHostedService<AuctionCleanupService>();
 

@@ -8,37 +8,22 @@ namespace AuctionHub.Areas.Admin.Controllers;
 
 public class UsersController : AdminBaseController
 {
-    private readonly IAuctionHubDbContext _context;
-    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IUserService _userService;
 
-    public UsersController(IAuctionHubDbContext context, UserManager<ApplicationUser> userManager)
+    public UsersController(IUserService userService)
     {
-        _context = context;
-        _userManager = userManager;
+        _userService = userService;
     }
 
     public async Task<IActionResult> Index(string? searchTerm)
     {
-        var query = _userManager.Users.AsQueryable();
-
-        if (!string.IsNullOrEmpty(searchTerm))
-        {
-            query = query.Where(u => (u.Email != null && u.Email.Contains(searchTerm)) || 
-                                     (u.UserName != null && u.UserName.Contains(searchTerm)) || 
-                                     (u.FirstName != null && u.FirstName.Contains(searchTerm)) || 
-                                     (u.LastName != null && u.LastName.Contains(searchTerm)));
-        }
-
-        var users = await query.ToListAsync();
+        var users = await _userService.GetAllAsync(searchTerm);
         return View(users);
     }
 
     public async Task<IActionResult> Details(string id)
     {
-        var user = await _context.Users
-            .Include(u => u.MyAuctions).ThenInclude(a => a.Category)
-            .Include(u => u.MyBids).ThenInclude(b => b.Auction)
-            .FirstOrDefaultAsync(u => u.Id == id);
+        var user = await _userService.GetByIdAsync(id);
 
         if (user == null) return NotFound();
 
@@ -48,44 +33,15 @@ public class UsersController : AdminBaseController
     [HttpPost]
     public async Task<IActionResult> UpdateBalance(string userId, decimal amount, string reason)
     {
-        // Simple transaction is good, but for full concurrency safety we should rely on RowVersion
-        // However, EF Core handles concurrency via DbUpdateConcurrencyException automatically if RowVersion is present in the model.
-        // We just need to catch it, which we already do.
-        
-        using var transaction = await _context.Database.BeginTransactionAsync();
-        try
+        var result = await _userService.UpdateBalanceAsync(userId, amount, reason);
+
+        if (result.Success)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
-            if (user == null) return NotFound();
-
-            user.WalletBalance += amount;
-            
-            // Force update of RowVersion
-            _context.Entry(user).Property(u => u.RowVersion).IsModified = true;
-            
-            _context.Transactions.Add(new Transaction
-            {
-                UserId = user.Id,
-                Amount = amount,
-                TransactionType = amount >= 0 ? "AdminBonus" : "AdminPenalty",
-                Description = string.IsNullOrEmpty(reason) ? "Administrative adjustment" : reason,
-                TransactionDate = DateTime.UtcNow
-            });
-
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
-
-            TempData["Success"] = $"Balance updated. New balance: {user.WalletBalance:C}";
+            TempData["Success"] = result.Message;
         }
-        catch (DbUpdateConcurrencyException)
+        else
         {
-            await transaction.RollbackAsync();
-            TempData["Error"] = "Concurrency error: The user's balance was modified by another process. Please try again.";
-        }
-        catch (Exception)
-        {
-            await transaction.RollbackAsync();
-            TempData["Error"] = "An error occurred while updating the balance.";
+            TempData["Error"] = result.Message;
         }
 
         return RedirectToAction(nameof(Details), new { id = userId });
@@ -94,18 +50,15 @@ public class UsersController : AdminBaseController
     [HttpPost]
     public async Task<IActionResult> ToggleLock(string userId)
     {
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user == null) return NotFound();
+        var result = await _userService.ToggleLockAsync(userId);
 
-        if (await _userManager.IsLockedOutAsync(user))
+        if (result.Success)
         {
-            await _userManager.SetLockoutEndDateAsync(user, null);
-            TempData["Success"] = "User unlocked successfully.";
+            TempData["Success"] = result.Message;
         }
         else
         {
-            await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
-            TempData["Success"] = "User locked indefinitely.";
+            TempData["Error"] = result.Message;
         }
 
         return RedirectToAction(nameof(Index));
