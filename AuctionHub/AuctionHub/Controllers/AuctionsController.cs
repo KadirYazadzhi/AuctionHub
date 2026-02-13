@@ -449,9 +449,9 @@ public class AuctionsController : Controller
 
         if (id == -1)
         {
-            TempData["Error"] = "A similar auction was recently published. Please wait a few seconds.";
-            model.Categories = await GetCategoriesAsync();
-            return View(model);
+            // Idempotent behavior: The auction was likely already created by a previous rapid request.
+            // Instead of showing an error, we redirect to Index to provide a smooth experience.
+            return RedirectToAction(nameof(Index));
         }
 
         return RedirectToAction(nameof(Index));
