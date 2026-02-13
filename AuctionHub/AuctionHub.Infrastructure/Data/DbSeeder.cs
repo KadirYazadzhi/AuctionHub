@@ -51,11 +51,20 @@ public static class DbSeeder
                 EmailConfirmed = true,
                 FirstName = "System",
                 LastName = "Admin",
-                WalletBalance = 1000000m // Infinite money for admin
+                WalletBalance = 1000000m,
+                RowVersion = new byte[8]
             };
 
             var result = await userManager.CreateAsync(adminUser, "Admin123!");
             if (result.Succeeded)
+            {
+                await userManager.AddToRoleAsync(adminUser, adminRole);
+            }
+        }
+        else
+        {
+            // Ensure existing admin has the role
+            if (!await userManager.IsInRoleAsync(adminUser, adminRole))
             {
                 await userManager.AddToRoleAsync(adminUser, adminRole);
             }
