@@ -33,8 +33,12 @@
         <div class="col-lg-7 animate-fade-up">
             <div class="sticky-top" style="top: 100px;">
                 <div class="card border-0 shadow-lg rounded-5 overflow-hidden mb-4">
-                    <img src="@(string.IsNullOrEmpty(Model.ImageUrl) ? "https://via.placeholder.com/800x600?text=No+Image" : Model.ImageUrl)" 
-                         class="img-fluid w-100 object-fit-cover" style="max-height: 600px;" alt="@Model.Title">
+                    <img src="@(string.IsNullOrEmpty(Model.ImageUrl) ? "https://via.placeholder.com/800x600?text=No+Image" : Model.ImageUrl)"
+                         class="img-fluid w-100 object-fit-cover"
+                         style="max-height: 600px; cursor: pointer;"
+                         alt="@Model.Title"
+                         data-bs-toggle="modal"
+                         data-bs-target="#imageModal">
                 </div>
                 
                 <div class="card border-0 shadow-sm rounded-5 bg-white p-4 p-lg-5">
@@ -236,10 +240,51 @@
             </div>
         </div>
     </div>
+
+    <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content bg-transparent border-0 position-relative">
+
+                <button type="button"
+                        class="position-absolute top-0 end-0 m-3 border-0 bg-transparent p-0"
+                        data-bs-dismiss="modal"
+                        aria-label="Close"
+                        style="z-index: 1060;">
+
+                    <i class="bi bi-x-lg text-danger fs-3"></i>
+                </button>
+
+                <div class="modal-body p-0 text-center" style="position: relative; z-index: 1055;">
+                    <img src="@(string.IsNullOrEmpty(Model.ImageUrl) ? "https://via.placeholder.com/800x600?text=No+Image" : Model.ImageUrl)"
+                         class="img-fluid rounded-4 shadow-lg"
+                         style="max-height: 85vh; object-fit: contain; cursor: pointer;">
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <style>
     .letter-spacing-1 { letter-spacing: 1px; }
     .x-small { font-size: 0.75rem; }
     .avatar-xs { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; }
+    .bi-x-circle-fill {
+        line-height: 1;
+        box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+    .modal-backdrop {
+        background-color: rgba(0, 0, 0, 0.8) !important; 
+    }
+    .modal-backdrop.show {
+        opacity: 1 !important; 
+        backdrop-filter: blur(10px) !important;
+        -webkit-backdrop-filter: blur(10px) !important;
+    }
+    .modal.fade .modal-dialog {
+        transform: scale(0.8);
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .modal.show .modal-dialog {
+        transform: scale(1);
+    }
 </style>

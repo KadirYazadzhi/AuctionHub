@@ -9,9 +9,13 @@
     var currentUser = await UserManager.GetUserAsync(User);
     var balance = currentUser?.WalletBalance ?? 0.00m;
 
-    <li class="nav-item me-2">
-        <a class="btn btn-sm btn-light rounded-pill border fw-bold text-primary px-3" asp-area="" asp-controller="Wallet" asp-action="Index" title="My Wallet">
-            <i class="bi bi-wallet2 me-1"></i> @balance.ToString("C")
+    <li class="nav-item me-lg-2 mb-2 mb-lg-0">
+        <a class="btn btn-sm btn-light rounded-pill border fw-bold text-primary px-3 d-inline-flex align-items-center text-nowrap"
+           asp-area="" asp-controller="Wallet" asp-action="Index"
+           title="My Wallet"
+           style="min-width: fit-content;">
+            <i class="bi bi-wallet2 me-2"></i>
+            <span>@balance.ToString("C")</span>
         </a>
     </li>
 

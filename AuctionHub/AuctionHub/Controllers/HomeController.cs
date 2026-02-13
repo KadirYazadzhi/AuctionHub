@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using AuctionHub.Models;
 using AuctionHub.Data;
+using Microsoft.AspNetCore.Identity; 
 
 namespace AuctionHub.Controllers;
 
@@ -9,20 +10,46 @@ public class HomeController : Controller
 {
     private readonly ILogger<HomeController> _logger;
     private readonly AuctionHubDbContext _context;
-
-    public HomeController(ILogger<HomeController> logger, AuctionHubDbContext context)
+    private readonly UserManager<ApplicationUser> _userManager; 
+    
+    public HomeController(
+        ILogger<HomeController> logger, 
+        AuctionHubDbContext context, 
+        UserManager<ApplicationUser> userManager)
     {
         _logger = logger;
         _context = context;
+        _userManager = userManager;
     }
 
     public IActionResult Index()
     {
         return View();
     }
-
-    public IActionResult About()
+    
+    public async Task<IActionResult> About()
     {
+        ViewBag.UserName = "";
+        ViewBag.UserEmail = "";
+
+        if (User.Identity.IsAuthenticated)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user != null)
+            {
+                ViewBag.UserEmail = user.Email;
+                
+                if (!string.IsNullOrWhiteSpace(user.FirstName) && !string.IsNullOrWhiteSpace(user.LastName))
+                {
+                    ViewBag.UserName = $"{user.FirstName} {user.LastName}";
+                }
+                else
+                {
+                    ViewBag.UserName = user.UserName;
+                }
+            }
+        }
+
         return View();
     }
 
@@ -58,7 +85,7 @@ public class HomeController : Controller
         if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(message))
         {
             TempData["Error"] = "Please fill in all fields.";
-            return RedirectToAction(nameof(About));
+            return RedirectToAction(nameof(About)); 
         }
 
         var contactMessage = new ContactMessage

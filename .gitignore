@@ -1,39 +1,56 @@
-# User-specific documentation
+# ==========================================
+# Project Specific Documentation
+# ==========================================
+NOTICE.md
 PROJECT_PLAN.md
 softuni-goals.md
 project-goals.md
 
-# Build results
+# ==========================================
+# .NET Core / ASP.NET Core
+# ==========================================
 [Bb]in/
 [Oo]bj/
+sqlcmd_debug
+*.log
+*.tmp
+*.bak
+*.swp
 
-# Visual Studio / Rider
-.vs/
-.idea/
-*.user
-*.suo
-*.userprefs
-*.sln.docstates
+# ==========================================
+# Environment & Secrets 
+# ==========================================
+.env
+appsettings.Development.json
 
-# Database
+# ==========================================
+# Databases
+# ==========================================
 *.db
 *.mdf
 *.ldf
 
-# OS generated files
+# ==========================================
+# IDEs (Visual Studio, VS Code, Rider)
+# ==========================================
+.vs/
+.vscode/
+.idea/
+*.sln.iml
+*.user
+*.suo
+*.userprefs
+*.userosscache
+*.sln.docstates
+*.rsuser
+
+# ==========================================
+# Operating System Files
+# ==========================================
 .DS_Store
-Thumbs.db
+.DS_Store?
 ._*
-
-# Environment variables & Secrets
-appsettings.json
-appsettings.Development.json
-.env
-
-# Logs
-*.log
-
-# Temporary Files
-*.tmp
-*.bak
-*.swp
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
