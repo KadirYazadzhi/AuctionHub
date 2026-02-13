@@ -248,6 +248,7 @@ public class AuctionsController : Controller
 
         ViewData["TargetUser"] = user.DisplayName;
         ViewData["TargetUserImage"] = user.ProfilePictureUrl;
+        ViewData["CurrentUsername"] = username;
         ViewData["CurrentSort"] = sortOrder;
         ViewData["CurrentSearch"] = searchTerm;
         ViewData["CurrentCategory"] = categoryId;

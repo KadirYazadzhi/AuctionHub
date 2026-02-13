@@ -2,6 +2,7 @@
 @{
     var targetUser = ViewData["TargetUser"] as string;
     var targetUserImage = ViewData["TargetUserImage"] as string;
+    var currentUsername = ViewData["CurrentUsername"] as string;
     ViewData["Title"] = $"{targetUser}'s Auctions";
     var categories = ViewBag.Categories as IEnumerable<SelectListItem>;
     var currentSort = ViewData["CurrentSort"] as string;
@@ -42,7 +43,7 @@
                 <div class="card-body p-4">
                     <h5 class="fw-bold mb-3"><i class="bi bi-sliders me-2 text-primary"></i>Filters</h5>
                     <form method="get">
-                        <input type="hidden" name="username" value="@ViewContext.RouteData.Values["username"]" />
+                        <input type="hidden" name="username" value="@currentUsername" />
                         
                         <div class="mb-3">
                             <label class="form-label small text-uppercase text-muted fw-bold">Search</label>
@@ -77,7 +78,7 @@
 
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-primary rounded-pill">Apply Filters</button>
-                            <a asp-action="UserAuctions" asp-route-username="@ViewContext.RouteData.Values["username"]" class="btn btn-outline-secondary rounded-pill">Reset</a>
+                            <a asp-action="UserAuctions" asp-route-username="@currentUsername" class="btn btn-outline-secondary rounded-pill">Reset</a>
                         </div>
                     </form>
                 </div>
@@ -93,9 +94,9 @@
                         Sort By
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4">
-                        <li><a class="dropdown-item" asp-route-username="@ViewContext.RouteData.Values["username"]" asp-route-sortOrder="" asp-route-status="@status">Newest First</a></li>
-                        <li><a class="dropdown-item" asp-route-username="@ViewContext.RouteData.Values["username"]" asp-route-sortOrder="price_asc" asp-route-status="@status">Price: Low to High</a></li>
-                        <li><a class="dropdown-item" asp-route-username="@ViewContext.RouteData.Values["username"]" asp-route-sortOrder="price_desc" asp-route-status="@status">Price: High to Low</a></li>
+                        <li><a class="dropdown-item" asp-route-username="@currentUsername" asp-route-sortOrder="" asp-route-status="@status">Newest First</a></li>
+                        <li><a class="dropdown-item" asp-route-username="@currentUsername" asp-route-sortOrder="price_asc" asp-route-status="@status">Price: Low to High</a></li>
+                        <li><a class="dropdown-item" asp-route-username="@currentUsername" asp-route-sortOrder="price_desc" asp-route-status="@status">Price: High to Low</a></li>
                     </ul>
                 </div>
             </div>
@@ -125,7 +126,7 @@
                         <ul class="pagination">
                             <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")">
                                 <a class="page-link rounded-start-pill px-3" asp-route-pageNumber="@(Model.PageIndex - 1)" 
-                                   asp-route-username="@ViewContext.RouteData.Values["username"]"
+                                   asp-route-username="@currentUsername"
                                    asp-route-sortOrder="@currentSort" asp-route-searchTerm="@currentSearch" 
                                    asp-route-categoryId="@currentCategory" asp-route-minPrice="@minPrice" 
                                    asp-route-maxPrice="@maxPrice" asp-route-status="@status">
@@ -135,7 +136,7 @@
                             <li class="page-item disabled"><span class="page-link px-3">@Model.PageIndex / @Model.TotalPages</span></li>
                             <li class="page-item @(Model.HasNextPage ? "" : "disabled")">
                                 <a class="page-link rounded-end-pill px-3" asp-route-pageNumber="@(Model.PageIndex + 1)"
-                                   asp-route-username="@ViewContext.RouteData.Values["username"]"
+                                   asp-route-username="@currentUsername"
                                    asp-route-sortOrder="@currentSort" asp-route-searchTerm="@currentSearch"
                                    asp-route-categoryId="@currentCategory" asp-route-minPrice="@minPrice"
                                    asp-route-maxPrice="@maxPrice" asp-route-status="@status">
