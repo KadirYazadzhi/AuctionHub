@@ -25,4 +25,8 @@
     <ProjectReference Include="..\AuctionHub.Infrastructure\AuctionHub.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\images\auctions\" />
+  </ItemGroup>
+
 </Project>

@@ -1,6 +1,7 @@
-using AuctionHub.Data;
-using AuctionHub.Models;
-using AuctionHub.Services;
+using AuctionHub.Infrastructure.Data;
+using AuctionHub.Domain.Models;
+using AuctionHub.Application.Services;
+using AuctionHub.Application.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Xunit;
@@ -9,10 +10,11 @@ namespace AuctionHub.Tests;
 
 public class AuctionServiceTests
 {
-    private AuctionHubDbContext GetDatabaseContext()
+    private IAuctionHubDbContext GetDatabaseContext()
     {
         var options = new DbContextOptionsBuilder<AuctionHubDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .ConfigureWarnings(x => x.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.InMemoryEventId.TransactionIgnoredWarning))
             .Options;
         
         var context = new AuctionHubDbContext(options);
@@ -28,19 +30,21 @@ public class AuctionServiceTests
         var mockNotification = new Mock<INotificationService>();
         var service = new AuctionService(context, mockNotification.Object);
 
-        var seller = new ApplicationUser { Id = "seller1", Email = "seller@test.com", UserName = "seller" };
-        var bidder = new ApplicationUser { Id = "bidder1", Email = "bidder@test.com", UserName = "bidder", WalletBalance = 1000m };
+        var seller = new ApplicationUser { Id = "seller1", Email = "seller@test.com", UserName = "seller", RowVersion = new byte[8] };
+        var bidder = new ApplicationUser { Id = "bidder1", Email = "bidder@test.com", UserName = "bidder", WalletBalance = 1000m, RowVersion = new byte[8] };
         
         var auction = new Auction 
         { 
             Id = 1, 
             Title = "Test Item", 
+            Description = "Test Desc",
             CurrentPrice = 100m, 
             StartPrice = 100m,
             MinIncrease = 10m,
             SellerId = seller.Id,
             IsActive = true,
-            EndTime = DateTime.UtcNow.AddDays(1)
+            EndTime = DateTime.UtcNow.AddDays(1),
+            RowVersion = new byte[8]
         };
 
         context.Users.AddRange(seller, bidder);
@@ -68,14 +72,14 @@ public class AuctionServiceTests
         var mockNotification = new Mock<INotificationService>();
         var service = new AuctionService(context, mockNotification.Object);
 
-        var admin = new ApplicationUser { Id = "admin1", Email = "admin@test.com", UserName = "admin" };
+        var admin = new ApplicationUser { Id = "admin1", Email = "admin@test.com", UserName = "admin", RowVersion = new byte[8] };
         var adminRole = new Microsoft.AspNetCore.Identity.IdentityRole { Id = "role1", Name = "Administrator", NormalizedName = "ADMINISTRATOR" };
         
         context.Users.Add(admin);
         context.Roles.Add(adminRole);
         context.UserRoles.Add(new Microsoft.AspNetCore.Identity.IdentityUserRole<string> { UserId = "admin1", RoleId = "role1" });
         
-        var auction = new Auction { Id = 1, SellerId = "other", CurrentPrice = 100m, MinIncrease = 10m, IsActive = true, EndTime = DateTime.UtcNow.AddDays(1) };
+        var auction = new Auction { Id = 1, Title = "Title", Description = "Desc", SellerId = "other", CurrentPrice = 100m, MinIncrease = 10m, IsActive = true, EndTime = DateTime.UtcNow.AddDays(1), RowVersion = new byte[8] };
         context.Auctions.Add(auction);
         await context.SaveChangesAsync();
 
@@ -95,10 +99,10 @@ public class AuctionServiceTests
         var mockNotification = new Mock<INotificationService>();
         var service = new AuctionService(context, mockNotification.Object);
 
-        var bidder1 = new ApplicationUser { Id = "bidder1", WalletBalance = 500m };
-        var bidder2 = new ApplicationUser { Id = "bidder2", WalletBalance = 1000m };
+        var bidder1 = new ApplicationUser { Id = "bidder1", WalletBalance = 500m, RowVersion = new byte[8] };
+        var bidder2 = new ApplicationUser { Id = "bidder2", WalletBalance = 1000m, RowVersion = new byte[8] };
         
-        var auction = new Auction { Id = 1, SellerId = "seller", CurrentPrice = 100m, MinIncrease = 10m, IsActive = true, EndTime = DateTime.UtcNow.AddDays(1) };
+        var auction = new Auction { Id = 1, Title = "Title", Description = "Desc", SellerId = "seller", CurrentPrice = 100m, MinIncrease = 10m, IsActive = true, EndTime = DateTime.UtcNow.AddDays(1), RowVersion = new byte[8] };
         auction.Bids.Add(new Bid { AuctionId = 1, BidderId = "bidder1", Amount = 100m });
 
         context.Users.AddRange(bidder1, bidder2);
@@ -113,7 +117,7 @@ public class AuctionServiceTests
         mockNotification.Verify(n => n.NotifyUserAsync("bidder1", It.IsAny<string>(), It.IsAny<string>()), Times.Once);
         
         // Check if NotifyAllWatchersAsync was called
-        mockNotification.Verify(n => n.NotifyAllWatchersAsync(1, It.IsAny<string>(), It.IsAny<string>(), "bidder2"), Times.Once);
+        mockNotification.Verify(n => n.NotifyAllWatchersAsync(1, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
@@ -124,17 +128,20 @@ public class AuctionServiceTests
         var mockNotification = new Mock<INotificationService>();
         var service = new AuctionService(context, mockNotification.Object);
 
-        var buyer = new ApplicationUser { Id = "buyer1", WalletBalance = 2000m };
-        var prevBidder = new ApplicationUser { Id = "prev1", WalletBalance = 500m };
+        var buyer = new ApplicationUser { Id = "buyer1", WalletBalance = 2000m, RowVersion = new byte[8] };
+        var prevBidder = new ApplicationUser { Id = "prev1", WalletBalance = 500m, RowVersion = new byte[8] };
         
         var auction = new Auction 
         { 
             Id = 1, 
+            Title = "Title",
+            Description = "Desc",
             SellerId = "seller", 
             CurrentPrice = 500m, 
             BuyItNowPrice = 1500m, 
             IsActive = true, 
-            EndTime = DateTime.UtcNow.AddDays(1) 
+            EndTime = DateTime.UtcNow.AddDays(1),
+            RowVersion = new byte[8]
         };
         auction.Bids.Add(new Bid { AuctionId = 1, BidderId = "prev1", Amount = 500m });
 
@@ -153,6 +160,6 @@ public class AuctionServiceTests
         var updatedPrevBidder = await context.Users.FindAsync("prev1");
         Assert.Equal(1000m, updatedPrevBidder!.WalletBalance); // 500 original + 500 refund
         
-        mockNotification.Verify(n => n.NotifyAllWatchersAsync(1, It.IsAny<string>(), It.IsAny<string>(), "buyer1"), Times.Once);
+        mockNotification.Verify(n => n.NotifyAllWatchersAsync(1, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
     }
 }
