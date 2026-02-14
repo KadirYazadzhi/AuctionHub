@@ -8,6 +8,10 @@
 
 > **AuctionHub** is a robust, full-stack ASP.NET Core application designed to simulate a real-world auction environment. It features a complete financial ledger system, real-time bidding logic with concurrency protection, and a comprehensive administration dashboard.
 
+<br />
+<img src="./preview/home-preview.png" width="100%" alt="AuctionHub Home Page" />
+<br />
+
 ---
 
 ## 📑 Table of Contents
@@ -52,21 +56,51 @@
 
 ## 📸 Gallery & UI
 
-### 1. The Marketplace (Home)
-*Browse active auctions with advanced filtering and search.*
-<img src="https://via.placeholder.com/800x400?text=Screenshot:+Home+Page+and+Filters" width="100%" />
+### 1. User Experience (The Marketplace)
 
-### 2. Auction Details & Bidding
+**Explore All Auctions**
+*A clean grid view of all available items.*
+<img src="./preview/explore-auctions-preview.png" width="100%" alt="Explore Auctions" />
+
+**Advanced Filtering**
+*Users can filter by specific categories and price ranges.*
+<img src="./preview/explore-auctions-with-filter-preview.png" width="100%" alt="Explore Auctions Filtered" />
+
+**Auction Details & Bidding**
 *Detailed view showing current bid, bid history, and countdown timer.*
-<img src="https://via.placeholder.com/800x400?text=Screenshot:+Auction+Details+Page" width="100%" />
+<img src="./preview/auction-details-preview.png" width="100%" alt="Auction Details" />
 
-### 3. My Wallet & Transactions
+**My Wallet**
 *The financial hub showing balance and transaction history.*
-<img src="https://via.placeholder.com/800x400?text=Screenshot:+Wallet+and+Transactions" width="100%" />
+<img src="./preview/wallet-history-preview.png" width="100%" alt="Wallet History" />
 
-### 4. Admin Dashboard
-*High-level overview for platform administrators.*
-<img src="https://via.placeholder.com/800x400?text=Screenshot:+Admin+Dashboard" width="100%" />
+---
+
+### 2. Administration Area
+
+**Admin Dashboard**
+*Real-time statistics and platform overview.*
+<img src="./preview/admin-panel-dashboard-preview.png" width="100%" alt="Admin Dashboard" />
+
+**Admin Inbox**
+*Internal communication and system notifications.*
+<img src="./preview/admin-panel-inbox-preview.png" width="100%" alt="Admin Inbox" />
+
+**User Management**
+*View, edit, or ban users.*
+<img src="./preview/admin-panel-users-preview.png" width="100%" alt="Admin Users" />
+
+**Auction Management**
+*Oversee all active and expired auctions.*
+<img src="./preview/admin-panel-auctions-preview.png" width="100%" alt="Admin Auctions List" />
+
+**Category Management**
+*Create and edit product categories.*
+<img src="./preview/admin-panel-categories-preview.png" width="100%" alt="Admin Categories" />
+
+**Transaction Logs**
+*Audit trail of all financial movements in the system.*
+<img src="./preview/admin-panel-transaction-preview.png" width="100%" alt="Admin Transactions" />
 
 ---
 
@@ -160,42 +194,41 @@ AuctionHub/
 To run this project locally, follow these steps:
 
 1. **Prerequisites:**
+
 * .NET 8.0 SDK
 * SQL Server (LocalDB or full instance)
 
-
 2. **Clone the Repo:**
+
 ```bash
 git clone [https://github.com/YourUsername/AuctionHub.git](https://github.com/YourUsername/AuctionHub.git)
 
 ```
 
-
 3. **Configure Connection:**
+
 * Open `appsettings.json`.
 * Modify `"DefaultConnection"` string if necessary.
 
-
 4. **Database Migration:**
+
 ```bash
 dotnet ef database update
 
 ```
 
-
 *Note: The app includes a `DbSeeder` which will automatically create Categories and an Admin user.*
 5. **Run:**
+
 ```bash
 dotnet run
 
 ```
 
-
 6. **Login Credentials (Seed Data):**
+
 * **Admin:** `admin@auctionhub.com` / `admin123` (Check `DbSeeder.cs` to confirm)
 * **User:** You can register a new user normally.
-
-
 
 ---
 
@@ -214,4 +247,5 @@ dotnet test
 ```
 
 ---
+
 *Project created for SoftUni ASP.NET Fundamentals Course.*
