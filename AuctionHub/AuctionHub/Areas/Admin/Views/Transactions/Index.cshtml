@@ -36,12 +36,21 @@
                                 </div>
                             </td>
                             <td>
-                                <span class="badge bg-secondary-subtle text-secondary border rounded-pill px-3">@t.TransactionType</span>
+                                @switch (t.TransactionType)
+                                {
+                                    case "Deposit": <span class="badge bg-success-subtle text-success border rounded-pill px-3">Deposit</span> break;
+                                    case "Refund": <span class="badge bg-info-subtle text-info border rounded-pill px-3">Refund</span> break;
+                                    case "AdminBonus": <span class="badge bg-success-subtle text-success border rounded-pill px-3">Bonus</span> break;
+                                    case "AdminPenalty": <span class="badge bg-danger-subtle text-danger border rounded-pill px-3">Penalty</span> break;
+                                    case "Bid": <span class="badge bg-warning-subtle text-warning border rounded-pill px-3">Bid</span> break;
+                                    case "Purchase": <span class="badge bg-primary-subtle text-primary border rounded-pill px-3">Purchase</span> break;
+                                    default: <span class="badge bg-secondary-subtle text-secondary border rounded-pill px-3">@t.TransactionType</span> break;
+                                }
                             </td>
                             <td class="text-muted small">@t.Description</td>
                             <td class="text-muted small">@t.TransactionDate.ToLocalTime().ToString("g")</td>
-                            <td class="text-end pe-4 fw-bold @(t.TransactionType == "Deposit" || t.TransactionType == "Refund" ? "text-success" : "text-danger")">
-                                @((t.TransactionType == "Deposit" || t.TransactionType == "Refund" ? "+" : "-") + t.Amount.ToString("C"))
+                            <td class="text-end pe-4 fw-bold @(t.TransactionType == "Deposit" || t.TransactionType == "Refund" || t.TransactionType == "AdminBonus" ? "text-success" : "text-danger")">
+                                @((t.TransactionType == "Deposit" || t.TransactionType == "Refund" || t.TransactionType == "AdminBonus" ? "+" : "-") + t.Amount.ToString("C"))
                             </td>
                         </tr>
                     }

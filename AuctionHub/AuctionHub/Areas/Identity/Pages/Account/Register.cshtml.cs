@@ -101,6 +101,19 @@ namespace AuctionHub.Areas.Identity.Pages.Account
                 if (result.Succeeded)
                 {
                     _logger.LogInformation("User created a new account with password.");
+
+                    // Record the initial bonus transaction
+                    var context = HttpContext.RequestServices.GetRequiredService<AuctionHub.Application.Interfaces.IAuctionHubDbContext>();
+                    context.Transactions.Add(new Transaction
+                    {
+                        UserId = user.Id,
+                        Amount = 500.00m,
+                        TransactionType = "Deposit",
+                        Description = "Welcome Bonus",
+                        TransactionDate = DateTime.UtcNow
+                    });
+                    await context.SaveChangesAsync();
+
                     await _signInManager.SignInAsync(user, isPersistent: false);
                     return LocalRedirect(returnUrl);
                 }
