@@ -43,13 +43,14 @@
 * **Auto-Refund:** If a user is outbid, their held funds are automatically released back to their available balance.
 * **Transaction Ledger:** A persistent history of all Deposits, Withdrawals, Holds, and Releases.
 
-### 🛡️ Administration Area
 * **Dashboard:** Real-time metrics (Total Users, Active Auctions, Volume).
 * **User Management:** Ability to view user details and history.
+* **Communication Hub:** Internal Inbox to read and manage user inquiries (Contact Messages).  
 * **Moderation:** Admins can edit categories and suspend suspicious auctions.
 
 ### 🔔 User Engagement
 * **Notifications:** Alert system for "Auction Won", "Outbid", or "Auction Ended".
+* **Direct Support:** Integrated "Contact Us" form for user inquiries. <-- ДОБАВЕНО
 * **Search & Filter:** Advanced filtering by Category, Price Range, and Status.
 
 ---
