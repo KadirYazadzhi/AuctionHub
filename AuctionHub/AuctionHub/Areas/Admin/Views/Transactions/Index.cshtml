@@ -40,8 +40,8 @@
                             </td>
                             <td class="text-muted small">@t.Description</td>
                             <td class="text-muted small">@t.TransactionDate.ToLocalTime().ToString("g")</td>
-                            <td class="text-end pe-4 fw-bold @(t.Amount > 0 || t.TransactionType == "Refund" ? "text-success" : "text-danger")">
-                                @t.Amount.ToString("C")
+                            <td class="text-end pe-4 fw-bold @(t.TransactionType == "Deposit" || t.TransactionType == "Refund" ? "text-success" : "text-danger")">
+                                @((t.TransactionType == "Deposit" || t.TransactionType == "Refund" ? "+" : "-") + t.Amount.ToString("C"))
                             </td>
                         </tr>
                     }

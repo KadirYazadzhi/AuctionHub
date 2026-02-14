@@ -29,7 +29,7 @@ public class WalletService : IWalletService
                 Description = t.Description,
                 TransactionDate = t.TransactionDate,
                 TransactionType = t.TransactionType,
-                User = t.User.DisplayName
+                User = t.User.UserName ?? "Unknown"
             })
             .ToListAsync();
     }
@@ -47,7 +47,7 @@ public class WalletService : IWalletService
                 Description = t.Description,
                 TransactionDate = t.TransactionDate,
                 TransactionType = t.TransactionType,
-                User = t.User.DisplayName
+                User = t.User.UserName ?? "Unknown"
             })
             .ToListAsync();
     }
