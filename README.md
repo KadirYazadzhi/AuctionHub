@@ -231,6 +231,34 @@ dotnet test
 
 ```
 
+### ✅ Unit Test Results
+
+| Status | Test Name | Duration |
+| --- | --- | --- |
+| 🟢 **Pass** | `PlaceBidAsync_ShouldPlaceBidSuccessfully` | 4ms |
+| 🟢 **Pass** | `BuyItNowAsync_ShouldSucceedAndCloseAuction` | 7ms |
+| 🟢 **Pass** | `PlaceBidAsync_ShouldRefundPreviousBidder` | 1.1s |
+| 🟢 **Pass** | `PlaceBidAsync_ShouldFail_WhenInsufficientFunds` | 3ms |
+| 🟢 **Pass** | `PlaceBidAsync_ShouldFail_WhenBidIsTooLow` | 3ms |
+| 🟢 **Pass** | `PlaceBidAsync_ShouldFail_WhenUserIsAdministrator` | 3ms |
+| 🟢 **Pass** | `PlaceBidAsync_ShouldFail_WhenSellerBidsOnOwnAuction` | 2ms |
+| 🟢 **Pass** | `PlaceBidAsync_ShouldFail_WhenAuctionIsInactive` | 2ms |
+| 🟢 **Pass** | `PlaceBidAsync_ShouldHandleSelfOutbidCorrectly` | 32ms |
+| 🟢 **Pass** | `PlaceBidAsync_ShouldEndAuction_WhenBidMeetsBuyItNowPrice` | 6ms |
+| 🟢 **Pass** | `CreateAuctionAsync_ShouldCreateAuctionSuccessfully` | 3ms |
+| 🟢 **Pass** | `CreateAuctionAsync_ShouldPreventDuplicates` | 25ms |
+| 🟢 **Pass** | `GetAuctionsAsync_ShouldHideAdminAuctions` | 69ms |
+| 🟢 **Pass** | `ToggleWatchlistAsync_ShouldAddItemToWatchlist` | 10ms |
+| 🟢 **Pass** | `ToggleWatchlistAsync_ShouldRemoveItemFromWatchlist` | 38ms |
+| 🟢 **Pass** | `UpdateAuctionAsync_ShouldFail_WhenBidsExist` | 18ms |
+| 🟢 **Pass** | `DeleteAuctionAsync_ShouldFail_WhenBidsExist` | 4ms |
+| 🟢 **Pass** | `BuyItNowAsync_ShouldFail_WhenNoBuyItNowPrice` | 26ms |
+| 🟢 **Pass** | `PlaceBidAsync_ShouldFail_WhenAuctionNotFound` | 2ms |
+
+---
+<img src="./preview/tests.png" width="100%" alt="Tests" />
+
+
 ## 🗺️ Roadmap & Future Plans
 
 The project is under active development. The following features are planned for the v2.0 release (ASP.NET Advanced Module):
