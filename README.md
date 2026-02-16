@@ -186,7 +186,7 @@ To run this project locally, follow these steps:
 2. **Clone the Repo:**
 
 ```bash
-git clone [https://github.com/YourUsername/AuctionHub.git](https://github.com/YourUsername/AuctionHub.git)
+git clone https://github.com/KadirYazadzhi/SoftUni---ASP.NET-Fundamentals-Project-Assignment
 
 ```
 
