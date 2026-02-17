@@ -193,8 +193,8 @@ To run this project locally, follow these steps:
 2. **Clone the Repo:**
 
 ```bash
-git clone https://github.com/KadirYazadzhi/SoftUni---ASP.NET-Fundamentals-Project-Assignment
-cd SoftUni---ASP.NET-Fundamentals-Project-Assignment/AuctionHub
+git clone https://github.com/KadirYazadzhi/AuctionHub
+cd AuctionHub/AuctionHub
 
 ```
 
@@ -221,7 +221,7 @@ dotnet run
 
 6. **Login Credentials (Seed Data):**
 
-* **Admin:** `admin@auctionhub.com` / `admin123` (Check `DbSeeder.cs` to confirm)
+* **Admin:** `admin@auctionhub.com` or `admin` / `Admin123!` (Check `DbSeeder.cs` to confirm)
 * **User:** You can register a new user normally.
 
 ---
