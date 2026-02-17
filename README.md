@@ -183,45 +183,74 @@ AuctionHub/
 
 ## 🚀 Installation & Setup
 
-To run this project locally, follow these steps:
+You can set up the project using either **Docker** (Recommended) or a **Standard Local SQL Server**.
+
+### Option 1: Docker Setup (Recommended)
+*This method automatically provisions the database with the correct configuration.*
 
 1. **Prerequisites:**
-
-* .NET 8.0 SDK
-* SQL Server (LocalDB or full instance)
+   * Docker Desktop / Docker Engine
+   * .NET 8.0 SDK
 
 2. **Clone the Repo:**
+   ```bash
+   git clone https://github.com/KadirYazadzhi/SoftUni---ASP.NET-Fundamentals-Project-Assignment
+   cd SoftUni---ASP.NET-Fundamentals-Project-Assignment
+   ```
 
-```bash
-git clone https://github.com/KadirYazadzhi/AuctionHub
-cd AuctionHub/AuctionHub
+3. **Start the Database:**
+   Run this in the root directory (where `docker-compose.yml` is located):
+   ```bash
+   docker-compose up -d
+   ```
+   *Starts MSSQL Server on port `5899`.*
 
-```
+4. **Apply Migrations:**
+   ```bash
+   dotnet ef database update --project AuctionHub.Infrastructure --startup-project AuctionHub
+   ```
+
+5. **Run the Application:**
+   ```bash
+   cd AuctionHub
+   dotnet run
+   ```
+
+---
+
+### Option 2: Standard Setup (Local SQL Server)
+*Use this if you already have a local SQL Server instance running.*
+
+1. **Prerequisites:**
+   * SQL Server (LocalDB or full instance)
+   * .NET 8.0 SDK
+
+2. **Clone the Repo:**
+   ```bash
+   git clone https://github.com/KadirYazadzhi/SoftUni---ASP.NET-Fundamentals-Project-Assignment
+   cd SoftUni---ASP.NET-Fundamentals-Project-Assignment/AuctionHub
+   ```
 
 3. **Configure Connection:**
-
-* Open `AuctionHub/appsettings.json`.
-* Modify `"DefaultConnection"` string if necessary.
+   * Open `appsettings.json`.
+   * **Important:** The default connection string is for Docker (Port 5899). Change `"DefaultConnection"` to point to your local instance.
+     * Example: `Server=.;Database=AuctionHubDb;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true`
 
 4. **Database Migration:**
+   ```bash
+   dotnet ef database update --project ../AuctionHub.Infrastructure --startup-project .
+   ```
 
-```bash
-dotnet ef database update --project AuctionHub.Infrastructure --startup-project AuctionHub
-
-```
-
-*Note: The app includes a `DbSeeder` which will automatically create Categories and an Admin user.*
 5. **Run:**
+   ```bash
+   dotnet run
+   ```
 
-```bash
-cd AuctionHub
-dotnet run
+---
 
-```
+### 🔑 Login Credentials (Seed Data)
 
-6. **Login Credentials (Seed Data):**
-
-* **Admin:** `admin@auctionhub.com` or `admin` / `Admin123!` (Check `DbSeeder.cs` to confirm)
+* **Admin:** `admin@auctionhub.com` / `Admin123!` (Check `DbSeeder.cs` to confirm)
 * **User:** You can register a new user normally.
 
 ---

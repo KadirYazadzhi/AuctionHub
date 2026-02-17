@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: auctionhub-db
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=ActionHub2026!
+    ports:
+      - "5899:1433"
+    volumes:
+      - mssql-data:/var/opt/mssql/data
+    restart: unless-stopped
+
+volumes:
+  mssql-data:
