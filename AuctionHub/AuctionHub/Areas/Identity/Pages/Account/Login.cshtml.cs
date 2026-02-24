@@ -75,13 +75,13 @@ namespace AuctionHub.Areas.Identity.Pages.Account
                 if (new EmailAddressAttribute().IsValid(Input.Email))
                 {
                     var user = await _userManager.FindByEmailAsync(Input.Email);
-                    if (user != null)
+                    if (user != null && !string.IsNullOrEmpty(user.UserName))
                     {
                         userName = user.UserName;
                     }
                 }
                 
-                var result = await _signInManager.PasswordSignInAsync(userName, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+                var result = await _signInManager.PasswordSignInAsync(userName ?? Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
                 
                 if (result.Succeeded)
                 {
