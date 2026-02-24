@@ -68,4 +68,5 @@ public interface IAuctionService
     Task<(bool Success, string Message, string? OldImageUrl)> UpdateAuctionAsync(int id, AuctionFormDto model, string userId);
     Task<(bool Success, string Message, string? ImageUrl)> DeleteAuctionAsync(int id, string userId);
     Task<(bool Success, string Message)> ToggleWatchlistAsync(int auctionId, string userId);
+    Task<(bool Success, string Message)> SetAutoBidAsync(int auctionId, string userId, decimal maxAmount);
 }

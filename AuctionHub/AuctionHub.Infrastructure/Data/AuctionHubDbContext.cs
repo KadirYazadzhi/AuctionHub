@@ -20,10 +20,24 @@ public class AuctionHubDbContext : IdentityDbContext<ApplicationUser>, IAuctionH
     public DbSet<Notification> Notifications { get; set; } = null!;
     public DbSet<ContactMessage> ContactMessages { get; set; } = null!;
     public DbSet<ChatMessage> ChatMessages { get; set; } = null!;
+    public DbSet<AutoBid> AutoBids { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+
+        // Configure AutoBid
+        builder.Entity<AutoBid>()
+            .HasOne(ab => ab.Auction)
+            .WithMany()
+            .HasForeignKey(ab => ab.AuctionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<AutoBid>()
+            .HasOne(ab => ab.User)
+            .WithMany()
+            .HasForeignKey(ab => ab.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         // Configure relations and delete behaviors if necessary
         builder.Entity<Auction>()
@@ -71,6 +85,7 @@ public class AuctionHubDbContext : IdentityDbContext<ApplicationUser>, IAuctionH
         builder.Entity<Bid>().Property(b => b.Amount).HasColumnType("decimal(18,2)");
         builder.Entity<Transaction>().Property(t => t.Amount).HasColumnType("decimal(18,2)");
         builder.Entity<ApplicationUser>().Property(u => u.WalletBalance).HasColumnType("decimal(18,2)");
+        builder.Entity<AutoBid>().Property(ab => ab.MaxAmount).HasColumnType("decimal(18,2)");
 
         // Watchlist unique
         builder.Entity<AuctionWatchlist>()

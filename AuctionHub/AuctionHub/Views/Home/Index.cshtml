@@ -359,33 +359,52 @@
 @if (User.Identity?.IsAuthenticated == true)
 {
     <!-- Global Chat Container -->
-    <div id="global-chat-container" class="position-fixed" style="bottom: 20px; right: 20px; z-index: 1050; display: flex; flex-direction: column; align-items: flex-end;">
+    <div id="global-chat-container" class="position-fixed" style="bottom: 25px; right: 25px; z-index: 1060; display: flex; flex-direction: column; align-items: flex-end;">
         
         <!-- Chat Window -->
-        <div id="global-chat-window" class="shadow-lg rounded-4 bg-body text-body d-flex flex-column mb-3" 
-             style="width: 350px; height: 450px; border: 1px solid var(--bs-border-color); opacity: 0; pointer-events: none; transform: translateY(20px); transition: all 0.3s ease-in-out; transform-origin: bottom right;">
+        <div id="global-chat-window" class="rounded-4 bg-white d-flex flex-column mb-3 border-0 overflow-hidden" 
+             style="width: 380px; height: 520px; opacity: 0; pointer-events: none; transform: translateY(30px) scale(0.9); transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); transform-origin: bottom right; box-shadow: 0 10px 50px rgba(0,0,0,0.1);">
              
             <!-- Header -->
-            <div class="bg-primary text-white p-3 rounded-top-4 d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center gap-2">
-                    <i class="bi bi-chat-dots-fill fs-5"></i>
-                    <h6 class="mb-0 fw-bold">Global Chat</h6>
+            <div class="bg-primary bg-gradient text-white p-3 d-flex justify-content-between align-items-center shadow-sm">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="position-relative">
+                        <div class="chat-icon-wrapper bg-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; transition: all 0.3s ease;">
+                            <i class="bi bi-chat-dots-fill text-primary fs-5 chat-header-icon" style="transition: all 0.3s ease;"></i>
+                        </div>
+                        <span class="position-absolute bottom-0 end-0 p-1 bg-success border border-2 border-white rounded-circle animate-pulse"></span>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 fw-bold">Global Community</h6>
+                        <small class="opacity-75" style="font-size: 0.75rem;"><i class="bi bi-circle-fill text-success me-1" style="font-size: 0.5rem;"></i> Live Chat</small>
+                    </div>
                 </div>
-                <!-- Optional: online count badge if you track users
-                <span class="badge bg-light text-primary rounded-pill" id="online-count">Online</span>
-                -->
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" id="global-chat-expand" class="btn btn-link text-white p-0 opacity-75 hover-opacity-100 transition-all" title="Toggle Focus Mode">
+                        <i class="bi bi-arrows-angle-expand fs-6" id="expand-icon"></i>
+                    </button>
+                    <button type="button" class="btn btn-link text-white p-0 opacity-75 hover-opacity-100 transition-all" onclick="document.getElementById('global-chat-toggle').click()">
+                        <i class="bi bi-dash-lg fs-4"></i>
+                    </button>
+                </div>
             </div>
 
             <!-- Messages Area -->
-            <div id="global-chat-messages" class="flex-grow-1 p-3 overflow-auto" style="background-color: var(--bs-tertiary-bg);">
+            <div id="global-chat-messages" class="flex-grow-1 p-3 overflow-auto custom-scrollbar bg-white">
                 @if (Model != null)
                 {
                     foreach (var msg in Model)
                     {
                         bool isMe = currentUser != null && msg.SenderId == currentUser.Id;
-                        <div class="mb-2 d-flex flex-column @(isMe ? "align-items-end" : "align-items-start")">
-                            <small class="text-body-secondary" style="font-size: 0.7rem;">@msg.SenderName, @msg.SentOn.ToLocalTime().ToString("HH:mm")</small>
-                            <div class="p-2 rounded-3 @(isMe ? "bg-primary text-white" : "bg-body border")" style="max-width: 85%; word-wrap: break-word; font-size: 0.9rem;">
+                        <div class="mb-3 d-flex flex-column @(isMe ? "align-items-end" : "align-items-start") animate-fade-in">
+                            <div class="d-flex align-items-center gap-2 mb-1 px-1">
+                                @if (!isMe)
+                                {
+                                    <small class="fw-bold text-primary" style="font-size: 0.75rem;">@msg.SenderName</small>
+                                }
+                                <small class="text-body-secondary" style="font-size: 0.65rem;">@msg.SentOn.ToLocalTime().ToString("HH:mm")</small>
+                            </div>
+                            <div class="chat-bubble p-3 @(isMe ? "chat-bubble-me" : "chat-bubble-other") shadow-sm" style="max-width: 85%; word-wrap: break-word; font-size: 0.9rem;">
                                 @msg.Content
                             </div>
                         </div>
@@ -394,34 +413,127 @@
             </div>
 
             <!-- Input Area -->
-            <div class="p-2 border-top bg-body rounded-bottom-4">
+            <div id="chat-input-area" class="p-3 border-top" style="background-color: #f8f9fa;">
                 <form id="global-chat-form" class="d-flex gap-2">
-                    <input type="text" id="global-chat-input" class="form-control rounded-pill px-3" placeholder="Type a message..." required autocomplete="off" />
-                    <!-- Send Button perfectly centered, fixed dimensions -->
-                    <button type="submit" class="btn btn-primary rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px; padding: 0;">
-                        <i class="bi bi-send-fill text-white"></i>
+                    <div class="flex-grow-1 position-relative">
+                        <input type="text" id="global-chat-input" class="form-control rounded-pill border-0 bg-white px-4 py-2 shadow-sm" 
+                               placeholder="Say something nice..." required autocomplete="off" style="font-size: 0.95rem;" />
+                    </div>
+                    <button type="submit" class="btn btn-primary rounded-circle d-flex align-items-center justify-content-center shadow-sm hover-scale transition-all" 
+                            style="width: 42px; height: 42px; min-width: 42px;">
+                        <i class="bi bi-send-fill"></i>
                     </button>
                 </form>
             </div>
         </div>
         
-        <!-- Floating Action Button (FAB) -->
-        <button id="global-chat-toggle" class="btn btn-primary rounded-circle shadow-lg d-flex align-items-center justify-content-center position-relative" 
-                style="width: 60px; height: 60px; transition: transform 0.2s;">
-            <i class="bi bi-chat-dots-fill text-white" style="font-size: 1.8rem; position: absolute; transition: opacity 0.2s, transform 0.2s;" id="chat-icon-open"></i>
-            <i class="bi bi-x-lg text-white" style="font-size: 1.8rem; position: absolute; opacity: 0; transform: rotate(-90deg) scale(0); transition: opacity 0.2s, transform 0.2s;" id="chat-icon-close"></i>
-            <!-- Notification Dot (optional future use) -->
-            <span id="chat-badge" class="position-absolute top-0 start-100 translate-middle p-2 bg-danger border border-light rounded-circle d-none">
-                <span class="visually-hidden">New alerts</span>
-            </span>
+        <!-- FAB -->
+        <button id="global-chat-toggle" class="btn btn-primary btn-lg rounded-circle shadow-lg d-flex align-items-center justify-content-center position-relative hover-lift transition-all" 
+                style="width: 65px; height: 65px; z-index: 1061;">
+            <i class="bi bi-chat-dots-fill text-white fs-2" id="chat-icon-open"></i>
+            <i class="bi bi-x-lg text-white fs-2 d-none" id="chat-icon-close"></i>
+            <span id="chat-badge" class="position-absolute top-0 start-100 translate-middle p-2 bg-danger border border-2 border-white rounded-circle d-none"></span>
         </button>
     </div>
+
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(var(--bs-primary-rgb), 0.2); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(var(--bs-primary-rgb), 0.4); }
+
+        .chat-bubble {
+            border-radius: 18px;
+            line-height: 1.4;
+            transition: transform 0.2s ease;
+        }
+        .chat-bubble:hover { transform: scale(1.02); }
+        
+        .chat-bubble-me {
+            background: linear-gradient(135deg, var(--bs-primary) 0%, #3a56d4 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .chat-bubble-other {
+            background: #f0f2f5;
+            color: #1c1e21;
+            border-bottom-left-radius: 4px;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .animate-pulse { animation: pulse-green 2s infinite; }
+        @@keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.7); }
+            70% { box-shadow: 0 0 0 6px rgba(25, 135, 84, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0); }
+        }
+
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        @@keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hover-scale:hover { transform: scale(1.1); }
+        .hover-lift:hover { transform: translateY(-5px); }
+        .hover-opacity-100:hover { opacity: 1 !important; }
+
+        /* Focus Mode (Expanded) */
+        #global-chat-window.focused {
+            width: 80vw !important;
+            height: 80vh !important;
+            max-width: 1000px;
+            bottom: 50% !important;
+            right: 50% !important;
+            transform: translate(50%, 50%) !important;
+            z-index: 1070;
+        }
+
+        /* Responsive Focus Mode */
+        @@media (max-width: 768px) {
+            #global-chat-window.focused {
+                width: 95vw !important;
+                height: 90vh !important;
+            }
+        }
+        
+        /* Dark Mode Overrides */
+        [data-bs-theme="dark"] #global-chat-window {
+            background-color: #1a1d20 !important;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.4) !important;
+        }
+        [data-bs-theme="dark"] #global-chat-messages {
+            background-color: #1a1d20 !important;
+        }
+        [data-bs-theme="dark"] #chat-input-area {
+            background-color: #212529 !important;
+            border-color: #2d3238 !important;
+        }
+        [data-bs-theme="dark"] .chat-header-icon {
+            color: #fff !important;
+        }
+        [data-bs-theme="dark"] .chat-icon-wrapper {
+            background-color: rgba(255,255,255,0.15) !important;
+        }
+        [data-bs-theme="dark"] .chat-bubble-other {
+            background: #2b3035;
+            color: #e4e6eb;
+            border-color: #373b3e;
+        }
+        [data-bs-theme="dark"] #global-chat-input {
+            background-color: #2b3035 !important;
+            color: #fff !important;
+        }
+    </style>
 
     <!-- SignalR Script for Global Chat -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const chatToggle = document.getElementById('global-chat-toggle');
+            const chatExpand = document.getElementById('global-chat-expand');
+            const expandIcon = document.getElementById('expand-icon');
             const chatWindow = document.getElementById('global-chat-window');
             const chatMessages = document.getElementById('global-chat-messages');
             const chatForm = document.getElementById('global-chat-form');
@@ -431,57 +543,75 @@
             const chatBadge = document.getElementById('chat-badge');
             
             let isOpen = false;
-            
-            // Scroll to bottom initially
+            let isFocused = false;
             chatMessages.scrollTop = chatMessages.scrollHeight;
 
             chatToggle.addEventListener('click', () => {
                 isOpen = !isOpen;
-                
                 if (isOpen) {
-                    // Open animation
                     chatWindow.style.opacity = '1';
                     chatWindow.style.pointerEvents = 'auto';
-                    chatWindow.style.transform = 'translateY(0) scale(1)';
-                    
-                    // Icon animation
-                    iconOpen.style.opacity = '0';
-                    iconOpen.style.transform = 'rotate(90deg) scale(0)';
-                    iconClose.style.opacity = '1';
-                    iconClose.style.transform = 'rotate(0) scale(1)';
-                    
-                    // Hide badge
+                    if(!isFocused) {
+                        chatWindow.style.transform = 'translateY(0) scale(1)';
+                    } else {
+                        chatWindow.style.transform = 'translate(50%, 50%) scale(1)';
+                    }
+                    iconOpen.classList.add('d-none');
+                    iconClose.classList.remove('d-none');
                     chatBadge.classList.add('d-none');
-                    
-                    setTimeout(() => chatInput.focus(), 300);
+                    setTimeout(() => chatInput.focus(), 400);
                 } else {
-                    // Close animation
                     chatWindow.style.opacity = '0';
                     chatWindow.style.pointerEvents = 'none';
-                    chatWindow.style.transform = 'translateY(20px) scale(0.95)';
-                    
-                    // Icon animation
-                    iconOpen.style.opacity = '1';
-                    iconOpen.style.transform = 'rotate(0) scale(1)';
-                    iconClose.style.opacity = '0';
-                    iconClose.style.transform = 'rotate(-90deg) scale(0)';
+                    if(!isFocused) {
+                        chatWindow.style.transform = 'translateY(30px) scale(0.9)';
+                    } else {
+                        chatWindow.style.transform = 'translate(50%, 50%) scale(0.9)';
+                        isFocused = false;
+                        chatWindow.classList.remove('focused');
+                        expandIcon.className = 'bi bi-arrows-angle-expand fs-6';
+                    }
+                    iconOpen.classList.remove('d-none');
+                    iconClose.classList.add('d-none');
                 }
             });
 
+            chatExpand.addEventListener('click', (e) => {
+                e.stopPropagation();
+                isFocused = !isFocused;
+                if(isFocused) {
+                    chatWindow.classList.add('focused');
+                    expandIcon.className = 'bi bi-arrows-angle-contract fs-6';
+                    // Center the window in expanded state
+                    chatWindow.style.transform = 'translate(50%, 50%) scale(1)';
+                } else {
+                    chatWindow.classList.remove('focused');
+                    expandIcon.className = 'bi bi-arrows-angle-expand fs-6';
+                    chatWindow.style.transform = 'translateY(0) scale(1)';
+                }
+                setTimeout(scrollToBottom, 300);
+            });
+
+            const scrollToBottom = () => {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            };
+
             const connection = new signalR.HubConnectionBuilder()
                 .withUrl("/hubs/chat")
+                .withAutomaticReconnect()
                 .build();
 
-            // Receive message
             connection.on("ReceiveGlobalMessage", function (msg) {
                 const isMe = msg.senderId === '@currentUser?.Id';
-                const dateObj = new Date(msg.sentOn);
-                const timeStr = dateObj.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute:'2-digit' });
+                const timeStr = new Date(msg.sentOn).toLocaleTimeString([], { hour: '2-digit', minute:'2-digit' });
 
                 const msgHtml = `
-                    <div class="mb-2 d-flex flex-column ${isMe ? 'align-items-end' : 'align-items-start'}">
-                        <small class="text-body-secondary" style="font-size: 0.7rem;">${msg.senderName}, ${timeStr}</small>
-                        <div class="p-2 rounded-3 ${isMe ? 'bg-primary text-white' : 'bg-body border'}" style="max-width: 85%; word-wrap: break-word; font-size: 0.9rem;">
+                    <div class="mb-3 d-flex flex-column ${isMe ? 'align-items-end' : 'align-items-start'} animate-fade-in">
+                        <div class="d-flex align-items-center gap-2 mb-1 px-1">
+                            ${!isMe ? `<small class="fw-bold text-primary" style="font-size: 0.75rem;">${msg.senderName}</small>` : ''}
+                            <small class="text-body-secondary" style="font-size: 0.65rem;">${timeStr}</small>
+                        </div>
+                        <div class="chat-bubble p-3 ${isMe ? 'chat-bubble-me' : 'chat-bubble-other'} shadow-sm" style="max-width: 85%; word-wrap: break-word; font-size: 0.9rem;">
                             ${msg.content}
                         </div>
                     </div>
@@ -490,32 +620,26 @@
                 chatMessages.insertAdjacentHTML('beforeend', msgHtml);
                 chatMessages.scrollTop = chatMessages.scrollHeight;
                 
-                // If closed, jiggle the circle and (optionally) show badge
                 if(!isOpen) {
-                    chatToggle.style.transform = 'scale(1.1)';
-                    setTimeout(() => { chatToggle.style.transform = 'scale(1)'; }, 200);
+                    chatToggle.classList.add('animate-bounce');
+                    setTimeout(() => chatToggle.classList.remove('animate-bounce'), 1000);
                     chatBadge.classList.remove('d-none');
                 }
             });
 
-            // Start connection & join group
-            connection.start().then(function () {
-                connection.invoke("JoinGlobalChat").catch(err => console.error(err));
-            }).catch(function (err) {
-                return console.error(err.toString());
-            });
+            connection.start()
+                .then(() => connection.invoke("JoinGlobalChat"))
+                .catch(err => console.error("SignalR Connection Error: ", err));
 
-            // Send message
             chatForm.addEventListener('submit', function (e) {
                 e.preventDefault();
                 const text = chatInput.value.trim();
                 if (text) {
-                    connection.invoke("SendMessageToGlobal", text).catch(function (err) {
-                        console.error(err.toString());
-                    });
+                    connection.invoke("SendMessageToGlobal", text).catch(err => console.error(err));
                     chatInput.value = '';
                 }
             });
         });
     </script>
+}
 }

@@ -166,6 +166,26 @@ public class AuctionsController : Controller
     }
 
     [HttpPost]
+    public async Task<IActionResult> SetAutoBid(int auctionId, decimal maxAmount)
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (currentUserId == null) return Challenge();
+
+        var result = await _auctionService.SetAutoBidAsync(auctionId, currentUserId, maxAmount);
+
+        if (result.Success)
+        {
+            TempData["Success"] = result.Message;
+        }
+        else
+        {
+            TempData["Error"] = result.Message;
+        }
+
+        return RedirectToAction(nameof(Details), new { id = auctionId });
+    }
+
+    [HttpPost]
     public async Task<IActionResult> BuyItNow(int auctionId)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);

@@ -189,6 +189,32 @@
                                         </div>
                                     </div>
                                 </div>
+
+                                <!-- Smart Bidding Section -->
+                                <div class="card border-0 bg-info bg-opacity-10 rounded-5 mb-4 shadow-sm overflow-hidden border-start border-4 border-info">
+                                    <div class="card-body p-4">
+                                        <div class="d-flex align-items-center mb-3">
+                                            <div class="bg-white rounded-circle d-flex align-items-center justify-content-center me-2 shadow-sm" style="width: 32px; height: 32px;">
+                                                <i class="bi bi-robot text-info"></i>
+                                            </div>
+                                            <h5 class="fw-bold mb-0 text-info-emphasis">Smart Bidding</h5>
+                                        </div>
+                                        <p class="small text-muted mb-3">Set your absolute maximum and let our bot outbid others automatically with the minimum step.</p>
+                                        <form asp-action="SetAutoBid" method="post" class="d-flex gap-2">
+                                            <input type="hidden" name="auctionId" value="@Model.Id" />
+                                            <div class="input-group">
+                                                <span class="input-group-text bg-white border-end-0 rounded-start-pill ps-3 fw-bold text-info">@System.Globalization.CultureInfo.CurrentCulture.NumberFormat.CurrencySymbol</span>
+                                                <input type="text" 
+                                                       class="form-control border-start-0 py-2" 
+                                                       name="maxAmount" 
+                                                       placeholder="Max Limit"
+                                                       oninput="this.value = this.value.replace(/[^0-9,.]/g, '').replace('.', ',')"
+                                                       inputmode="decimal">
+                                                <button type="submit" class="btn btn-info text-white rounded-end-pill px-4 fw-bold">Activate</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
                             }
                         }
                         else

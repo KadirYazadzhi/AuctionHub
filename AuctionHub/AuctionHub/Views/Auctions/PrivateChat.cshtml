@@ -1,6 +1,6 @@
 @model IEnumerable<AuctionHub.Application.DTOs.ChatMessageDto>
 @{
-    ViewData["Title"] = "Private Chat - " + ViewBag.AuctionTitle;
+    ViewData["Title"] = "Secure Chat - " + ViewBag.AuctionTitle;
     var currentUserId = ViewBag.CurrentUserId as string;
     var otherUserId = ViewBag.OtherUserId as string;
     var auctionId = ViewBag.AuctionId;
@@ -8,27 +8,47 @@
 
 <div class="container py-5 mt-5">
     <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+        <div class="col-lg-8 animate-fade-up">
+            <div id="private-chat-window" class="card shadow-2xl border-0 rounded-4 overflow-hidden bg-body" style="height: 700px; box-shadow: 0 20px 50px rgba(0,0,0,0.1);">
                 <!-- Header -->
-                <div class="card-header bg-primary text-white p-4 pb-3 border-0 d-flex justify-content-between align-items-center">
-                    <div>
-                        <h4 class="mb-1 fw-bold"><i class="bi bi-lock-fill me-2"></i>Secure Private Chat</h4>
-                        <p class="mb-0 text-white-50 small">Discuss shipping & payment for auction: <strong>@ViewBag.AuctionTitle</strong></p>
+                <div class="card-header bg-primary bg-gradient text-white p-4 border-0 shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="position-relative">
+                                <div class="chat-icon-wrapper bg-white rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                    <i class="bi bi-shield-lock-fill text-primary fs-4 chat-header-icon"></i>
+                                </div>
+                                <span class="position-absolute bottom-0 end-0 p-1 bg-success border border-2 border-white rounded-circle animate-pulse"></span>
+                            </div>
+                            <div>
+                                <h4 class="mb-0 fw-bold">Secure Private Chat</h4>
+                                <small class="opacity-75 d-flex align-items-center gap-1">
+                                    <i class="bi bi-hammer small"></i> @ViewBag.AuctionTitle
+                                </small>
+                            </div>
+                        </div>
+                        <a asp-action="Details" asp-route-id="@auctionId" class="btn btn-sm btn-outline-light rounded-pill px-3 py-2 fw-bold hover-scale transition-all">
+                            <i class="bi bi-arrow-left me-1"></i> Back
+                        </a>
                     </div>
-                    <a asp-action="Details" asp-route-id="@auctionId" class="btn btn-sm btn-light fs-6 fw-bold rounded-pill text-primary">Back to Auction</a>
                 </div>
 
                 <!-- Messages -->
-                <div class="card-body p-4 bg-light" id="private-chat-messages" style="height: 500px; overflow-y: auto;">
+                <div class="card-body p-4 overflow-auto custom-scrollbar bg-messages" id="private-chat-messages" style="background: var(--bs-tertiary-bg);">
                     @if (Model != null && Model.Any())
                     {
                         foreach(var msg in Model)
                         {
                             bool isMe = msg.SenderId == currentUserId;
-                            <div class="mb-3 d-flex flex-column @(isMe ? "align-items-end" : "align-items-start")">
-                                <small class="text-muted mb-1" style="font-size: 0.75rem;">@msg.SenderName, @msg.SentOn.ToLocalTime().ToString("MMM dd, HH:mm")</small>
-                                <div class="p-3 rounded-4 @(isMe ? "bg-primary text-white rounded-bottom-end-0 shadow-sm" : "bg-white border rounded-bottom-start-0 shadow-sm")" style="max-width: 75%; word-wrap: break-word;">
+                            <div class="mb-4 d-flex flex-column @(isMe ? "align-items-end" : "align-items-start") animate-fade-in">
+                                <div class="d-flex align-items-center gap-2 mb-1 px-1">
+                                    @if (!isMe)
+                                    {
+                                        <small class="fw-bold text-primary" style="font-size: 0.75rem;">@msg.SenderName</small>
+                                    }
+                                    <small class="text-body-secondary" style="font-size: 0.65rem;">@msg.SentOn.ToLocalTime().ToString("MMM dd, HH:mm")</small>
+                                </div>
+                                <div class="chat-bubble p-3 @(isMe ? "chat-bubble-me shadow-sm" : "chat-bubble-other shadow-sm")" style="max-width: 80%; word-wrap: break-word; font-size: 0.95rem;">
                                     @msg.Content
                                 </div>
                             </div>
@@ -36,28 +56,103 @@
                     }
                     else
                     {
-                        <div id="no-messages" class="text-center text-muted mt-5 py-5">
-                            <i class="bi bi-chat-square-text text-black-50" style="font-size: 3rem;"></i>
-                            <h5 class="mt-3">No messages yet</h5>
-                            <p>Send a message to discuss payment and shipping details securely.</p>
+                        <div id="no-messages" class="h-100 d-flex flex-column align-items-center justify-content-center text-muted py-5 animate-fade-in">
+                            <div class="bg-body-tertiary rounded-circle d-flex align-items-center justify-content-center shadow-sm mb-3" style="width: 100px; height: 100px;">
+                                <i class="bi bi-chat-square-dots text-primary opacity-50" style="font-size: 3rem;"></i>
+                            </div>
+                            <h5 class="fw-bold text-body">No messages yet</h5>
+                            <p class="small text-center px-4">Discuss shipping & payment details securely. All conversations are private between the seller and the winner.</p>
                         </div>
                     }
                 </div>
 
                 <!-- Input -->
-                <div class="card-footer bg-white p-3 border-top-0">
-                    <form id="private-chat-form" class="d-flex gap-2 align-items-center">
-                        <input type="text" id="private-chat-input" class="form-control form-control-lg bg-light border-0 rounded-pill px-4" placeholder="Write a secure message..." required autocomplete="off" />
-                        <button type="submit" class="btn btn-primary btn-lg rounded-circle shadow-sm hover-lift" style="width: 50px; height: 50px; flex-shrink: 0;">
-                            <i class="bi bi-send-fill ms-n1"></i>
+                <div class="card-footer bg-body p-4 border-top">
+                    <form id="private-chat-form" class="d-flex gap-2">
+                        <div class="flex-grow-1 position-relative">
+                            <input type="text" id="private-chat-input" class="form-control rounded-pill border-0 bg-body-tertiary px-4 py-3" 
+                                   placeholder="Type your message here..." required autocomplete="off" style="font-size: 1rem;" />
+                        </div>
+                        <button type="submit" class="btn btn-primary rounded-circle d-flex align-items-center justify-content-center shadow-sm hover-scale transition-all" 
+                                style="width: 54px; height: 54px; min-width: 54px;">
+                            <i class="bi bi-send-fill fs-5"></i>
                         </button>
                     </form>
                 </div>
             </div>
-            <p class="text-muted text-center mt-3 small"><i class="bi bi-shield-check text-success"></i> This chat is end-to-end secured. Please do not share sensitive passwords.</p>
+            <div class="d-flex align-items-center justify-content-center gap-2 text-muted mt-4 small animate-fade-up">
+                <i class="bi bi-shield-check text-success fs-5"></i> 
+                <span>This conversation is protected by our secure escrow system.</span>
+            </div>
         </div>
     </div>
 </div>
+
+<style>
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(var(--bs-primary-rgb), 0.2); border-radius: 10px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(var(--bs-primary-rgb), 0.4); }
+
+    .chat-bubble {
+        border-radius: 20px;
+        line-height: 1.5;
+        transition: transform 0.2s ease;
+    }
+    .chat-bubble:hover { transform: scale(1.01); }
+    
+    .chat-bubble-me {
+        background: linear-gradient(135deg, var(--bs-primary) 0%, #3a56d4 100%);
+        color: white;
+        border-bottom-right-radius: 4px;
+    }
+    
+    .chat-bubble-other {
+        background: var(--bs-body-bg);
+        color: var(--bs-body-color);
+        border-bottom-left-radius: 4px;
+        border: 1px solid var(--bs-border-color-translucent);
+    }
+
+    .animate-pulse { animation: pulse-green 2s infinite; }
+    @@keyframes pulse-green {
+        0% { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.7); }
+        70% { box-shadow: 0 0 0 6px rgba(25, 135, 84, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0); }
+    }
+
+    .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: translateY(15px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .hover-scale:hover { transform: scale(1.05); }
+    .transition-all { transition: all 0.3s ease; }
+
+    /* Theme Adaptations */
+    [data-bs-theme="dark"] #private-chat-window {
+        background-color: #1a1d20 !important;
+        border: 1px solid #2d3238 !important;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.5) !important;
+    }
+    [data-bs-theme="dark"] #private-chat-messages {
+        background-color: #1a1d20 !important;
+    }
+    [data-bs-theme="dark"] .bg-body-tertiary {
+        background-color: #212529 !important;
+    }
+    [data-bs-theme="dark"] .chat-header-icon {
+        color: #fff !important;
+    }
+    [data-bs-theme="dark"] .chat-icon-wrapper {
+        background-color: rgba(255,255,255,0.15) !important;
+    }
+    [data-bs-theme="dark"] .chat-bubble-other {
+        background: #2b3035;
+        border-color: #373b3e;
+    }
+</style>
 
 @section Scripts {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
@@ -72,7 +167,6 @@
             const currentUserId = '@currentUserId';
             const otherUserId = '@otherUserId';
 
-            // Scroll to bottom
             const scrollToBottom = () => {
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             };
@@ -80,6 +174,7 @@
 
             const connection = new signalR.HubConnectionBuilder()
                 .withUrl("/hubs/chat")
+                .withAutomaticReconnect()
                 .build();
 
             connection.on("ReceivePrivateMessage", function (msg) {
@@ -87,16 +182,19 @@
 
                 const isMe = msg.senderId === currentUserId;
                 const d = new Date(msg.sentOn);
-                const timeStr = d.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }) + ', ' +
-                                d.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute:'2-digit' });
+                const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
+                const timeStr = d.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute:'2-digit' });
 
                 const alignClass = isMe ? 'align-items-end' : 'align-items-start';
-                const bubbleClass = isMe ? 'bg-primary text-white rounded-bottom-end-0 shadow-sm' : 'bg-white border rounded-bottom-start-0 shadow-sm';
+                const bubbleClass = isMe ? 'chat-bubble-me' : 'chat-bubble-other';
 
                 const html = `
-                    <div class="mb-3 d-flex flex-column ${alignClass}">
-                        <small class="text-muted mb-1" style="font-size: 0.75rem;">${msg.senderName}, ${timeStr}</small>
-                        <div class="p-3 rounded-4 ${bubbleClass}" style="max-width: 75%; word-wrap: break-word;">
+                    <div class="mb-4 d-flex flex-column ${alignClass} animate-fade-in">
+                        <div class="d-flex align-items-center gap-2 mb-1 px-1">
+                            ${!isMe ? `<small class="fw-bold text-primary" style="font-size: 0.75rem;">${msg.senderName}</small>` : ''}
+                            <small class="text-body-secondary" style="font-size: 0.65rem;">${dateStr}, ${timeStr}</small>
+                        </div>
+                        <div class="chat-bubble p-3 ${bubbleClass} shadow-sm" style="max-width: 80%; word-wrap: break-word; font-size: 0.95rem;">
                             ${msg.content}
                         </div>
                     </div>
@@ -114,8 +212,7 @@
                 e.preventDefault();
                 const text = chatInput.value.trim();
                 if (text) {
-                    connection.invoke("SendMessageToPrivate", auctionId, otherUserId, text)
-                        .catch(console.error);
+                    connection.invoke("SendMessageToPrivate", auctionId, otherUserId, text).catch(console.error);
                     chatInput.value = '';
                 }
             });

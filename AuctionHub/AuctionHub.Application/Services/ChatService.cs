@@ -59,10 +59,20 @@ public class ChatService : IChatService
 
     public async Task<ChatMessageDto> SaveMessageAsync(string senderId, string content, bool isGlobal, string? receiverId = null, int? auctionId = null)
     {
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            throw new ArgumentException("Message content cannot be empty.");
+        }
+
+        if (content.Length > 1000)
+        {
+            content = content.Substring(0, 1000); // Truncate to prevent DB overflow
+        }
+
         var msg = new ChatMessage
         {
             SenderId = senderId,
-            Content = content,
+            Content = content.Trim(),
             IsGlobal = isGlobal,
             ReceiverId = receiverId,
             AuctionId = auctionId,

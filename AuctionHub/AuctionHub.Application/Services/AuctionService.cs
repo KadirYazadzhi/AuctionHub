@@ -527,6 +527,56 @@ public class AuctionService : IAuctionService
         return query;
     }
 
+    public async Task<(bool Success, string Message)> SetAutoBidAsync(int auctionId, string userId, decimal maxAmount)
+    {
+        var auction = await _context.Auctions
+            .Include(a => a.Bids)
+            .FirstOrDefaultAsync(a => a.Id == auctionId);
+
+        if (auction == null) return (false, "Auction not found.");
+        if (!auction.IsActive || auction.EndTime <= DateTime.UtcNow) return (false, "This auction has ended.");
+        if (auction.SellerId == userId) return (false, "You cannot set auto-bid on your own auction.");
+
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null) return (false, "User not found.");
+        
+        // We require the user to have at least the current minimum bid available
+        decimal minRequired = auction.CurrentPrice + auction.MinIncrease;
+        if (maxAmount < minRequired) return (false, $"Your maximum bid must be at least {minRequired:C}.");
+        if (user.WalletBalance < minRequired) return (false, "Insufficient funds to start auto-bidding.");
+
+        // Deactivate previous auto-bids for this user/auction
+        var existingAutoBids = await _context.AutoBids
+            .Where(ab => ab.AuctionId == auctionId && ab.UserId == userId && ab.IsActive)
+            .ToListAsync();
+        
+        foreach (var oldAutoBid in existingAutoBids)
+        {
+            oldAutoBid.IsActive = false;
+        }
+
+        var autoBid = new AutoBid
+        {
+            AuctionId = auctionId,
+            UserId = userId,
+            MaxAmount = maxAmount,
+            CreatedOn = DateTime.UtcNow,
+            IsActive = true
+        };
+
+        _context.AutoBids.Add(autoBid);
+        await _context.SaveChangesAsync();
+
+        // If the user is not currently the winner, place an initial bid
+        var currentWinnerId = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault()?.BidderId;
+        if (currentWinnerId != userId)
+        {
+            return await PlaceBidAsync(auctionId, userId, minRequired);
+        }
+
+        return (true, "Auto-bidder activated successfully.");
+    }
+
     public async Task<(bool Success, string Message)> PlaceBidAsync(int auctionId, string userId, decimal amount)
     {
         using var dbTransaction = await _context.Database.BeginTransactionAsync();
@@ -633,10 +683,14 @@ public class AuctionService : IAuctionService
             }
 
             await _context.SaveChangesAsync();
+            
+            // --- Auto-Bidding Logic ---
+            // Find all active auto-bids for this auction EXCEPT for the person who just bid
+            await ProcessAutoBidsAsync(auction, userId);
+            
             await dbTransaction.CommitAsync();
 
-            await _biddingNotificationService.NotifyNewBidAsync(auctionId, currentUser.DisplayName ?? currentUser.UserName ?? "Unknown", amount, bid.BidTime);
-
+            // After final commit, we are done
             return (true, "Bid placed successfully.");
         }
         catch (DbUpdateConcurrencyException)
@@ -648,6 +702,94 @@ public class AuctionService : IAuctionService
         {
             await dbTransaction.RollbackAsync();
             return (false, "An error occurred while placing bid.");
+        }
+    }
+
+    private async Task ProcessAutoBidsAsync(Auction auction, string lastBidderId)
+    {
+        bool newBidPlaced = true;
+        
+        // This loop handles the "Battle of the Bots"
+        while (newBidPlaced)
+        {
+            newBidPlaced = false;
+
+            // Find the best eligible auto-bidder (highest max amount that can outbid current price)
+            var nextAutoBidder = await _context.AutoBids
+                .Include(ab => ab.User)
+                .Where(ab => ab.AuctionId == auction.Id && 
+                             ab.IsActive && 
+                             ab.UserId != lastBidderId && 
+                             ab.MaxAmount >= auction.CurrentPrice + auction.MinIncrease)
+                .OrderByDescending(ab => ab.MaxAmount)
+                .FirstOrDefaultAsync();
+
+            if (nextAutoBidder != null)
+            {
+                decimal autoBidAmount = auction.CurrentPrice + auction.MinIncrease;
+                var autoUser = nextAutoBidder.User;
+
+                // Validate if user still has funds
+                if (autoUser.WalletBalance >= autoBidAmount)
+                {
+                    // 1. Charge Auto-Bidder
+                    autoUser.WalletBalance -= autoBidAmount;
+                    _context.Transactions.Add(new Transaction
+                    {
+                        UserId = autoUser.Id,
+                        Amount = autoBidAmount,
+                        Description = $"Auto-bid on '{auction.Title}'",
+                        TransactionType = "Auto-Bid",
+                        TransactionDate = DateTime.UtcNow
+                    });
+
+                    // 2. Refund Previous Bidder
+                    var prevBid = auction.Bids.OrderByDescending(b => b.Amount).First();
+                    var prevUser = await _context.Users.FindAsync(prevBid.BidderId);
+                    if (prevUser != null)
+                    {
+                        prevUser.WalletBalance += prevBid.Amount;
+                        _context.Transactions.Add(new Transaction
+                        {
+                            UserId = prevUser.Id,
+                            Amount = prevBid.Amount,
+                            Description = $"Refund (Auto-outbid) on '{auction.Title}'",
+                            TransactionType = "Refund",
+                            TransactionDate = DateTime.UtcNow
+                        });
+
+                        await _notificationService.NotifyUserAsync(prevUser.Id, 
+                            $"An auto-bidder outbid you on '{auction.Title}'! New price: {autoBidAmount:C}", 
+                            $"/Auctions/Details/{auction.Id}");
+                    }
+
+                    // 3. Create Auto-Bid
+                    var bid = new Bid
+                    {
+                        AuctionId = auction.Id,
+                        BidderId = autoUser.Id,
+                        Amount = autoBidAmount,
+                        BidTime = DateTime.UtcNow
+                    };
+
+                    auction.CurrentPrice = autoBidAmount;
+                    auction.Bids.Add(bid);
+                    
+                    await _context.SaveChangesAsync();
+
+                    // 4. Notify SignalR (Live update)
+                    await _biddingNotificationService.NotifyNewBidAsync(auction.Id, autoUser.DisplayName ?? autoUser.UserName ?? "Auto-bidder", autoBidAmount, bid.BidTime);
+
+                    lastBidderId = autoUser.Id;
+                    newBidPlaced = true; // Repeat to see if anyone else outbids the new winner
+                }
+                else
+                {
+                    // Deactivate auto-bidder if funds are insufficient
+                    nextAutoBidder.IsActive = false;
+                    await _context.SaveChangesAsync();
+                }
+            }
         }
     }
 
