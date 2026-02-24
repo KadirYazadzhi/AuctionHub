@@ -9,15 +9,17 @@ public class AuctionService : IAuctionService
 {
     private readonly IAuctionHubDbContext _context;
     private readonly INotificationService _notificationService;
+    private readonly IBiddingNotificationService _biddingNotificationService;
 
     // In-memory cache to track auctions currently being created (prevents race conditions)
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTime> _inFlightAuctions 
         = new System.Collections.Concurrent.ConcurrentDictionary<string, DateTime>();
 
-    public AuctionService(IAuctionHubDbContext context, INotificationService notificationService)
+    public AuctionService(IAuctionHubDbContext context, INotificationService notificationService, IBiddingNotificationService biddingNotificationService)
     {
         _context = context;
         _notificationService = notificationService;
+        _biddingNotificationService = biddingNotificationService;
     }
 
     public async Task<PaginatedList<AuctionDto>> GetAuctionsAsync(
@@ -630,6 +632,8 @@ public class AuctionService : IAuctionService
 
             await _context.SaveChangesAsync();
             await dbTransaction.CommitAsync();
+
+            await _biddingNotificationService.NotifyNewBidAsync(auctionId, currentUser.DisplayName ?? currentUser.UserName, amount, bid.BidTime);
 
             return (true, "Bid placed successfully.");
         }

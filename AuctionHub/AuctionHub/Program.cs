@@ -5,6 +5,8 @@ using AuctionHub.Domain.Models;
 using AuctionHub.Application.Interfaces;
 using AuctionHub.Application.Services;
 using System.Globalization;
+using AuctionHub.Hubs;
+using AuctionHub.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,7 +30,10 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
 builder.Services.AddSingleton<INotificationService, NotificationService>();
+builder.Services.AddScoped<IBiddingNotificationService, SignalRBiddingNotificationService>();
 builder.Services.AddHostedService<AuctionCleanupService>();
+
+builder.Services.AddSignalR();
 
 builder.Services.AddDefaultIdentity<ApplicationUser>(options => {
     options.SignIn.RequireConfirmedAccount = false;
@@ -72,6 +77,7 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 app.MapRazorPages();
+app.MapHub<BiddingHub>("/hubs/bidding");
 
 using (var scope = app.Services.CreateScope())
 {

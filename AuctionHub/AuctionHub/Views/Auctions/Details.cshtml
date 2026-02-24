@@ -294,3 +294,90 @@
         transform: scale(1);
     }
 </style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+<script>
+    const auctionId = @Model.Id;
+
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("/hubs/bidding")
+        .build();
+
+    connection.on("ReceiveNewBid", function (amount, bidderName, bidTime) {
+        const formatter = new Intl.NumberFormat('bg-BG', {
+            style: 'currency',
+            currency: 'EUR'
+        });
+        
+        const fAmount = formatter.format(amount);
+
+        const priceElements = document.querySelectorAll('.price-value');
+        if (priceElements.length > 0) {
+            priceElements[0].innerText = fAmount;
+            priceElements[0].style.transition = 'color 0.5s ease-in-out';
+            priceElements[0].style.color = '#198754';
+            setTimeout(() => {
+                priceElements[0].style.color = '';
+            }, 1000);
+        }
+
+        const amountInput = document.querySelector('input[name="Amount"]');
+        if (amountInput) {
+            const minIncreaseStr = "@Model.MinIncrease.ToString(System.Globalization.CultureInfo.InvariantCulture)";
+            const minIncrease = parseFloat(minIncreaseStr);
+            const nextSuggested = amount + minIncrease;
+            
+            const nf = new Intl.NumberFormat('bg-BG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            let formattedValue = nf.format(nextSuggested);
+            // If the formatting outputs something like '10,00', ensure we don't have currency symbol in the input field, which our format won't by default but just in case.
+            amountInput.value = formattedValue;
+        }
+
+        const timeline = document.querySelector('.timeline');
+        if (timeline) {
+            const noBidsMsg = timeline.querySelector('.text-center.py-4');
+            if (noBidsMsg) noBidsMsg.remove();
+
+            const dateObj = new Date(bidTime);
+            // Format to match C# ToLocalTime().ToString("MMM dd, HH:mm") like Jan 14, 15:30
+            const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }) + ', ' +
+                            dateObj.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute:'2-digit' });
+
+            const newBidHtml = `
+                <div class="d-flex align-items-center p-3 mb-3 bg-white border border-light rounded-5 shadow-sm hover-lift" style="animation: fadeIn 0.5s;">
+                    <div class="avatar-xs bg-primary-subtle bg-light text-primary me-3">
+                        <i class="bi bi-person"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <strong class="text-dark">${bidderName}</strong>
+                            <span class="fw-bold text-primary price-value">${fAmount}</span>
+                        </div>
+                        <small class="text-muted x-small">${dateStr}</small>
+                    </div>
+                </div>
+            `;
+            
+            timeline.insertAdjacentHTML('afterbegin', newBidHtml);
+
+            const bids = timeline.querySelectorAll('.d-flex.align-items-center.p-3');
+            if (bids.length > 5) {
+                bids[5].remove();
+            }
+            
+            const bidCountBadge = document.querySelector('.badge.bg-light.text-dark');
+            if (bidCountBadge) {
+                const currentCount = parseInt(bidCountBadge.innerText.split(' ')[0]) || 0;
+                bidCountBadge.innerText = (currentCount + 1) + ' Bids';
+            }
+        }
+    });
+
+    connection.start().then(function () {
+        connection.invoke("JoinAuctionGroup", auctionId).catch(function (err) {
+            return console.error(err.toString());
+        });
+    }).catch(function (err) {
+        return console.error(err.toString());
+    });
+</script>
