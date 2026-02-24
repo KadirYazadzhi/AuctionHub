@@ -633,7 +633,7 @@ public class AuctionService : IAuctionService
             await _context.SaveChangesAsync();
             await dbTransaction.CommitAsync();
 
-            await _biddingNotificationService.NotifyNewBidAsync(auctionId, currentUser.DisplayName ?? currentUser.UserName, amount, bid.BidTime);
+            await _biddingNotificationService.NotifyNewBidAsync(auctionId, currentUser.DisplayName ?? currentUser.UserName ?? "Unknown", amount, bid.BidTime);
 
             return (true, "Bid placed successfully.");
         }

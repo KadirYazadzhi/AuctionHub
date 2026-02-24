@@ -15,6 +15,7 @@ public interface IAuctionHubDbContext
     DbSet<AuctionWatchlist> Watchlist { get; set; }
     DbSet<Notification> Notifications { get; set; }
     DbSet<ContactMessage> ContactMessages { get; set; }
+    DbSet<ChatMessage> ChatMessages { get; set; }
     DbSet<ApplicationUser> Users { get; set; }
     DbSet<IdentityRole> Roles { get; set; }
     DbSet<IdentityUserRole<string>> UserRoles { get; set; }
