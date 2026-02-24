@@ -292,6 +292,14 @@
     }
     .modal.show .modal-dialog {
         transform: scale(1);
+    @keyframes scaleDrop {
+        0% { transform: scale(1); color: inherit; }
+        50% { transform: scale(1.1); color: #198754; text-shadow: 0 0 15px rgba(25,135,84,0.5); }
+        100% { transform: scale(1); color: inherit; text-shadow: none; }
+    }
+    
+    .price-update-anim {
+        animation: scaleDrop 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
     }
 </style>
 
@@ -313,12 +321,15 @@
 
         const priceElements = document.querySelectorAll('.price-value');
         if (priceElements.length > 0) {
-            priceElements[0].innerText = fAmount;
-            priceElements[0].style.transition = 'color 0.5s ease-in-out';
-            priceElements[0].style.color = '#198754';
-            setTimeout(() => {
-                priceElements[0].style.color = '';
-            }, 1000);
+            priceElements.forEach(el => {
+                el.innerText = fAmount;
+                // Remove the class if it exists to restart animation
+                el.classList.remove('price-update-anim');
+                // Trigger reflow
+                void el.offsetWidth;
+                // Add the class back
+                el.classList.add('price-update-anim');
+            });
         }
 
         const amountInput = document.querySelector('input[name="Amount"]');
