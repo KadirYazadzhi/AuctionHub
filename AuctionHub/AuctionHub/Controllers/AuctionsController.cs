@@ -18,17 +18,20 @@ public class AuctionsController : Controller
     private readonly IAuctionService _auctionService;
     private readonly IUserService _userService;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IChatService _chatService;
 
     public AuctionsController(
         IWebHostEnvironment webHostEnvironment, 
         IAuctionService auctionService,
         IUserService userService,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager,
+        IChatService chatService)
     {
         _webHostEnvironment = webHostEnvironment;
         _auctionService = auctionService;
         _userService = userService;
         _userManager = userManager;
+        _chatService = chatService;
     }
 
     [AllowAnonymous]
@@ -109,6 +112,36 @@ public class AuctionsController : Controller
         };
 
         return View(model);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> PrivateChat(int id)
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(currentUserId)) return Challenge();
+
+        // Ensure user can access the chat
+        bool canAccess = await _chatService.CanAccessPrivateChatAsync(id, currentUserId);
+        if (!canAccess)
+        {
+            TempData["Error"] = "You do not have permission to access this chat.";
+            return RedirectToAction(nameof(Details), new { id = id });
+        }
+
+        var auction = await _auctionService.GetAuctionDetailsAsync(id, currentUserId);
+        if (auction == null) return NotFound();
+
+        // Determine the other party
+        string otherUserId = currentUserId == auction.SellerId ? (auction.WinnerId ?? "") : auction.SellerId;
+        
+        var messages = await _chatService.GetPrivateMessagesAsync(id, currentUserId, otherUserId);
+
+        ViewBag.AuctionId = id;
+        ViewBag.AuctionTitle = auction.Title;
+        ViewBag.OtherUserId = otherUserId;
+        ViewBag.CurrentUserId = currentUserId;
+
+        return View(messages);
     }
 
     [HttpPost]

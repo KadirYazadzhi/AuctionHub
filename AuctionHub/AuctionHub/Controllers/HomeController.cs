@@ -13,20 +13,24 @@ public class HomeController : Controller
     private readonly ILogger<HomeController> _logger;
     private readonly IMessageService _messageService;
     private readonly UserManager<ApplicationUser> _userManager; 
+    private readonly IChatService _chatService;
     
     public HomeController(
         ILogger<HomeController> logger, 
         IMessageService messageService, 
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager,
+        IChatService chatService)
     {
         _logger = logger;
         _messageService = messageService;
         _userManager = userManager;
+        _chatService = chatService;
     }
 
-    public IActionResult Index()
+    public async Task<IActionResult> Index()
     {
-        return View();
+        var globalMessages = await _chatService.GetGlobalMessagesAsync(50);
+        return View(globalMessages);
     }
     
     public async Task<IActionResult> About()

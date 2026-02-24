@@ -1,5 +1,10 @@
+@model IEnumerable<AuctionHub.Application.DTOs.ChatMessageDto>
+@using Microsoft.AspNetCore.Identity
+@using AuctionHub.Domain.Models
+@inject UserManager<ApplicationUser> UserManager
 @{
     ViewData["Title"] = "Welcome";
+    var currentUser = await UserManager.GetUserAsync(User);
 }
 
 <!-- Hero Section -->
@@ -350,3 +355,118 @@
         color: var(--bs-primary);
     }
 </style>
+
+@if (User.Identity?.IsAuthenticated == true)
+{
+    <!-- Global Chat Widget -->
+    <div id="global-chat-widget" class="position-fixed shadow-lg rounded-top-4 bg-white d-flex flex-column" 
+         style="bottom: 0; right: 20px; width: 350px; height: 450px; z-index: 1050; border: 1px solid #dee2e6; transform: translateY(400px); transition: transform 0.3s ease-in-out;">
+         
+        <!-- Header -->
+        <div id="global-chat-header" class="bg-primary text-white p-3 rounded-top-4 d-flex justify-content-between align-items-center" style="cursor: pointer;">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-chat-dots-fill fs-5"></i>
+                <h6 class="mb-0 fw-bold">Global Chat</h6>
+            </div>
+            <span class="badge bg-light text-primary rounded-pill" id="online-count">Online</span>
+        </div>
+
+        <!-- Messages Area -->
+        <div id="global-chat-messages" class="flex-grow-1 p-3 overflow-auto" style="background-color: #f8f9fa;">
+            @if (Model != null)
+            {
+                foreach (var msg in Model)
+                {
+                    bool isMe = currentUser != null && msg.SenderId == currentUser.Id;
+                    <div class="mb-2 d-flex flex-column @(isMe ? "align-items-end" : "align-items-start")">
+                        <small class="text-muted" style="font-size: 0.7rem;">@msg.SenderName, @msg.SentOn.ToLocalTime().ToString("HH:mm")</small>
+                        <div class="p-2 rounded-3 @(isMe ? "bg-primary text-white" : "bg-white border")" style="max-width: 85%; word-wrap: break-word; font-size: 0.9rem;">
+                            @msg.Content
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+
+        <!-- Input Area -->
+        <div class="p-2 border-top bg-white">
+            <form id="global-chat-form" class="d-flex gap-2">
+                <input type="text" id="global-chat-input" class="form-control form-control-sm rounded-pill px-3" placeholder="Type a message..." required autocomplete="off" />
+                <button type="submit" class="btn btn-primary btn-sm rounded-circle" style="width: 32px; height: 32px; flex-shrink: 0;">
+                    <i class="bi bi-send-fill" style="margin-left: -2px;"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- SignalR Script for Global Chat -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const chatWidget = document.getElementById('global-chat-widget');
+            const chatHeader = document.getElementById('global-chat-header');
+            const chatMessages = document.getElementById('global-chat-messages');
+            const chatForm = document.getElementById('global-chat-form');
+            const chatInput = document.getElementById('global-chat-input');
+            let isOpen = false;
+            
+            // Scroll to bottom initially
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            chatHeader.addEventListener('click', () => {
+                isOpen = !isOpen;
+                chatWidget.style.transform = isOpen ? 'translateY(0)' : 'translateY(400px)';
+                if (isOpen) {
+                    setTimeout(() => chatInput.focus(), 300);
+                }
+            });
+
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/hubs/chat")
+                .build();
+
+            // Receive message
+            connection.on("ReceiveGlobalMessage", function (msg) {
+                const isMe = msg.senderId === '@currentUser?.Id';
+                const dateObj = new Date(msg.sentOn);
+                const timeStr = dateObj.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute:'2-digit' });
+
+                const msgHtml = `
+                    <div class="mb-2 d-flex flex-column ${isMe ? 'align-items-end' : 'align-items-start'}">
+                        <small class="text-muted" style="font-size: 0.7rem;">${msg.senderName}, ${timeStr}</small>
+                        <div class="p-2 rounded-3 ${isMe ? 'bg-primary text-white' : 'bg-white border'}" style="max-width: 85%; word-wrap: break-word; font-size: 0.9rem;">
+                            ${msg.content}
+                        </div>
+                    </div>
+                `;
+                
+                chatMessages.insertAdjacentHTML('beforeend', msgHtml);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                
+                // If closed, pop open to notify
+                if(!isOpen) {
+                    chatHeader.click();
+                }
+            });
+
+            // Start connection & join group
+            connection.start().then(function () {
+                connection.invoke("JoinGlobalChat").catch(err => console.error(err));
+            }).catch(function (err) {
+                return console.error(err.toString());
+            });
+
+            // Send message
+            chatForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                const text = chatInput.value.trim();
+                if (text) {
+                    connection.invoke("SendMessageToGlobal", text).catch(function (err) {
+                        console.error(err.toString());
+                    });
+                    chatInput.value = '';
+                }
+            });
+        });
+    </script>
+}

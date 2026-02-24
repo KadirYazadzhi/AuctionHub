@@ -19,6 +19,7 @@ public class AuctionHubDbContext : IdentityDbContext<ApplicationUser>, IAuctionH
     public DbSet<AuctionWatchlist> Watchlist { get; set; } = null!;
     public DbSet<Notification> Notifications { get; set; } = null!;
     public DbSet<ContactMessage> ContactMessages { get; set; } = null!;
+    public DbSet<ChatMessage> ChatMessages { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -41,6 +42,25 @@ public class AuctionHubDbContext : IdentityDbContext<ApplicationUser>, IAuctionH
             .HasOne(b => b.Auction)
             .WithMany(a => a.Bids)
             .HasForeignKey(b => b.AuctionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // ChatMessage configurations to avoid multiple cascade paths
+        builder.Entity<ChatMessage>()
+            .HasOne(m => m.Sender)
+            .WithMany()
+            .HasForeignKey(m => m.SenderId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<ChatMessage>()
+            .HasOne(m => m.Receiver)
+            .WithMany()
+            .HasForeignKey(m => m.ReceiverId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<ChatMessage>()
+            .HasOne(m => m.Auction)
+            .WithMany()
+            .HasForeignKey(m => m.AuctionId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // Precision for money

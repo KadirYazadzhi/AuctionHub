@@ -196,6 +196,20 @@
                             <div class="alert alert-secondary border-0 rounded-4 p-4 text-center">
                                 <i class="bi bi-lock-fill fs-3 mb-2 d-block"></i>
                                 <p class="mb-0 fw-bold">This auction has concluded.</p>
+                                
+                                @{
+                                    var currentUserIdForChat = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                                    bool canAccessChat = Model.SellerId == currentUserIdForChat || Model.IsWinning;
+                                }
+                                @if (canAccessChat)
+                                {
+                                    <div class="mt-4">
+                                        <a asp-action="PrivateChat" asp-route-id="@Model.Id" class="btn btn-primary rounded-pill px-4 py-2 shadow-sm fw-bold hover-lift">
+                                            <i class="bi bi-chat-lock-fill me-2"></i> Open Secure Chat
+                                        </a>
+                                        <p class="small text-muted mt-2 mb-0">Discuss shipping & payment details securely.</p>
+                                    </div>
+                                }
                             </div>
                         }
                     }

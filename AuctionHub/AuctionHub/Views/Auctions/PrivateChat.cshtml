@@ -1,0 +1,124 @@
+@model IEnumerable<AuctionHub.Application.DTOs.ChatMessageDto>
+@{
+    ViewData["Title"] = "Private Chat - " + ViewBag.AuctionTitle;
+    var currentUserId = ViewBag.CurrentUserId as string;
+    var otherUserId = ViewBag.OtherUserId as string;
+    var auctionId = ViewBag.AuctionId;
+}
+
+<div class="container py-5 mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+                <!-- Header -->
+                <div class="card-header bg-primary text-white p-4 pb-3 border-0 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4 class="mb-1 fw-bold"><i class="bi bi-lock-fill me-2"></i>Secure Private Chat</h4>
+                        <p class="mb-0 text-white-50 small">Discuss shipping & payment for auction: <strong>@ViewBag.AuctionTitle</strong></p>
+                    </div>
+                    <a asp-action="Details" asp-route-id="@auctionId" class="btn btn-sm btn-light fs-6 fw-bold rounded-pill text-primary">Back to Auction</a>
+                </div>
+
+                <!-- Messages -->
+                <div class="card-body p-4 bg-light" id="private-chat-messages" style="height: 500px; overflow-y: auto;">
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach(var msg in Model)
+                        {
+                            bool isMe = msg.SenderId == currentUserId;
+                            <div class="mb-3 d-flex flex-column @(isMe ? "align-items-end" : "align-items-start")">
+                                <small class="text-muted mb-1" style="font-size: 0.75rem;">@msg.SenderName, @msg.SentOn.ToLocalTime().ToString("MMM dd, HH:mm")</small>
+                                <div class="p-3 rounded-4 @(isMe ? "bg-primary text-white rounded-bottom-end-0 shadow-sm" : "bg-white border rounded-bottom-start-0 shadow-sm")" style="max-width: 75%; word-wrap: break-word;">
+                                    @msg.Content
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div id="no-messages" class="text-center text-muted mt-5 py-5">
+                            <i class="bi bi-chat-square-text text-black-50" style="font-size: 3rem;"></i>
+                            <h5 class="mt-3">No messages yet</h5>
+                            <p>Send a message to discuss payment and shipping details securely.</p>
+                        </div>
+                    }
+                </div>
+
+                <!-- Input -->
+                <div class="card-footer bg-white p-3 border-top-0">
+                    <form id="private-chat-form" class="d-flex gap-2 align-items-center">
+                        <input type="text" id="private-chat-input" class="form-control form-control-lg bg-light border-0 rounded-pill px-4" placeholder="Write a secure message..." required autocomplete="off" />
+                        <button type="submit" class="btn btn-primary btn-lg rounded-circle shadow-sm hover-lift" style="width: 50px; height: 50px; flex-shrink: 0;">
+                            <i class="bi bi-send-fill ms-n1"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <p class="text-muted text-center mt-3 small"><i class="bi bi-shield-check text-success"></i> This chat is end-to-end secured. Please do not share sensitive passwords.</p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const chatMessages = document.getElementById('private-chat-messages');
+            const chatForm = document.getElementById('private-chat-form');
+            const chatInput = document.getElementById('private-chat-input');
+            const noMessagesBox = document.getElementById('no-messages');
+
+            const auctionId = @auctionId;
+            const currentUserId = '@currentUserId';
+            const otherUserId = '@otherUserId';
+
+            // Scroll to bottom
+            const scrollToBottom = () => {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            };
+            scrollToBottom();
+
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/hubs/chat")
+                .build();
+
+            connection.on("ReceivePrivateMessage", function (msg) {
+                if(noMessagesBox) noMessagesBox.remove();
+
+                const isMe = msg.senderId === currentUserId;
+                const d = new Date(msg.sentOn);
+                const timeStr = d.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }) + ', ' +
+                                d.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute:'2-digit' });
+
+                const alignClass = isMe ? 'align-items-end' : 'align-items-start';
+                const bubbleClass = isMe ? 'bg-primary text-white rounded-bottom-end-0 shadow-sm' : 'bg-white border rounded-bottom-start-0 shadow-sm';
+
+                const html = `
+                    <div class="mb-3 d-flex flex-column ${alignClass}">
+                        <small class="text-muted mb-1" style="font-size: 0.75rem;">${msg.senderName}, ${timeStr}</small>
+                        <div class="p-3 rounded-4 ${bubbleClass}" style="max-width: 75%; word-wrap: break-word;">
+                            ${msg.content}
+                        </div>
+                    </div>
+                `;
+                
+                chatMessages.insertAdjacentHTML('beforeend', html);
+                scrollToBottom();
+            });
+
+            connection.start().then(function () {
+                connection.invoke("JoinPrivateChat", auctionId).catch(console.error);
+            }).catch(console.error);
+
+            chatForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                const text = chatInput.value.trim();
+                if (text) {
+                    connection.invoke("SendMessageToPrivate", auctionId, otherUserId, text)
+                        .catch(console.error);
+                    chatInput.value = '';
+                }
+            });
+        });
+    </script>
+}

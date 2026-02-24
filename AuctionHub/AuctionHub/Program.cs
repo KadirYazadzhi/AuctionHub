@@ -31,6 +31,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
 builder.Services.AddSingleton<INotificationService, NotificationService>();
 builder.Services.AddScoped<IBiddingNotificationService, SignalRBiddingNotificationService>();
+builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddHostedService<AuctionCleanupService>();
 
 builder.Services.AddSignalR();
@@ -78,6 +79,7 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}");
 app.MapRazorPages();
 app.MapHub<BiddingHub>("/hubs/bidding");
+app.MapHub<ChatHub>("/hubs/chat");
 
 using (var scope = app.Services.CreateScope())
 {
