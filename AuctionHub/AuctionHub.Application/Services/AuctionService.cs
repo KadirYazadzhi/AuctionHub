@@ -673,6 +673,9 @@ public class AuctionService : IAuctionService
             auction.CurrentPrice = amount;
             auction.Bids.Add(bid);
 
+            // Notify SignalR for the MANUAL bid immediately
+            await _biddingNotificationService.NotifyNewBidAsync(auctionId, currentUser.DisplayName ?? currentUser.UserName ?? "Unknown", amount, bid.BidTime);
+
             // NOTIFY WATCHERS (Only adds to context, doesn't save yet)
             await _notificationService.NotifyAllWatchersAsync(auctionId, 
                 $"New bid on watched item '{auction.Title}': {amount:C}", 
@@ -695,9 +698,6 @@ public class AuctionService : IAuctionService
             // ONE SINGLE SAVE FOR EVERYTHING
             await _context.SaveChangesAsync();
             await dbTransaction.CommitAsync();
-
-            // Notify SignalR after successful commit
-            await _biddingNotificationService.NotifyNewBidAsync(auctionId, currentUser.DisplayName ?? currentUser.UserName ?? "Unknown", auction.CurrentPrice, auction.Bids.OrderByDescending(b => b.Amount).First().BidTime);
 
             return (true, "Bid placed successfully.");
         }
