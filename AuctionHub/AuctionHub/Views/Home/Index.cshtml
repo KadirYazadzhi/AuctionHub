@@ -358,66 +358,113 @@
 
 @if (User.Identity?.IsAuthenticated == true)
 {
-    <!-- Global Chat Widget -->
-    <div id="global-chat-widget" class="position-fixed shadow-lg rounded-top-4 bg-white d-flex flex-column" 
-         style="bottom: 0; right: 20px; width: 350px; height: 450px; z-index: 1050; border: 1px solid #dee2e6; transform: translateY(400px); transition: transform 0.3s ease-in-out;">
-         
-        <!-- Header -->
-        <div id="global-chat-header" class="bg-primary text-white p-3 rounded-top-4 d-flex justify-content-between align-items-center" style="cursor: pointer;">
-            <div class="d-flex align-items-center gap-2">
-                <i class="bi bi-chat-dots-fill fs-5"></i>
-                <h6 class="mb-0 fw-bold">Global Chat</h6>
+    <!-- Global Chat Container -->
+    <div id="global-chat-container" class="position-fixed" style="bottom: 20px; right: 20px; z-index: 1050; display: flex; flex-direction: column; align-items: flex-end;">
+        
+        <!-- Chat Window -->
+        <div id="global-chat-window" class="shadow-lg rounded-4 bg-body text-body d-flex flex-column mb-3" 
+             style="width: 350px; height: 450px; border: 1px solid var(--bs-border-color); opacity: 0; pointer-events: none; transform: translateY(20px); transition: all 0.3s ease-in-out; transform-origin: bottom right;">
+             
+            <!-- Header -->
+            <div class="bg-primary text-white p-3 rounded-top-4 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-chat-dots-fill fs-5"></i>
+                    <h6 class="mb-0 fw-bold">Global Chat</h6>
+                </div>
+                <!-- Optional: online count badge if you track users
+                <span class="badge bg-light text-primary rounded-pill" id="online-count">Online</span>
+                -->
             </div>
-            <span class="badge bg-light text-primary rounded-pill" id="online-count">Online</span>
-        </div>
 
-        <!-- Messages Area -->
-        <div id="global-chat-messages" class="flex-grow-1 p-3 overflow-auto" style="background-color: #f8f9fa;">
-            @if (Model != null)
-            {
-                foreach (var msg in Model)
+            <!-- Messages Area -->
+            <div id="global-chat-messages" class="flex-grow-1 p-3 overflow-auto" style="background-color: var(--bs-tertiary-bg);">
+                @if (Model != null)
                 {
-                    bool isMe = currentUser != null && msg.SenderId == currentUser.Id;
-                    <div class="mb-2 d-flex flex-column @(isMe ? "align-items-end" : "align-items-start")">
-                        <small class="text-muted" style="font-size: 0.7rem;">@msg.SenderName, @msg.SentOn.ToLocalTime().ToString("HH:mm")</small>
-                        <div class="p-2 rounded-3 @(isMe ? "bg-primary text-white" : "bg-white border")" style="max-width: 85%; word-wrap: break-word; font-size: 0.9rem;">
-                            @msg.Content
+                    foreach (var msg in Model)
+                    {
+                        bool isMe = currentUser != null && msg.SenderId == currentUser.Id;
+                        <div class="mb-2 d-flex flex-column @(isMe ? "align-items-end" : "align-items-start")">
+                            <small class="text-body-secondary" style="font-size: 0.7rem;">@msg.SenderName, @msg.SentOn.ToLocalTime().ToString("HH:mm")</small>
+                            <div class="p-2 rounded-3 @(isMe ? "bg-primary text-white" : "bg-body border")" style="max-width: 85%; word-wrap: break-word; font-size: 0.9rem;">
+                                @msg.Content
+                            </div>
                         </div>
-                    </div>
+                    }
                 }
-            }
-        </div>
+            </div>
 
-        <!-- Input Area -->
-        <div class="p-2 border-top bg-white">
-            <form id="global-chat-form" class="d-flex gap-2">
-                <input type="text" id="global-chat-input" class="form-control form-control-sm rounded-pill px-3" placeholder="Type a message..." required autocomplete="off" />
-                <button type="submit" class="btn btn-primary btn-sm rounded-circle" style="width: 32px; height: 32px; flex-shrink: 0;">
-                    <i class="bi bi-send-fill" style="margin-left: -2px;"></i>
-                </button>
-            </form>
+            <!-- Input Area -->
+            <div class="p-2 border-top bg-body rounded-bottom-4">
+                <form id="global-chat-form" class="d-flex gap-2">
+                    <input type="text" id="global-chat-input" class="form-control rounded-pill px-3" placeholder="Type a message..." required autocomplete="off" />
+                    <!-- Send Button perfectly centered, fixed dimensions -->
+                    <button type="submit" class="btn btn-primary rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px; padding: 0;">
+                        <i class="bi bi-send-fill text-white"></i>
+                    </button>
+                </form>
+            </div>
         </div>
+        
+        <!-- Floating Action Button (FAB) -->
+        <button id="global-chat-toggle" class="btn btn-primary rounded-circle shadow-lg d-flex align-items-center justify-content-center position-relative" 
+                style="width: 60px; height: 60px; transition: transform 0.2s;">
+            <i class="bi bi-chat-dots-fill text-white" style="font-size: 1.8rem; position: absolute; transition: opacity 0.2s, transform 0.2s;" id="chat-icon-open"></i>
+            <i class="bi bi-x-lg text-white" style="font-size: 1.8rem; position: absolute; opacity: 0; transform: rotate(-90deg) scale(0); transition: opacity 0.2s, transform 0.2s;" id="chat-icon-close"></i>
+            <!-- Notification Dot (optional future use) -->
+            <span id="chat-badge" class="position-absolute top-0 start-100 translate-middle p-2 bg-danger border border-light rounded-circle d-none">
+                <span class="visually-hidden">New alerts</span>
+            </span>
+        </button>
     </div>
 
     <!-- SignalR Script for Global Chat -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const chatWidget = document.getElementById('global-chat-widget');
-            const chatHeader = document.getElementById('global-chat-header');
+            const chatToggle = document.getElementById('global-chat-toggle');
+            const chatWindow = document.getElementById('global-chat-window');
             const chatMessages = document.getElementById('global-chat-messages');
             const chatForm = document.getElementById('global-chat-form');
             const chatInput = document.getElementById('global-chat-input');
+            const iconOpen = document.getElementById('chat-icon-open');
+            const iconClose = document.getElementById('chat-icon-close');
+            const chatBadge = document.getElementById('chat-badge');
+            
             let isOpen = false;
             
             // Scroll to bottom initially
             chatMessages.scrollTop = chatMessages.scrollHeight;
 
-            chatHeader.addEventListener('click', () => {
+            chatToggle.addEventListener('click', () => {
                 isOpen = !isOpen;
-                chatWidget.style.transform = isOpen ? 'translateY(0)' : 'translateY(400px)';
+                
                 if (isOpen) {
+                    // Open animation
+                    chatWindow.style.opacity = '1';
+                    chatWindow.style.pointerEvents = 'auto';
+                    chatWindow.style.transform = 'translateY(0) scale(1)';
+                    
+                    // Icon animation
+                    iconOpen.style.opacity = '0';
+                    iconOpen.style.transform = 'rotate(90deg) scale(0)';
+                    iconClose.style.opacity = '1';
+                    iconClose.style.transform = 'rotate(0) scale(1)';
+                    
+                    // Hide badge
+                    chatBadge.classList.add('d-none');
+                    
                     setTimeout(() => chatInput.focus(), 300);
+                } else {
+                    // Close animation
+                    chatWindow.style.opacity = '0';
+                    chatWindow.style.pointerEvents = 'none';
+                    chatWindow.style.transform = 'translateY(20px) scale(0.95)';
+                    
+                    // Icon animation
+                    iconOpen.style.opacity = '1';
+                    iconOpen.style.transform = 'rotate(0) scale(1)';
+                    iconClose.style.opacity = '0';
+                    iconClose.style.transform = 'rotate(-90deg) scale(0)';
                 }
             });
 
@@ -433,8 +480,8 @@
 
                 const msgHtml = `
                     <div class="mb-2 d-flex flex-column ${isMe ? 'align-items-end' : 'align-items-start'}">
-                        <small class="text-muted" style="font-size: 0.7rem;">${msg.senderName}, ${timeStr}</small>
-                        <div class="p-2 rounded-3 ${isMe ? 'bg-primary text-white' : 'bg-white border'}" style="max-width: 85%; word-wrap: break-word; font-size: 0.9rem;">
+                        <small class="text-body-secondary" style="font-size: 0.7rem;">${msg.senderName}, ${timeStr}</small>
+                        <div class="p-2 rounded-3 ${isMe ? 'bg-primary text-white' : 'bg-body border'}" style="max-width: 85%; word-wrap: break-word; font-size: 0.9rem;">
                             ${msg.content}
                         </div>
                     </div>
@@ -443,9 +490,11 @@
                 chatMessages.insertAdjacentHTML('beforeend', msgHtml);
                 chatMessages.scrollTop = chatMessages.scrollHeight;
                 
-                // If closed, pop open to notify
+                // If closed, jiggle the circle and (optionally) show badge
                 if(!isOpen) {
-                    chatHeader.click();
+                    chatToggle.style.transform = 'scale(1.1)';
+                    setTimeout(() => { chatToggle.style.transform = 'scale(1)'; }, 200);
+                    chatBadge.classList.remove('d-none');
                 }
             });
 
