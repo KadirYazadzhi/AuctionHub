@@ -34,6 +34,8 @@ public class AuctionDetailsViewModel
 
     public bool IsWatched { get; set; } // Added
 
+    public bool IsWinning { get; set; }
+
     public IEnumerable<BidViewModel> Bids { get; set; } = new List<BidViewModel>();
 
     [Required]

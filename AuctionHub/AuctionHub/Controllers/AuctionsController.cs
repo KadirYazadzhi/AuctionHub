@@ -100,6 +100,7 @@ public class AuctionsController : Controller
             IsActive = auction.IsActive,
             IsSuspended = auction.IsSuspended,
             IsWatched = auction.IsWatched,
+            IsWinning = auction.IsWinning,
             Bids = auction.Bids
                 .Select(b => new BidViewModel
                 {

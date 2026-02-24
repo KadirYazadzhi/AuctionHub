@@ -330,6 +330,8 @@ public class AuctionService : IAuctionService
             IsActive = auction.IsActive && auction.EndTime > DateTime.UtcNow,
             IsSuspended = auction.IsSuspended,
             IsWatched = isWatched,
+            IsWinning = currentUserId != null && auction.Bids.Any() && auction.Bids.OrderByDescending(b => b.Amount).First().BidderId == currentUserId,
+            WinnerId = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault()?.BidderId,
             Bids = auction.Bids
                 .OrderByDescending(b => b.BidTime)
                 .Select(b => new BidDto
