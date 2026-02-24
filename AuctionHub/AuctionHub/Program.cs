@@ -29,7 +29,7 @@ builder.Services.AddScoped<IWalletService, WalletService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
-builder.Services.AddSingleton<INotificationService, NotificationService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IBiddingNotificationService, SignalRBiddingNotificationService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddHostedService<AuctionCleanupService>();

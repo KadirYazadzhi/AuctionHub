@@ -665,7 +665,7 @@ public class AuctionService : IAuctionService
             auction.CurrentPrice = amount;
             auction.Bids.Add(bid);
 
-            // NOTIFY WATCHERS
+            // NOTIFY WATCHERS (Only adds to context, doesn't save yet)
             await _notificationService.NotifyAllWatchersAsync(auctionId, 
                 $"New bid on watched item '{auction.Title}': {amount:C}", 
                 $"/Auctions/Details/{auctionId}",
@@ -676,21 +676,21 @@ public class AuctionService : IAuctionService
                 auction.IsActive = false;
                 auction.EndTime = DateTime.UtcNow;
                 
-                // NOTIFY EVERYONE IT'S SOLD
                 await _notificationService.NotifyAllWatchersAsync(auctionId, 
                     $"Auction '{auction.Title}' has ended (Buy It Now price reached).", 
                     $"/Auctions/Details/{auctionId}");
             }
 
-            await _context.SaveChangesAsync();
-            
-            // --- Auto-Bidding Logic ---
-            // Find all active auto-bids for this auction EXCEPT for the person who just bid
+            // --- Auto-Bidding Logic (Calculates everything in memory) ---
             await ProcessAutoBidsAsync(auction, userId);
             
+            // ONE SINGLE SAVE FOR EVERYTHING
+            await _context.SaveChangesAsync();
             await dbTransaction.CommitAsync();
 
-            // After final commit, we are done
+            // Notify SignalR after successful commit
+            await _biddingNotificationService.NotifyNewBidAsync(auctionId, currentUser.DisplayName ?? currentUser.UserName ?? "Unknown", auction.CurrentPrice, auction.Bids.OrderByDescending(b => b.Amount).First().BidTime);
+
             return (true, "Bid placed successfully.");
         }
         catch (DbUpdateConcurrencyException)

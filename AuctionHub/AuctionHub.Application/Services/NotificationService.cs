@@ -2,25 +2,21 @@ using AuctionHub.Domain.Models;
 using AuctionHub.Application.Interfaces;
 using AuctionHub.Application.DTOs;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace AuctionHub.Application.Services;
 
 public class NotificationService : INotificationService
 {
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IAuctionHubDbContext _context;
 
-    public NotificationService(IServiceProvider serviceProvider)
+    public NotificationService(IAuctionHubDbContext context)
     {
-        _serviceProvider = serviceProvider;
+        _context = context;
     }
 
     public async Task NotifyUserAsync(string userId, string message, string? link = null)
     {
-        using var scope = _serviceProvider.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<IAuctionHubDbContext>();
-
-        context.Notifications.Add(new Notification
+        _context.Notifications.Add(new Notification
         {
             UserId = userId,
             Message = message,
@@ -29,17 +25,16 @@ public class NotificationService : INotificationService
             IsRead = false
         });
 
-        await context.SaveChangesAsync();
+        // If we are NOT in a transaction, save immediately. 
+        // If we ARE in a transaction, this does nothing because we will save later in the service.
+        // Actually, for consistency, we should only SaveChanges here if we want immediate effect.
+        // In the context of PlaceBid, this will participate in the transaction.
+        await _context.SaveChangesAsync();
     }
 
     public async Task NotifyAllUsersAsync(string message, string? link = null)
     {
-        using var scope = _serviceProvider.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<IAuctionHubDbContext>();
-        
-        // This can be heavy for thousands of users, better to use SignalR or separate table for global announcements.
-        // For this project scale, creating records is acceptable.
-        var userIds = await context.Users.Select(u => u.Id).ToListAsync();
+        var userIds = await _context.Users.Select(u => u.Id).ToListAsync();
         var notifications = new List<Notification>();
 
         foreach (var userId in userIds)
@@ -54,16 +49,13 @@ public class NotificationService : INotificationService
             });
         }
 
-        await context.Notifications.AddRangeAsync(notifications);
-        await context.SaveChangesAsync();
+        await _context.Notifications.AddRangeAsync(notifications);
+        await _context.SaveChangesAsync();
     }
 
     public async Task NotifyAllWatchersAsync(int auctionId, string message, string? link = null, string? excludeUserId = null)
     {
-        using var scope = _serviceProvider.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<IAuctionHubDbContext>();
-
-        var watchers = await context.Watchlist
+        var watchers = await _context.Watchlist
             .Where(w => w.AuctionId == auctionId)
             .Select(w => w.UserId)
             .ToListAsync();
@@ -86,30 +78,24 @@ public class NotificationService : INotificationService
 
         if (notifications.Any())
         {
-            context.Notifications.AddRange(notifications);
-            await context.SaveChangesAsync();
+            _context.Notifications.AddRange(notifications);
+            await _context.SaveChangesAsync();
         }
     }
 
     public async Task MarkAsReadAsync(int notificationId, string userId)
     {
-        using var scope = _serviceProvider.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<IAuctionHubDbContext>();
-
-        var notification = await context.Notifications.FindAsync(notificationId);
+        var notification = await _context.Notifications.FindAsync(notificationId);
         if (notification != null && notification.UserId == userId)
         {
             notification.IsRead = true;
-            await context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
         }
     }
 
     public async Task MarkAllAsReadAsync(string userId)
     {
-        using var scope = _serviceProvider.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<IAuctionHubDbContext>();
-
-        var unread = await context.Notifications
+        var unread = await _context.Notifications
             .Where(n => n.UserId == userId && !n.IsRead)
             .ToListAsync();
 
@@ -118,24 +104,18 @@ public class NotificationService : INotificationService
             n.IsRead = true;
         }
 
-        await context.SaveChangesAsync();
+        await _context.SaveChangesAsync();
     }
 
     public async Task<int> GetUnreadCountAsync(string userId)
     {
-        using var scope = _serviceProvider.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<IAuctionHubDbContext>();
-
-        return await context.Notifications
+        return await _context.Notifications
             .CountAsync(n => n.UserId == userId && !n.IsRead);
     }
 
     public async Task<IEnumerable<NotificationDto>> GetUserNotificationsAsync(string userId)
     {
-        using var scope = _serviceProvider.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<IAuctionHubDbContext>();
-
-        return await context.Notifications
+        return await _context.Notifications
             .Where(n => n.UserId == userId)
             .OrderByDescending(n => n.CreatedOn)
             .Select(n => new NotificationDto
