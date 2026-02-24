@@ -19,6 +19,7 @@ public class AuctionDetailsDto
     public bool IsSuspended { get; set; }
     public bool IsWatched { get; set; }
     public bool IsWinning { get; set; }
+    public decimal? CurrentAutoBidLimit { get; set; }
     public string? WinnerId { get; set; }
     public List<BidDto> Bids { get; set; } = new();
 }

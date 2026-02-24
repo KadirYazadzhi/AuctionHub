@@ -307,9 +307,16 @@ public class AuctionService : IAuctionService
         if (auction == null) return null;
 
         bool isWatched = false;
+        decimal? currentAutoBidLimit = null;
+
         if (currentUserId != null)
         {
             isWatched = await _context.Watchlist.AnyAsync(w => w.AuctionId == id && w.UserId == currentUserId);
+            
+            // Fetch active auto-bid limit for the current user
+            var autoBid = await _context.AutoBids
+                .FirstOrDefaultAsync(ab => ab.AuctionId == id && ab.UserId == currentUserId && ab.IsActive);
+            currentAutoBidLimit = autoBid?.MaxAmount;
         }
 
         return new AuctionDetailsDto
@@ -331,6 +338,7 @@ public class AuctionService : IAuctionService
             IsSuspended = auction.IsSuspended,
             IsWatched = isWatched,
             IsWinning = currentUserId != null && auction.Bids.Any() && auction.Bids.OrderByDescending(b => b.Amount).First().BidderId == currentUserId,
+            CurrentAutoBidLimit = currentAutoBidLimit,
             WinnerId = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault()?.BidderId,
             Bids = auction.Bids
                 .OrderByDescending(b => b.BidTime)

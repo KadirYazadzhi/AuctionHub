@@ -101,6 +101,7 @@ public class AuctionsController : Controller
             IsSuspended = auction.IsSuspended,
             IsWatched = auction.IsWatched,
             IsWinning = auction.IsWinning,
+            CurrentAutoBidLimit = auction.CurrentAutoBidLimit,
             Bids = auction.Bids
                 .Select(b => new BidViewModel
                 {

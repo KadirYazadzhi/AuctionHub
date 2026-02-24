@@ -199,7 +199,25 @@
                                             </div>
                                             <h5 class="fw-bold mb-0 text-info-emphasis">Smart Bidding</h5>
                                         </div>
-                                        <p class="small text-muted mb-3">Set your absolute maximum and let our bot outbid others automatically with the minimum step.</p>
+                                        
+                                        @if (Model.CurrentAutoBidLimit.HasValue)
+                                        {
+                                            <div class="alert bg-white border-info border-opacity-25 rounded-4 p-3 mb-3 d-flex align-items-center justify-content-between shadow-sm">
+                                                <div>
+                                                    <small class="text-muted d-block">Your active limit:</small>
+                                                    <span class="h5 fw-bold text-info mb-0">@Model.CurrentAutoBidLimit.Value.ToString("C")</span>
+                                                </div>
+                                                <div class="badge bg-info text-white rounded-pill px-3 py-2">
+                                                    <i class="bi bi-check-lg me-1"></i> Active
+                                                </div>
+                                            </div>
+                                            <p class="small text-muted mb-3">You can update your limit by entering a new amount below.</p>
+                                        }
+                                        else
+                                        {
+                                            <p class="small text-muted mb-3">Set your absolute maximum and let our bot outbid others automatically with the minimum step.</p>
+                                        }
+
                                         <form asp-action="SetAutoBid" method="post" class="d-flex gap-2">
                                             <input type="hidden" name="auctionId" value="@Model.Id" />
                                             <div class="input-group">

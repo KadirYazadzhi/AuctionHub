@@ -36,6 +36,8 @@ public class AuctionDetailsViewModel
 
     public bool IsWinning { get; set; }
 
+    public decimal? CurrentAutoBidLimit { get; set; }
+
     public IEnumerable<BidViewModel> Bids { get; set; } = new List<BidViewModel>();
 
     [Required]
