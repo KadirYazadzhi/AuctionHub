@@ -57,6 +57,13 @@
                         }
                         <span class="text-muted small ms-2">(@rating.ToString("F1"))</span>
                     </div>
+
+                    @if (ViewData["TargetUserAboutMe"] is string aboutMe && !string.IsNullOrEmpty(aboutMe))
+                    {
+                        <div class="mt-3 text-muted" style="max-width: 600px; line-height: 1.5;">
+                            <i class="bi bi-info-circle me-1 small"></i> @aboutMe
+                        </div>
+                    }
                 </div>
             </div>
         </div>

@@ -18,6 +18,9 @@ public class ApplicationUser : IdentityUser
     [StringLength(200)]
     public string? ProfilePictureUrl { get; set; }
 
+    [StringLength(500)]
+    public string? AboutMe { get; set; }
+
     [NotMapped]
     public string DisplayName 
     {

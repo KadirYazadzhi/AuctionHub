@@ -37,6 +37,7 @@ public class UserService : IUserService
             FirstName = u.FirstName,
             LastName = u.LastName,
             ProfilePictureUrl = u.ProfilePictureUrl,
+            AboutMe = u.AboutMe,
             DisplayName = u.UserName ?? u.Email ?? "Unknown", // Simplification
             WalletBalance = u.WalletBalance,
             LockoutEnd = u.LockoutEnd
@@ -81,6 +82,7 @@ public class UserService : IUserService
             FirstName = user.FirstName,
             LastName = user.LastName,
             ProfilePictureUrl = user.ProfilePictureUrl,
+            AboutMe = user.AboutMe,
             DisplayName = user.UserName ?? user.Email ?? "Unknown",
             WalletBalance = user.WalletBalance,
             LockoutEnd = user.LockoutEnd,

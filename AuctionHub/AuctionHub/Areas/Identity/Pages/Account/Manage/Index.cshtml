@@ -61,6 +61,12 @@
                     <input asp-for="Input.LastName" class="form-control" placeholder="Last name" />
                     <span asp-validation-for="Input.LastName" class="text-danger"></span>
                 </div>
+
+                <div class="col-12 mb-2">
+                    <label asp-for="Input.AboutMe" class="form-label small text-muted text-uppercase fw-bold"></label>
+                    <textarea asp-for="Input.AboutMe" class="form-control" rows="3" placeholder="Tell other users about yourself or what you offer..."></textarea>
+                    <span asp-validation-for="Input.AboutMe" class="text-danger"></span>
+                </div>
             </div>
         </div>
     </div>

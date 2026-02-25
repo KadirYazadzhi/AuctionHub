@@ -355,6 +355,7 @@ public class AuctionsController : Controller
 
         ViewData["TargetUser"] = user.DisplayName;
         ViewData["TargetUserImage"] = user.ProfilePictureUrl;
+        ViewData["TargetUserAboutMe"] = user.AboutMe;
         ViewData["TargetUserRating"] = user.AverageRating;
         ViewData["TargetUserIsTopSeller"] = user.IsTopSeller;
         ViewData["TargetUserReviews"] = user.Reviews;

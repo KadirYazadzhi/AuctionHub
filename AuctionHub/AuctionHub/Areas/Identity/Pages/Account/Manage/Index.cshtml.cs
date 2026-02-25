@@ -47,6 +47,10 @@ namespace AuctionHub.Areas.Identity.Pages.Account.Manage
             [Display(Name = "Last Name")]
             public string LastName { get; set; } = null!;
 
+            [StringLength(500)]
+            [Display(Name = "About Me")]
+            public string? AboutMe { get; set; }
+
             [Display(Name = "Profile Picture")]
             public IFormFile? ProfilePicture { get; set; }
         }
@@ -63,7 +67,8 @@ namespace AuctionHub.Areas.Identity.Pages.Account.Manage
             {
                 PhoneNumber = phoneNumber,
                 FirstName = user.FirstName ?? "",
-                LastName = user.LastName ?? ""
+                LastName = user.LastName ?? "",
+                AboutMe = user.AboutMe
             };
         }
 
@@ -148,10 +153,11 @@ namespace AuctionHub.Areas.Identity.Pages.Account.Manage
                 }
             }
 
-            if (Input.FirstName != user.FirstName || Input.LastName != user.LastName)
+            if (Input.FirstName != user.FirstName || Input.LastName != user.LastName || Input.AboutMe != user.AboutMe)
             {
                 user.FirstName = Input.FirstName;
                 user.LastName = Input.LastName;
+                user.AboutMe = Input.AboutMe;
                 await _userManager.UpdateAsync(user);
             }
 
