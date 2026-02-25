@@ -11,10 +11,6 @@ public class AuctionService : IAuctionService
     private readonly INotificationService _notificationService;
     private readonly IBiddingNotificationService _biddingNotificationService;
 
-    // In-memory cache to track auctions currently being created (prevents race conditions)
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTime> _inFlightAuctions 
-        = new System.Collections.Concurrent.ConcurrentDictionary<string, DateTime>();
-
     public AuctionService(IAuctionHubDbContext context, INotificationService notificationService, IBiddingNotificationService biddingNotificationService)
     {
         _context = context;
@@ -366,30 +362,14 @@ public class AuctionService : IAuctionService
 
     public async Task<int> CreateAuctionAsync(AuctionFormDto model, string sellerId)
     {
-        // 1. Generate a unique key for this specific submission
-        string idempotencyKey = $"{sellerId}_{model.Title.Trim().ToLower()}";
         var now = DateTime.UtcNow;
 
-        // 2. Clean up expired keys from the dictionary (older than 30 seconds)
-        foreach (var key in _inFlightAuctions.Keys)
-        {
-            if (_inFlightAuctions.TryGetValue(key, out var timestamp) && (now - timestamp).TotalSeconds > 30)
-            {
-                _inFlightAuctions.TryRemove(key, out _);
-            }
-        }
-
-        // 3. Try to "lock" this submission in memory
-        if (!_inFlightAuctions.TryAdd(idempotencyKey, now))
-        {
-            // If we can't add it, it means an identical request is already processing or was just completed
-            return -1;
-        }
-
+        using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
-            // 4. Double check database just in case
-            var recentThreshold = now.AddSeconds(-10);
+            // Database-level check for duplicate within a short timeframe
+            // This is safer in multi-instance environments than in-memory dictionaries
+            var recentThreshold = now.AddSeconds(-30);
             var isDuplicate = await _context.Auctions.AnyAsync(a => 
                 a.SellerId == sellerId && 
                 a.Title == model.Title && 
@@ -420,13 +400,13 @@ public class AuctionService : IAuctionService
 
             _context.Auctions.Add(auction);
             await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
 
             return auction.Id;
         }
         catch (Exception)
         {
-            // Remove lock on failure so user can try again
-            _inFlightAuctions.TryRemove(idempotencyKey, out _);
+            await transaction.RollbackAsync();
             throw;
         }
     }
