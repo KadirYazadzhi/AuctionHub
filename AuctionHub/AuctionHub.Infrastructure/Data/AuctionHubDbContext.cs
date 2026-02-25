@@ -21,10 +21,30 @@ public class AuctionHubDbContext : IdentityDbContext<ApplicationUser>, IAuctionH
     public DbSet<ContactMessage> ContactMessages { get; set; } = null!;
     public DbSet<ChatMessage> ChatMessages { get; set; } = null!;
     public DbSet<AutoBid> AutoBids { get; set; } = null!;
+    public DbSet<Review> Reviews { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+
+        // Configure Review
+        builder.Entity<Review>()
+            .HasOne(r => r.Auction)
+            .WithMany()
+            .HasForeignKey(r => r.AuctionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<Review>()
+            .HasOne(r => r.Reviewer)
+            .WithMany()
+            .HasForeignKey(r => r.ReviewerId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<Review>()
+            .HasOne(r => r.TargetUser)
+            .WithMany(u => u.ReceivedReviews)
+            .HasForeignKey(r => r.TargetUserId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         // Configure AutoBid
         builder.Entity<AutoBid>()

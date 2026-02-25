@@ -41,4 +41,11 @@ public class ApplicationUser : IdentityUser
     public virtual ICollection<Bid> MyBids { get; set; } = new HashSet<Bid>();
     public virtual ICollection<Transaction> Transactions { get; set; } = new HashSet<Transaction>();
     public virtual ICollection<AuctionWatchlist> Watchlist { get; set; } = new HashSet<AuctionWatchlist>();
+    public virtual ICollection<Review> ReceivedReviews { get; set; } = new HashSet<Review>();
+
+    [NotMapped]
+    public double AverageRating => ReceivedReviews.Any() ? ReceivedReviews.Average(r => r.Rating) : 0;
+
+    [NotMapped]
+    public bool IsTopSeller => ReceivedReviews.Count >= 5 && AverageRating >= 4.8;
 }

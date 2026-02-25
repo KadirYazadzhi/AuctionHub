@@ -48,6 +48,8 @@ public class UserService : IUserService
         var user = await _context.Users
             .Include(u => u.MyAuctions).ThenInclude(a => a.Category)
             .Include(u => u.MyBids).ThenInclude(b => b.Auction)
+            .Include(u => u.ReceivedReviews).ThenInclude(r => r.Reviewer)
+            .Include(u => u.ReceivedReviews).ThenInclude(r => r.Auction)
             .FirstOrDefaultAsync(u => u.Id == id);
 
         if (user == null) return null;
@@ -60,6 +62,8 @@ public class UserService : IUserService
         var user = await _context.Users
             .Include(u => u.MyAuctions).ThenInclude(a => a.Category)
             .Include(u => u.MyBids).ThenInclude(b => b.Auction)
+            .Include(u => u.ReceivedReviews).ThenInclude(r => r.Reviewer)
+            .Include(u => u.ReceivedReviews).ThenInclude(r => r.Auction)
             .FirstOrDefaultAsync(u => u.UserName == username);
 
         if (user == null) return null;
@@ -80,6 +84,18 @@ public class UserService : IUserService
             DisplayName = user.UserName ?? user.Email ?? "Unknown",
             WalletBalance = user.WalletBalance,
             LockoutEnd = user.LockoutEnd,
+            AverageRating = user.AverageRating,
+            IsTopSeller = user.IsTopSeller,
+            Reviews = user.ReceivedReviews.OrderByDescending(r => r.CreatedOn).Select(r => new ReviewDto
+            {
+                Id = r.Id,
+                ReviewerName = r.Reviewer.FirstName != null ? $"{r.Reviewer.FirstName} {r.Reviewer.LastName}" : r.Reviewer.UserName!,
+                ReviewerId = r.ReviewerId,
+                Rating = r.Rating,
+                Comment = r.Comment,
+                CreatedOn = r.CreatedOn,
+                AuctionTitle = r.Auction.Title
+            }).ToList(),
             Auctions = user.MyAuctions.Select(a => new AuctionDto
             {
                 Id = a.Id,

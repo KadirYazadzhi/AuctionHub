@@ -19,19 +19,22 @@ public class AuctionsController : Controller
     private readonly IUserService _userService;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IChatService _chatService;
+    private readonly IReviewService _reviewService;
 
     public AuctionsController(
         IWebHostEnvironment webHostEnvironment, 
         IAuctionService auctionService,
         IUserService userService,
         UserManager<ApplicationUser> userManager,
-        IChatService chatService)
+        IChatService chatService,
+        IReviewService reviewService)
     {
         _webHostEnvironment = webHostEnvironment;
         _auctionService = auctionService;
         _userService = userService;
         _userManager = userManager;
         _chatService = chatService;
+        _reviewService = reviewService;
     }
 
     [AllowAnonymous]
@@ -113,7 +116,33 @@ public class AuctionsController : Controller
             NewBidAmount = auction.CurrentPrice + auction.MinIncrease
         };
 
+        // Check if user can leave a review
+        if (currentUserId != null)
+        {
+            ViewBag.CanLeaveReview = await _reviewService.CanLeaveReviewAsync(id, currentUserId);
+        }
+
         return View(model);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> LeaveReview(int auctionId, int rating, string comment)
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (currentUserId == null) return Challenge();
+
+        var result = await _reviewService.LeaveReviewAsync(auctionId, currentUserId, rating, comment);
+
+        if (result.Success)
+        {
+            TempData["Success"] = result.Message;
+        }
+        else
+        {
+            TempData["Error"] = result.Message;
+        }
+
+        return RedirectToAction(nameof(Details), new { id = auctionId });
     }
 
     [HttpGet]
@@ -303,6 +332,9 @@ public class AuctionsController : Controller
 
         ViewData["TargetUser"] = user.DisplayName;
         ViewData["TargetUserImage"] = user.ProfilePictureUrl;
+        ViewData["TargetUserRating"] = user.AverageRating;
+        ViewData["TargetUserIsTopSeller"] = user.IsTopSeller;
+        ViewData["TargetUserReviews"] = user.Reviews;
         ViewData["CurrentUsername"] = username;
         ViewData["CurrentSort"] = sortOrder;
         ViewData["CurrentSearch"] = searchTerm;

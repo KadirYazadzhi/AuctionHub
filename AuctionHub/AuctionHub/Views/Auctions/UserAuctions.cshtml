@@ -30,7 +30,33 @@
                 </div>
                 <div>
                     <h6 class="text-uppercase text-muted small fw-bold mb-1 letter-spacing-1">Seller Profile</h6>
-                    <h1 class="display-5 fw-bold mb-0">@targetUser</h1>
+                    <div class="d-flex align-items-center gap-3">
+                        <h1 class="display-5 fw-bold mb-0">@targetUser</h1>
+                        @if (ViewData["TargetUserIsTopSeller"] as bool? == true)
+                        {
+                            <span class="badge bg-warning text-dark rounded-pill px-3 py-2 shadow-sm animate-pulse" title="Top Seller: High rating and many successful sales!">
+                                <i class="bi bi-trophy-fill me-1"></i> Top Seller
+                            </span>
+                        }
+                    </div>
+                    
+                    @{
+                        var rating = ViewData["TargetUserRating"] as double? ?? 0;
+                    }
+                    <div class="d-flex align-items-center mt-2 text-warning fs-5">
+                        @for (int i = 1; i <= 5; i++)
+                        {
+                            if (i <= Math.Round(rating))
+                            {
+                                <i class="bi bi-star-fill me-1"></i>
+                            }
+                            else
+                            {
+                                <i class="bi bi-star me-1 opacity-50"></i>
+                            }
+                        }
+                        <span class="text-muted small ms-2">(@rating.ToString("F1"))</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -148,6 +174,52 @@
                 }
             }
         </div>
+    </div>
+
+    <!-- Reviews Section -->
+    <div class="mt-5 pt-5 animate-fade-up">
+        <h3 class="fw-bold mb-4">Recent Feedback</h3>
+        @{
+            var reviews = ViewData["TargetUserReviews"] as IEnumerable<AuctionHub.Application.Interfaces.ReviewDto>;
+        }
+
+        @if (reviews == null || !reviews.Any())
+        {
+            <div class="alert bg-white border shadow-sm rounded-4 p-5 text-center">
+                <i class="bi bi-chat-left-dots display-4 text-muted opacity-50 mb-3 d-block"></i>
+                <p class="text-muted mb-0">No reviews yet for this seller.</p>
+            </div>
+        }
+        else
+        {
+            <div class="row g-4">
+                @foreach (var review in reviews.Take(6))
+                {
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card h-100 border-0 shadow-sm rounded-4 bg-white">
+                            <div class="card-body p-4">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <h6 class="fw-bold mb-0">@review.ReviewerName</h6>
+                                        <small class="text-muted">on @review.AuctionTitle</small>
+                                    </div>
+                                    <div class="text-warning">
+                                        @for (int i = 1; i <= 5; i++)
+                                        {
+                                            <i class="bi bi-star@(i <= review.Rating ? "-fill" : "") small"></i>
+                                        }
+                                    </div>
+                                </div>
+                                <p class="text-muted small mb-3" style="font-style: italic;">"@review.Comment"</p>
+                                <div class="d-flex justify-content-end">
+                                    <small class="text-body-tertiary" style="font-size: 0.7rem;">@review.CreatedOn.ToString("MMM dd, yyyy")</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
     </div>
 </div>
 

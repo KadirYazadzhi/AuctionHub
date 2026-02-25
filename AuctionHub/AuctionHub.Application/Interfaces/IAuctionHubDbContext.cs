@@ -17,6 +17,7 @@ public interface IAuctionHubDbContext
     DbSet<ContactMessage> ContactMessages { get; set; }
     DbSet<ChatMessage> ChatMessages { get; set; }
     DbSet<AutoBid> AutoBids { get; set; }
+    DbSet<Review> Reviews { get; set; }
     DbSet<ApplicationUser> Users { get; set; }
     DbSet<IdentityRole> Roles { get; set; }
     DbSet<IdentityUserRole<string>> UserRoles { get; set; }

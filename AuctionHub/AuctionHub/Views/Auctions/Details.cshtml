@@ -254,6 +254,36 @@
                                         <p class="small text-muted mt-2 mb-0">Discuss shipping & payment details securely.</p>
                                     </div>
                                 }
+
+                                @if (ViewBag.CanLeaveReview == true)
+                                {
+                                    <div class="mt-5 border-top pt-4 text-start">
+                                        <h5 class="fw-bold mb-3"><i class="bi bi-star-fill text-warning me-2"></i>Rate the Seller</h5>
+                                        <form asp-action="LeaveReview" method="post" class="bg-light p-4 rounded-4 shadow-sm">
+                                            <input type="hidden" name="auctionId" value="@Model.Id" />
+                                            
+                                            <div class="mb-3">
+                                                <label class="form-label small fw-bold text-muted">Your Rating</label>
+                                                <div class="star-rating d-flex gap-2 fs-3">
+                                                    @for (int i = 5; i >= 1; i--)
+                                                    {
+                                                        <input type="radio" id="star@i" name="rating" value="@i" required />
+                                                        <label for="star@i" title="@i stars"><i class="bi bi-star-fill"></i></label>
+                                                    }
+                                                </div>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label small fw-bold text-muted">Your Experience</label>
+                                                <textarea name="comment" class="form-control rounded-3 border-0 shadow-sm" rows="3" placeholder="Share how the transaction went..." required></textarea>
+                                            </div>
+
+                                            <button type="submit" class="btn btn-warning w-100 rounded-pill fw-bold py-2 shadow-sm hover-lift">
+                                                Submit Review
+                                            </button>
+                                        </form>
+                                    </div>
+                                }
                             </div>
                         }
                     }
@@ -360,6 +390,24 @@
     
     .price-update-anim {
         animation: scaleDrop 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    /* Star Rating Styles */
+    .star-rating {
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: flex-end;
+    }
+    .star-rating input { display: none; }
+    .star-rating label {
+        cursor: pointer;
+        color: #ddd;
+        transition: color 0.2s;
+    }
+    .star-rating label:hover,
+    .star-rating label:hover ~ label,
+    .star-rating input:checked ~ label {
+        color: #ffc107;
     }
 </style>
 

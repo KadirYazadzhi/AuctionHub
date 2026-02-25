@@ -32,6 +32,7 @@ builder.Services.AddScoped<IMessageService, MessageService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IBiddingNotificationService, SignalRBiddingNotificationService>();
 builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddHostedService<AuctionCleanupService>();
 
 builder.Services.AddSignalR();
