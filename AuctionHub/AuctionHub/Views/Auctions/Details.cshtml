@@ -138,7 +138,10 @@
                             @if(Model.IsActive)
                             {
                                 <span class="text-danger fw-bold small d-flex align-items-center">
-                                    <i class="bi bi-clock-fill me-1"></i> @Model.EndTime.ToString("g")
+                                    <i class="bi bi-clock-fill me-1"></i> 
+                                    <span id="countdown-timer" data-endtime="@Model.EndTime.ToString("yyyy-MM-ddTHH:mm:ssZ")">
+                                        @Model.EndTime.ToString("g")
+                                    </span>
                                 </span>
                             }
                         </div>
@@ -194,6 +197,13 @@
                                         <h5 class="fw-bold mb-3 text-center">Ready to win?</h5>
                                         <form asp-action="PlaceBid" method="post">
                                             <input type="hidden" name="AuctionId" value="@Model.Id" />
+                                            
+                                            <div class="d-flex justify-content-center gap-2 mb-3">
+                                                <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3" onclick="addBid(1)">+1€</button>
+                                                <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3" onclick="addBid(5)">+5€</button>
+                                                <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3" onclick="addBid(10)">+10€</button>
+                                            </div>
+
                                             <div class="input-group input-group-lg mb-3">
                                                 <span class="input-group-text bg-white border-end-0 rounded-start-pill ps-4 fw-bold text-primary">@System.Globalization.CultureInfo.CurrentCulture.NumberFormat.CurrencySymbol</span>
                                                 <input type="text" 
@@ -533,4 +543,64 @@
     }).catch(function (err) {
         return console.error(err.toString());
     });
+
+    // Countdown Timer Logic
+    function updateTimer() {
+        const timerElement = document.getElementById('countdown-timer');
+        if (!timerElement) return;
+
+        const endTimeStr = timerElement.getAttribute('data-endtime');
+        const endTime = new Date(endTimeStr).getTime();
+        const now = new Date().getTime();
+        const distance = endTime - now;
+
+        if (distance < 0) {
+            timerElement.innerHTML = "EXPIRED";
+            timerElement.classList.remove('text-danger');
+            timerElement.classList.add('text-secondary');
+            return;
+        }
+
+        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+        let timerText = "";
+        if (days > 0) timerText += days + "d ";
+        timerText += hours.toString().padStart(2, '0') + "h " + 
+                     minutes.toString().padStart(2, '0') + "m " + 
+                     seconds.toString().padStart(2, '0') + "s";
+
+        timerElement.innerHTML = timerText;
+
+        // Visual urgency
+        if (distance < 60000) { // Less than 1 minute
+            timerElement.classList.add('text-danger');
+            if (seconds % 2 === 0) timerElement.style.opacity = "0.7";
+            else timerElement.style.opacity = "1";
+        }
+    }
+
+    setInterval(updateTimer, 1000);
+    updateTimer();
+
+    // Quick Bid Logic
+    function addBid(amount) {
+        const amountInput = document.querySelector('input[name="Amount"]');
+        if (!amountInput) return;
+
+        // Parse current value (handling comma as decimal separator)
+        let currentVal = parseFloat(amountInput.value.replace(',', '.'));
+        if (isNaN(currentVal)) currentVal = 0;
+
+        const newVal = currentVal + amount;
+        
+        // Format back with comma
+        amountInput.value = newVal.toFixed(2).replace('.', ',');
+        
+        // Trigger visual feedback
+        amountInput.classList.add('is-valid');
+        setTimeout(() => amountInput.classList.remove('is-valid'), 500);
+    }
 </script>

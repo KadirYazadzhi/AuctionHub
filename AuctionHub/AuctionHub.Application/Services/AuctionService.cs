@@ -78,18 +78,25 @@ public class AuctionService : IAuctionService
             _ => query.OrderBy(a => a.EndTime) // Default: Ending soonest
         };
 
-        var projectedQuery = query.Select(a => new AuctionDto
-        {
-            Id = a.Id,
-            Title = a.Title,
-            ImageUrl = a.ImageUrl,
-            CurrentPrice = a.CurrentPrice,
-            EndTime = a.EndTime,
-            Category = a.Category.Name,
-            CategoryId = a.CategoryId,
-            IsActive = a.IsActive,
-            IsSuspended = a.IsSuspended
-        });
+        var projectedQuery = query
+            .Include(a => a.Seller)
+                .ThenInclude(u => u.ReceivedReviews)
+            .Include(a => a.Bids)
+            .Select(a => new AuctionDto
+            {
+                Id = a.Id,
+                Title = a.Title,
+                ImageUrl = a.ImageUrl,
+                CurrentPrice = a.CurrentPrice,
+                EndTime = a.EndTime,
+                Category = a.Category.Name,
+                CategoryId = a.CategoryId,
+                IsActive = a.IsActive,
+                IsSuspended = a.IsSuspended,
+                SellerName = a.Seller.UserName ?? a.Seller.Email ?? "Unknown",
+                IsTopSeller = a.Seller.ReceivedReviews.Count >= 5 && (a.Seller.ReceivedReviews.Any() ? a.Seller.ReceivedReviews.Average(r => r.Rating) : 0) >= 4.8,
+                IsWinning = currentUserId != null && a.Bids.Any() && a.Bids.OrderByDescending(b => b.Amount).First().BidderId == currentUserId
+            });
 
         return await PaginatedList<AuctionDto>.CreateAsync(projectedQuery, pageNumber, pageSize);
     }
@@ -280,6 +287,35 @@ public class AuctionService : IAuctionService
         });
 
         return await PaginatedList<AuctionDto>.CreateAsync(projectedQuery, pageNumber, pageSize);
+    }
+
+    public async Task<IEnumerable<AuctionDto>> GetEndingSoonAuctionsAsync(int count)
+    {
+        var adminIds = await GetAdminIdsAsync();
+        var now = DateTime.UtcNow;
+
+        return await _context.Auctions
+            .Include(a => a.Category)
+            .Include(a => a.Seller)
+                .ThenInclude(u => u.ReceivedReviews)
+            .Where(a => a.IsActive && a.EndTime > now && !adminIds.Contains(a.SellerId))
+            .OrderBy(a => a.EndTime)
+            .Take(count)
+            .Select(a => new AuctionDto
+            {
+                Id = a.Id,
+                Title = a.Title,
+                ImageUrl = a.ImageUrl,
+                CurrentPrice = a.CurrentPrice,
+                EndTime = a.EndTime,
+                Category = a.Category.Name,
+                CategoryId = a.CategoryId,
+                IsActive = a.IsActive,
+                IsSuspended = a.IsSuspended,
+                SellerName = a.Seller.UserName ?? a.Seller.Email ?? "Unknown",
+                IsTopSeller = a.Seller.ReceivedReviews.Count >= 5 && (a.Seller.ReceivedReviews.Any() ? a.Seller.ReceivedReviews.Average(r => r.Rating) : 0) >= 4.8
+            })
+            .ToListAsync();
     }
 
     public async Task<(bool Success, string Message)> ConfirmDeliveryAsync(int auctionId, string userId)
@@ -705,6 +741,9 @@ public class AuctionService : IAuctionService
                     await _notificationService.NotifyUserAsync(previousBidder.Id, 
                         $"You have been outbid on '{auction.Title}'! Current price: {amount:C}", 
                         $"/Auctions/Details/{auctionId}");
+
+                    // REAL-TIME SIGNALR NOTIFICATION
+                    await _biddingNotificationService.NotifyOutbidAsync(previousBidder.Id, auctionId, auction.Title, amount);
                 }
             }
 
@@ -841,6 +880,9 @@ public class AuctionService : IAuctionService
                 await _notificationService.NotifyUserAsync(prevUser.Id, 
                     $"An auto-bidder outbid you on '{auction.Title}'! Current price: {finalPrice:C}", 
                     $"/Auctions/Details/{auction.Id}");
+
+                // REAL-TIME SIGNALR NOTIFICATION
+                await _biddingNotificationService.NotifyOutbidAsync(prevUser.Id, auction.Id, auction.Title, finalPrice);
             }
         }
 

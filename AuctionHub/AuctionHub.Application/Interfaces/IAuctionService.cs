@@ -70,4 +70,5 @@ public interface IAuctionService
     Task<(bool Success, string Message)> ToggleWatchlistAsync(int auctionId, string userId);
     Task<(bool Success, string Message)> SetAutoBidAsync(int auctionId, string userId, decimal maxAmount);
     Task<(bool Success, string Message)> ConfirmDeliveryAsync(int auctionId, string userId);
+    Task<IEnumerable<AuctionDto>> GetEndingSoonAuctionsAsync(int count);
 }

@@ -196,7 +196,53 @@
             });
         }, 5000);
     });
+
+    // Real-time Global Notifications (SignalR)
+    @if (User.Identity?.IsAuthenticated ?? false)
+    {
+        <text>
+        const globalConnection = new signalR.HubConnectionBuilder()
+            .withUrl("/hubs/bidding")
+            .withAutomaticReconnect()
+            .build();
+
+        globalConnection.on("ReceiveOutbidNotification", function (auctionId, auctionTitle, newPrice) {
+            showToast("Outbid!", `You've been outbid on <strong>${auctionTitle}</strong>. New price: ${newPrice}€`, `/Auctions/Details/${auctionId}`);
+            checkNotifications(); // Refresh badge
+        });
+
+        globalConnection.start().catch(err => console.error(err.toString()));
+
+        function showToast(title, message, link) {
+            const container = document.getElementById('toast-container');
+            const toastId = 'toast-' + Date.now();
+            const html = `
+                <div id="${toastId}" class="toast border-0 shadow-lg rounded-4 overflow-hidden" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header bg-primary text-white border-0 py-3 px-4">
+                        <i class="bi bi-bell-fill me-2"></i>
+                        <strong class="me-auto">${title}</strong>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                    <div class="toast-body p-4 bg-white">
+                        <p class="mb-3 text-dark">${message}</p>
+                        <a href="${link}" class="btn btn-primary btn-sm rounded-pill px-4">Go to Auction</a>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', html);
+            const element = document.getElementById(toastId);
+            const toast = new bootstrap.Toast(element, { delay: 10000 });
+            toast.show();
+            
+            element.addEventListener('hidden.bs.toast', () => element.remove());
+        }
+        </text>
+    }
 </script>
+
+<!-- Global Toast Container -->
+<div id="toast-container" class="toast-container position-fixed bottom-0 start-0 p-4" style="z-index: 2000;"></div>
+
 @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

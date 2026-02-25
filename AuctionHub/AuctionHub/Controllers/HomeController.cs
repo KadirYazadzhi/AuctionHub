@@ -14,21 +14,25 @@ public class HomeController : Controller
     private readonly IMessageService _messageService;
     private readonly UserManager<ApplicationUser> _userManager; 
     private readonly IChatService _chatService;
+    private readonly IAuctionService _auctionService;
     
     public HomeController(
         ILogger<HomeController> logger, 
         IMessageService messageService, 
         UserManager<ApplicationUser> userManager,
-        IChatService chatService)
+        IChatService chatService,
+        IAuctionService auctionService)
     {
         _logger = logger;
         _messageService = messageService;
         _userManager = userManager;
         _chatService = chatService;
+        _auctionService = auctionService;
     }
 
     public async Task<IActionResult> Index()
     {
+        ViewBag.EndingSoon = await _auctionService.GetEndingSoonAuctionsAsync(4);
         var globalMessages = await _chatService.GetGlobalMessagesAsync(50);
         return View(globalMessages);
     }

@@ -11,5 +11,7 @@ public class AuctionDto
     public int CategoryId { get; set; }
     public bool IsActive { get; set; }
     public bool IsSuspended { get; set; }
+    public string SellerName { get; set; } = null!;
+    public bool IsTopSeller { get; set; }
     public bool? IsWinning { get; set; }
 }
