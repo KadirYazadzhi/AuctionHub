@@ -827,6 +827,7 @@ public class AuctionService : IAuctionService
         try
         {
             var auction = await _context.Auctions
+                .Include(a => a.Seller)
                 .Include(a => a.Bids)
                 .ThenInclude(b => b.Bidder)
                 .FirstOrDefaultAsync(a => a.Id == auctionId);
@@ -851,7 +852,7 @@ public class AuctionService : IAuctionService
             var currentUser = await _context.Users.FindAsync(userId);
             if (currentUser == null || currentUser.WalletBalance < price) return (false, "Insufficient funds.");
 
-            // 1. Charge User
+            // 1. Charge Buyer
             currentUser.WalletBalance -= price;
             _context.Transactions.Add(new Transaction
             {
@@ -862,7 +863,18 @@ public class AuctionService : IAuctionService
                 TransactionDate = DateTime.UtcNow
             });
 
-            // 2. Refund Previous Bidder
+            // 2. Credit Seller
+            auction.Seller.WalletBalance += price;
+            _context.Transactions.Add(new Transaction
+            {
+                UserId = auction.SellerId,
+                Amount = price,
+                Description = $"Sale of item '{auction.Title}' (Buy It Now)",
+                TransactionType = "Sale",
+                TransactionDate = DateTime.UtcNow
+            });
+
+            // 3. Refund Previous Bidder
             var previousHighBid = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault();
             if (previousHighBid != null)
             {
@@ -913,6 +925,16 @@ public class AuctionService : IAuctionService
             // Close Auction
             auction.IsActive = false;
             auction.EndTime = DateTime.UtcNow;
+
+            // Deactivate all Auto-bids for this auction
+            var activeBots = await _context.AutoBids
+                .Where(ab => ab.AuctionId == auctionId && ab.IsActive)
+                .ToListAsync();
+            
+            foreach (var bot in activeBots)
+            {
+                bot.IsActive = false;
+            }
 
             // NOTIFY WATCHERS
             await _notificationService.NotifyAllWatchersAsync(auctionId, 

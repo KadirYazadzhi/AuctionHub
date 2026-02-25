@@ -40,56 +40,78 @@ public class AuctionCleanupService : BackgroundService
             
             // Find active auctions that have passed their EndTime
             var expiredAuctions = await context.Auctions
+                .Include(a => a.Seller)
                 .Include(a => a.Bids)
-                .ThenInclude(b => b.Bidder)
+                    .ThenInclude(b => b.Bidder)
                 .Where(a => a.IsActive && a.EndTime <= DateTime.UtcNow)
                 .ToListAsync();
 
             if (expiredAuctions.Any())
             {
-                foreach (var auction in expiredAuctions)
+                using var transaction = await context.Database.BeginTransactionAsync();
+                try
                 {
-                    auction.IsActive = false;
-                    _logger.LogInformation($"Closing auction {auction.Id}: {auction.Title}");
-
-                    var winningBid = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault();
-
-                    if (winningBid != null)
+                    foreach (var auction in expiredAuctions)
                     {
-                        // Notify Winner
-                        await notificationService.NotifyUserAsync(winningBid.BidderId, 
-                            $"🎉 Congratulations! You won the auction for '{auction.Title}' with a bid of {winningBid.Amount:C}!", 
-                            $"/Auctions/Details/{auction.Id}");
+                        auction.IsActive = false;
+                        _logger.LogInformation($"Closing auction {auction.Id}: {auction.Title}");
 
-                        // Notify Seller
-                        await notificationService.NotifyUserAsync(auction.SellerId, 
-                            $"💰 Your item '{auction.Title}' was sold to {winningBid.Bidder.DisplayName} for {winningBid.Amount:C}!", 
-                            $"/Auctions/Details/{auction.Id}");
+                        var winningBid = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault();
 
-                        // Notify Losers (Everyone who bid but didn't win)
-                        var losingBidders = auction.Bids
-                            .Where(b => b.BidderId != winningBid.BidderId)
-                            .Select(b => b.BidderId)
-                            .Distinct()
-                            .ToList();
-
-                        foreach (var loserId in losingBidders)
+                        if (winningBid != null)
                         {
-                            await notificationService.NotifyUserAsync(loserId, 
-                                $"🔔 The auction for '{auction.Title}' has ended. Unfortunately, you did not win this time.", 
+                            // 1. Credit Seller
+                            auction.Seller.WalletBalance += winningBid.Amount;
+                            context.Transactions.Add(new Transaction
+                            {
+                                UserId = auction.SellerId,
+                                Amount = winningBid.Amount,
+                                Description = $"Sale of item '{auction.Title}' (Auction Winner: {winningBid.Bidder.DisplayName})",
+                                TransactionType = "Sale",
+                                TransactionDate = DateTime.UtcNow
+                            });
+
+                            // 2. Notify Winner
+                            await notificationService.NotifyUserAsync(winningBid.BidderId, 
+                                $"🎉 Congratulations! You won the auction for '{auction.Title}' with a bid of {winningBid.Amount:C}!", 
+                                $"/Auctions/Details/{auction.Id}");
+
+                            // 3. Notify Seller
+                            await notificationService.NotifyUserAsync(auction.SellerId, 
+                                $"💰 Your item '{auction.Title}' was sold to {winningBid.Bidder.DisplayName} for {winningBid.Amount:C}!", 
+                                $"/Auctions/Details/{auction.Id}");
+
+                            // Notify Losers (Everyone who bid but didn't win)
+                            var losingBidders = auction.Bids
+                                .Where(b => b.BidderId != winningBid.BidderId)
+                                .Select(b => b.BidderId)
+                                .Distinct()
+                                .ToList();
+
+                            foreach (var loserId in losingBidders)
+                            {
+                                await notificationService.NotifyUserAsync(loserId, 
+                                    $"🔔 The auction for '{auction.Title}' has ended. Unfortunately, you did not win this time.", 
+                                    $"/Auctions/Details/{auction.Id}");
+                            }
+                        }
+                        else
+                        {
+                            // Notify Seller - No bids
+                            await notificationService.NotifyUserAsync(auction.SellerId, 
+                                $"📉 Your auction for '{auction.Title}' has ended with no bids.", 
                                 $"/Auctions/Details/{auction.Id}");
                         }
                     }
-                    else
-                    {
-                        // Notify Seller - No bids
-                        await notificationService.NotifyUserAsync(auction.SellerId, 
-                            $"📉 Your auction for '{auction.Title}' has ended with no bids.", 
-                            $"/Auctions/Details/{auction.Id}");
-                    }
-                }
 
-                await context.SaveChangesAsync();
+                    await context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    _logger.LogError(ex, "Error occurred while closing expired auctions.");
+                }
             }
         }
     }
