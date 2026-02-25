@@ -84,8 +84,31 @@
                             <a asp-action="UserAuctions" asp-route-username="@Model.Seller" class="text-decoration-none fw-bold text-dark hover-primary">
                                 @Model.Seller
                             </a>
+                            <div class="small text-warning">
+                                @for (int i = 1; i <= 5; i++)
+                                {
+                                    if (i <= Math.Round(Model.SellerRating))
+                                    {
+                                        <i class="bi bi-star-fill"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-star"></i>
+                                    }
+                                }
+                                <span class="text-muted ms-1">(@Model.SellerReviewCount)</span>
+                            </div>
                         </div>
                         
+                        @if (User.Identity?.IsAuthenticated == true && Model.SellerId != User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
+                        {
+                            <div class="ms-auto">
+                                <a asp-action="PrivateChat" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                                    <i class="bi bi-chat-dots-fill me-1"></i> Contact Seller
+                                </a>
+                            </div>
+                        }
+
                         @if (User.Identity?.IsAuthenticated == true && Model.SellerId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
                         {
                             <div class="ms-auto d-flex gap-2">

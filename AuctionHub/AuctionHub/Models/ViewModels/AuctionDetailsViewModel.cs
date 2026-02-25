@@ -24,11 +24,11 @@ public class AuctionDetailsViewModel
 
     public string Category { get; set; } = null!;
 
-    public string Seller { get; set; } = null!;
-
-    public string SellerId { get; set; } = null!;
-
-    public bool IsActive { get; set; }
+        public string Seller { get; set; } = null!;
+        public string SellerId { get; set; } = null!;
+        public double SellerRating { get; set; }
+        public int SellerReviewCount { get; set; }
+        public bool IsActive { get; set; }
 
     public bool IsSuspended { get; set; }
 

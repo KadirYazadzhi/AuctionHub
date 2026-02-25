@@ -30,10 +30,7 @@ public class AuctionService : IAuctionService
         string? currentUserId = null)
     {
         // Get Admin IDs to exclude their test auctions from public view
-        var adminRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Administrator");
-        var adminIds = adminRole != null 
-            ? await _context.UserRoles.Where(ur => ur.RoleId == adminRole.Id).Select(ur => ur.UserId).ToListAsync() 
-            : new List<string>();
+        var adminIds = await GetAdminIdsAsync();
 
         var query = _context.Auctions
             .Include(a => a.Category)
@@ -152,10 +149,7 @@ public class AuctionService : IAuctionService
     {
         var myBids = _context.Bids.Where(b => b.BidderId == userId);
         
-        var adminRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Administrator");
-        var adminIds = adminRole != null 
-            ? await _context.UserRoles.Where(ur => ur.RoleId == adminRole.Id).Select(ur => ur.UserId).ToListAsync() 
-            : new List<string>();
+        var adminIds = await GetAdminIdsAsync();
 
         var query = _context.Auctions
             .Include(a => a.Category)
@@ -253,10 +247,7 @@ public class AuctionService : IAuctionService
         decimal? maxPrice, 
         string? status)
     {
-        var adminRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Administrator");
-        var adminIds = adminRole != null 
-            ? await _context.UserRoles.Where(ur => ur.RoleId == adminRole.Id).Select(ur => ur.UserId).ToListAsync() 
-            : new List<string>();
+        var adminIds = await GetAdminIdsAsync();
 
         var query = _context.Watchlist
             .Where(w => w.UserId == userId)
@@ -289,6 +280,14 @@ public class AuctionService : IAuctionService
         });
 
         return await PaginatedList<AuctionDto>.CreateAsync(projectedQuery, pageNumber, pageSize);
+    }
+
+    private async Task<List<string>> GetAdminIdsAsync()
+    {
+        var adminRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Administrator");
+        return adminRole != null 
+            ? await _context.UserRoles.Where(ur => ur.RoleId == adminRole.Id).Select(ur => ur.UserId).ToListAsync() 
+            : new List<string>();
     }
 
     public async Task<AuctionDetailsDto?> GetAuctionDetailsAsync(int id, string? currentUserId = null)

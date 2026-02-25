@@ -100,6 +100,8 @@ public class AuctionsController : Controller
             Category = auction.Category,
             Seller = auction.Seller,
             SellerId = auction.SellerId,
+            SellerRating = auction.SellerRating,
+            SellerReviewCount = auction.SellerReviewCount,
             IsActive = auction.IsActive,
             IsSuspended = auction.IsSuspended,
             IsWatched = auction.IsWatched,
