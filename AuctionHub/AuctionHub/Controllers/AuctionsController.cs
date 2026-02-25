@@ -103,6 +103,7 @@ public class AuctionsController : Controller
             SellerRating = auction.SellerRating,
             SellerReviewCount = auction.SellerReviewCount,
             IsActive = auction.IsActive,
+            IsDelivered = auction.IsDelivered,
             IsSuspended = auction.IsSuspended,
             IsWatched = auction.IsWatched,
             IsWinning = auction.IsWinning,
@@ -175,6 +176,26 @@ public class AuctionsController : Controller
         ViewBag.CurrentUserId = currentUserId;
 
         return View(messages);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> ConfirmDelivery(int auctionId)
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (currentUserId == null) return Challenge();
+
+        var result = await _auctionService.ConfirmDeliveryAsync(auctionId, currentUserId);
+
+        if (result.Success)
+        {
+            TempData["Success"] = result.Message;
+        }
+        else
+        {
+            TempData["Error"] = result.Message;
+        }
+
+        return RedirectToAction(nameof(Details), new { id = auctionId });
     }
 
     [HttpPost]

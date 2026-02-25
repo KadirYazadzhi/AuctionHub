@@ -28,9 +28,9 @@ public class AuctionDetailsViewModel
         public string SellerId { get; set; } = null!;
         public double SellerRating { get; set; }
         public int SellerReviewCount { get; set; }
-        public bool IsActive { get; set; }
-
-    public bool IsSuspended { get; set; }
+            public bool IsActive { get; set; }
+            public bool IsDelivered { get; set; }
+            public bool IsSuspended { get; set; }
 
     public bool IsWatched { get; set; } // Added
 

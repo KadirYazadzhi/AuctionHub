@@ -60,21 +60,21 @@ public class AuctionCleanupService : BackgroundService
 
                         if (winningBid != null)
                         {
-                            // 1. Credit Seller
-                            auction.Seller.WalletBalance += winningBid.Amount;
+                            // 1. Log Escrow (Funds are held)
+                            // We don't credit the seller's WalletBalance yet.
                             context.Transactions.Add(new Transaction
                             {
                                 UserId = auction.SellerId,
                                 Amount = winningBid.Amount,
-                                Description = $"Sale of item '{auction.Title}' (Auction Winner: {winningBid.Bidder.DisplayName})",
-                                TransactionType = "Sale",
+                                Description = $"Escrow: Payment for '{auction.Title}' held until delivery confirmation (Auction ID: {auction.Id}).",
+                                TransactionType = "Escrow",
                                 TransactionDate = DateTime.UtcNow
                             });
 
                             // 2. Notify Winner
                             await notificationService.NotifyUserAsync(winningBid.BidderId, 
-                                $"🎉 Congratulations! You won the auction for '{auction.Title}' with a bid of {winningBid.Amount:C}! Please leave a review for the seller.", 
-                                $"/Reviews/LeaveReview?auctionId={auction.Id}");
+                                $"🎉 Congratulations! You won the auction for '{auction.Title}' with a bid of {winningBid.Amount:C}! Please confirm receipt in the auction details to release funds to the seller.", 
+                                $"/Auctions/Details/{auction.Id}");
 
                             // 3. Notify Seller
                             await notificationService.NotifyUserAsync(auction.SellerId, 

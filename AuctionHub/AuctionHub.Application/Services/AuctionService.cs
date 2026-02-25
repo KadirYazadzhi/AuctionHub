@@ -282,6 +282,65 @@ public class AuctionService : IAuctionService
         return await PaginatedList<AuctionDto>.CreateAsync(projectedQuery, pageNumber, pageSize);
     }
 
+    public async Task<(bool Success, string Message)> ConfirmDeliveryAsync(int auctionId, string userId)
+    {
+        using var dbTransaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            var auction = await _context.Auctions
+                .Include(a => a.Seller)
+                .Include(a => a.Bids)
+                .FirstOrDefaultAsync(a => a.Id == auctionId);
+
+            if (auction == null) return (false, "Auction not found.");
+            if (auction.IsActive && auction.EndTime > DateTime.UtcNow) return (false, "Auction is still active.");
+
+            var winningBid = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault();
+            if (winningBid == null || winningBid.BidderId != userId)
+            {
+                return (false, "Only the auction winner can confirm delivery.");
+            }
+
+            // Check if already confirmed (if a 'Sale' transaction already exists for this auction)
+            var alreadyConfirmed = await _context.Transactions
+                .AnyAsync(t => t.UserId == auction.SellerId && 
+                               t.TransactionType == "Sale" && 
+                               t.Description.Contains($"(Auction ID: {auctionId})"));
+
+            if (alreadyConfirmed)
+            {
+                return (false, "Delivery has already been confirmed for this auction.");
+            }
+
+            // Release Funds to Seller
+            decimal price = winningBid.Amount;
+            auction.Seller.WalletBalance += price;
+
+            _context.Transactions.Add(new Transaction
+            {
+                UserId = auction.SellerId,
+                Amount = price,
+                Description = $"Sale of item '{auction.Title}' - Escrow released (Auction ID: {auctionId})",
+                TransactionType = "Sale",
+                TransactionDate = DateTime.UtcNow
+            });
+
+            await _context.SaveChangesAsync();
+            await dbTransaction.CommitAsync();
+
+            await _notificationService.NotifyUserAsync(auction.SellerId, 
+                $"💰 Payment for '{auction.Title}' has been released to your wallet! The buyer confirmed delivery.", 
+                $"/Auctions/Details/{auctionId}");
+
+            return (true, "Delivery confirmed! Funds have been released to the seller.");
+        }
+        catch (Exception)
+        {
+            await dbTransaction.RollbackAsync();
+            return (false, "An error occurred while confirming delivery.");
+        }
+    }
+
     private async Task<List<string>> GetAdminIdsAsync()
     {
         var adminRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Administrator");
@@ -337,6 +396,7 @@ public class AuctionService : IAuctionService
             SellerRating = sellerRating,
             SellerReviewCount = reviewCount,
             IsActive = auction.IsActive && auction.EndTime > DateTime.UtcNow,
+            IsDelivered = await _context.Transactions.AnyAsync(t => t.UserId == auction.SellerId && t.TransactionType == "Sale" && t.Description.Contains($"(Auction ID: {id})")),
             IsSuspended = auction.IsSuspended,
             IsWatched = isWatched,
             IsWinning = currentUserId != null && auction.Bids.Any() && auction.Bids.OrderByDescending(b => b.Amount).First().BidderId == currentUserId,
@@ -849,14 +909,13 @@ public class AuctionService : IAuctionService
                 TransactionDate = DateTime.UtcNow
             });
 
-            // 2. Credit Seller
-            auction.Seller.WalletBalance += price;
+            // 2. Log Escrow (Funds are held)
             _context.Transactions.Add(new Transaction
             {
                 UserId = auction.SellerId,
                 Amount = price,
-                Description = $"Sale of item '{auction.Title}' (Buy It Now)",
-                TransactionType = "Sale",
+                Description = $"Escrow: Payment for '{auction.Title}' (Buy It Now) held until delivery confirmation (Auction ID: {auctionId}).",
+                TransactionType = "Escrow",
                 TransactionDate = DateTime.UtcNow
             });
 

@@ -270,7 +270,23 @@
                                 }
                                 @if (canAccessChat)
                                 {
-                                    <div class="mt-4">
+                                    <div class="mt-4 d-flex flex-column gap-2">
+                                        @if (Model.IsWinning && !Model.IsDelivered)
+                                        {
+                                            <form asp-action="ConfirmDelivery" method="post">
+                                                <input type="hidden" name="auctionId" value="@Model.Id" />
+                                                <button type="submit" class="btn btn-success rounded-pill px-4 py-2 shadow-sm fw-bold w-100" onclick="return confirm('Confirm you received the item? This will release funds to the seller.');">
+                                                    <i class="bi bi-box-seam-fill me-2"></i> Confirm Delivery
+                                                </button>
+                                            </form>
+                                        }
+                                        else if (Model.IsDelivered)
+                                        {
+                                            <div class="badge bg-success-subtle text-success rounded-pill p-3 mb-2">
+                                                <i class="bi bi-check-all me-2"></i> Transaction Completed & Delivered
+                                            </div>
+                                        }
+                                        
                                         <a asp-action="PrivateChat" asp-route-id="@Model.Id" class="btn btn-primary rounded-pill px-4 py-2 shadow-sm fw-bold hover-lift">
                                             <i class="bi bi-chat-lock-fill me-2"></i> Open Secure Chat
                                         </a>

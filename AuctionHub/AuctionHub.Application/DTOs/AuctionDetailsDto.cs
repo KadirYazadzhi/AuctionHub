@@ -18,6 +18,7 @@ public class AuctionDetailsDto
     public double SellerRating { get; set; }
     public int SellerReviewCount { get; set; }
     public bool IsActive { get; set; }
+    public bool IsDelivered { get; set; }
     public bool IsSuspended { get; set; }
     public bool IsWatched { get; set; }
     public bool IsWinning { get; set; }
