@@ -180,7 +180,7 @@
     <div class="mt-5 pt-5 animate-fade-up">
         <h3 class="fw-bold mb-4">Recent Feedback</h3>
         @{
-            var reviews = ViewData["TargetUserReviews"] as IEnumerable<AuctionHub.Application.Interfaces.ReviewDto>;
+            var reviews = ViewData["TargetUserReviews"] as IEnumerable<AuctionHub.Application.DTOs.ReviewDto>;
         }
 
         @if (reviews == null || !reviews.Any())
