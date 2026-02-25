@@ -302,6 +302,11 @@ public class AuctionService : IAuctionService
 
         if (auction == null) return null;
 
+        // Fetch seller rating statistics
+        var reviews = await _context.Reviews.Where(r => r.TargetUserId == auction.SellerId).ToListAsync();
+        double sellerRating = reviews.Any() ? reviews.Average(r => r.Rating) : 0;
+        int reviewCount = reviews.Count;
+
         bool isWatched = false;
         decimal? currentAutoBidLimit = null;
 
@@ -330,6 +335,8 @@ public class AuctionService : IAuctionService
             CategoryId = auction.CategoryId,
             Seller = auction.Seller.DisplayName,
             SellerId = auction.SellerId,
+            SellerRating = sellerRating,
+            SellerReviewCount = reviewCount,
             IsActive = auction.IsActive && auction.EndTime > DateTime.UtcNow,
             IsSuspended = auction.IsSuspended,
             IsWatched = isWatched,

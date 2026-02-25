@@ -73,8 +73,8 @@ public class AuctionCleanupService : BackgroundService
 
                             // 2. Notify Winner
                             await notificationService.NotifyUserAsync(winningBid.BidderId, 
-                                $"🎉 Congratulations! You won the auction for '{auction.Title}' with a bid of {winningBid.Amount:C}!", 
-                                $"/Auctions/Details/{auction.Id}");
+                                $"🎉 Congratulations! You won the auction for '{auction.Title}' with a bid of {winningBid.Amount:C}! Please leave a review for the seller.", 
+                                $"/Reviews/LeaveReview?auctionId={auction.Id}");
 
                             // 3. Notify Seller
                             await notificationService.NotifyUserAsync(auction.SellerId, 
