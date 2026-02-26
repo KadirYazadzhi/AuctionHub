@@ -14,6 +14,7 @@ public class AuctionListViewModel
     public bool IsSuspended { get; set; }
     
     public string SellerName { get; set; } = null!;
+    public string SellerId { get; set; } = null!;
     public bool IsTopSeller { get; set; }
     
     // Nullable because it's only relevant for logged-in users in specific contexts

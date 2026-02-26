@@ -49,8 +49,6 @@ public class AuctionsController : Controller
         ViewData["Status"] = status;
         
         int pageSize = 9;
-        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
         var paginatedDto = await _auctionService.GetAuctionsAsync(
             searchTerm, categoryId, sortOrder, pageNumber ?? 1, pageSize, minPrice, maxPrice, status, currentUserId);
 
@@ -64,8 +62,12 @@ public class AuctionsController : Controller
             Category = a.Category,
             CategoryId = a.CategoryId,
             IsActive = a.IsActive,
+            IsPromoted = a.IsPromoted,
             IsSuspended = a.IsSuspended,
-            IsWinning = a.IsWinning
+            IsWinning = a.IsWinning,
+            SellerName = a.SellerName,
+            SellerId = a.SellerId,
+            IsTopSeller = a.IsTopSeller
         }).ToList();
 
         var paginatedViewModel = new PaginatedList<AuctionListViewModel>(
@@ -315,8 +317,10 @@ public class AuctionsController : Controller
             Category = a.Category,
             CategoryId = a.CategoryId,
             IsActive = a.IsActive,
+            IsPromoted = a.IsPromoted,
             IsSuspended = a.IsSuspended,
             SellerName = a.SellerName,
+            SellerId = a.SellerId,
             IsTopSeller = a.IsTopSeller,
             IsWinning = a.IsWinning
         }).ToList();
@@ -414,8 +418,10 @@ public class AuctionsController : Controller
             Category = a.Category,
             CategoryId = a.CategoryId,
             IsActive = a.IsActive,
+            IsPromoted = a.IsPromoted,
             IsSuspended = a.IsSuspended,
             SellerName = a.SellerName,
+            SellerId = a.SellerId,
             IsTopSeller = a.IsTopSeller,
             IsWinning = a.IsWinning
         }).ToList();
@@ -651,8 +657,10 @@ public class AuctionsController : Controller
             Category = a.Category,
             CategoryId = a.CategoryId,
             IsActive = a.IsActive,
+            IsPromoted = a.IsPromoted,
             IsSuspended = a.IsSuspended,
             SellerName = a.SellerName,
+            SellerId = a.SellerId,
             IsTopSeller = a.IsTopSeller,
             IsWinning = a.IsWinning
         }).ToList();
