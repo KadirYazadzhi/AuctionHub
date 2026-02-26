@@ -4,6 +4,7 @@ using AuctionHub.Infrastructure.Data;
 using AuctionHub.Domain.Models;
 using AuctionHub.Application.Interfaces;
 using AuctionHub.Application.Services;
+using AuctionHub.Infrastructure.Services;
 using System.Globalization;
 using AuctionHub.Hubs;
 using AuctionHub.Services;
@@ -33,6 +34,7 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IBiddingNotificationService, SignalRBiddingNotificationService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
+builder.Services.AddScoped<IPhotoService, PhotoService>();
 builder.Services.AddHostedService<AuctionCleanupService>();
 
 // Redis Configuration (Standard for K8s deployments)
