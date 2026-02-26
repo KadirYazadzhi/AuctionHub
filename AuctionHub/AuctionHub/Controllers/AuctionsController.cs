@@ -49,6 +49,8 @@ public class AuctionsController : Controller
         ViewData["Status"] = status;
         
         int pageSize = 9;
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
         var paginatedDto = await _auctionService.GetAuctionsAsync(
             searchTerm, categoryId, sortOrder, pageNumber ?? 1, pageSize, minPrice, maxPrice, status, currentUserId);
 

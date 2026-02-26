@@ -106,6 +106,7 @@ public class AuctionService : IAuctionService
                 IsActive = a.IsActive,
                 IsPromoted = a.IsPromoted,
                 IsSuspended = a.IsSuspended,
+                SellerId = a.SellerId,
                 SellerName = a.Seller.UserName ?? a.Seller.Email ?? "Unknown",
                 IsTopSeller = a.Seller.ReceivedReviews.Count >= 5 && (a.Seller.ReceivedReviews.Any() ? a.Seller.ReceivedReviews.Average(r => r.Rating) : 0) >= 4.8,
                 IsWinning = currentUserId != null && a.Bids.Any() && a.Bids.OrderByDescending(b => b.Amount).First().BidderId == currentUserId
@@ -155,6 +156,7 @@ public class AuctionService : IAuctionService
             IsActive = a.IsActive,
             IsPromoted = a.IsPromoted,
             IsSuspended = a.IsSuspended,
+            SellerId = a.SellerId,
             SellerName = a.Seller.UserName ?? a.Seller.Email ?? "Unknown",
             IsTopSeller = a.Seller.ReceivedReviews.Count >= 5 && (a.Seller.ReceivedReviews.Any() ? a.Seller.ReceivedReviews.Average(r => r.Rating) : 0) >= 4.8,
             IsWinning = a.Bids.Any() && a.Bids.OrderByDescending(b => b.Amount).First().BidderId == userId
@@ -206,6 +208,7 @@ public class AuctionService : IAuctionService
             IsActive = a.IsActive,
             IsPromoted = a.IsPromoted,
             IsSuspended = a.IsSuspended,
+            SellerId = a.SellerId,
             SellerName = a.Seller.UserName ?? a.Seller.Email ?? "Unknown",
             IsTopSeller = a.Seller.ReceivedReviews.Count >= 5 && (a.Seller.ReceivedReviews.Any() ? a.Seller.ReceivedReviews.Average(r => r.Rating) : 0) >= 4.8,
             IsWinning = a.Bids.Any() && a.Bids.OrderByDescending(b => b.Amount).First().BidderId == userId
@@ -256,6 +259,7 @@ public class AuctionService : IAuctionService
             IsActive = a.IsActive,
             IsPromoted = a.IsPromoted,
             IsSuspended = a.IsSuspended,
+            SellerId = a.SellerId,
             SellerName = a.Seller.UserName ?? a.Seller.Email ?? "Unknown",
             IsTopSeller = a.Seller.ReceivedReviews.Count >= 5 && (a.Seller.ReceivedReviews.Any() ? a.Seller.ReceivedReviews.Average(r => r.Rating) : 0) >= 4.8,
             IsWinning = false // Not relevant in this view usually
@@ -311,6 +315,7 @@ public class AuctionService : IAuctionService
             IsActive = a.IsActive,
             IsPromoted = a.IsPromoted,
             IsSuspended = a.IsSuspended,
+            SellerId = a.SellerId,
             SellerName = a.Seller.UserName ?? a.Seller.Email ?? "Unknown",
             IsTopSeller = a.Seller.ReceivedReviews.Count >= 5 && (a.Seller.ReceivedReviews.Any() ? a.Seller.ReceivedReviews.Average(r => r.Rating) : 0) >= 4.8,
             IsWinning = a.Bids.Any() && a.Bids.OrderByDescending(b => b.Amount).First().BidderId == userId
@@ -353,6 +358,7 @@ public class AuctionService : IAuctionService
                 IsActive = a.IsActive,
                 IsPromoted = a.IsPromoted,
                 IsSuspended = a.IsSuspended,
+                SellerId = a.SellerId,
                 SellerName = a.Seller.UserName ?? a.Seller.Email ?? "Unknown",
                 IsTopSeller = a.Seller.ReceivedReviews.Count >= 5 && (a.Seller.ReceivedReviews.Any() ? a.Seller.ReceivedReviews.Average(r => r.Rating) : 0) >= 4.8,
                 IsWinning = currentUserId != null && a.Bids.Any() && a.Bids.OrderByDescending(b => b.Amount).First().BidderId == currentUserId

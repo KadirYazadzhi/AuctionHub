@@ -12,6 +12,7 @@ public class AuctionDto
     public bool IsActive { get; set; }
     public bool IsPromoted { get; set; }
     public bool IsSuspended { get; set; }
+    public string SellerId { get; set; } = null!;
     public string SellerName { get; set; } = null!;
     public bool IsTopSeller { get; set; }
     public bool? IsWinning { get; set; }
