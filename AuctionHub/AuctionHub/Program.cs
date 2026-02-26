@@ -36,9 +36,11 @@ builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddHostedService<AuctionCleanupService>();
 
 // Redis Configuration (Standard for K8s deployments)
-var redisConnectionString = builder.Configuration.GetConnectionString("Redis") 
+var redisUrl = builder.Configuration.GetConnectionString("Redis") 
     ?? Environment.GetEnvironmentVariable("REDIS_URL") 
     ?? "localhost:6379";
+
+var redisConnectionString = $"{redisUrl},abortConnect=false";
 
 builder.Services.AddSignalR().AddStackExchangeRedis(redisConnectionString, options => {
     options.Configuration.ChannelPrefix = StackExchange.Redis.RedisChannel.Literal("AuctionHub_SignalR");

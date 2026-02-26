@@ -4,6 +4,7 @@ using AuctionHub.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AuctionHub.Infrastructure.Migrations
 {
     [DbContext(typeof(AuctionHubDbContext))]
-    partial class AuctionHubDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260225163548_AddReputationSystem")]
+    partial class AddReputationSystem
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -26,10 +29,6 @@ namespace AuctionHub.Infrastructure.Migrations
                 {
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("AboutMe")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
 
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
@@ -143,9 +142,6 @@ namespace AuctionHub.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsPromoted")
                         .HasColumnType("bit");
 
                     b.Property<bool>("IsSuspended")

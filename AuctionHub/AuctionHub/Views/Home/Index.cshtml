@@ -52,42 +52,6 @@
     </div>
 </section>
 
-<!-- Ending Soon Section -->
-@if (ViewBag.EndingSoon != null && ((IEnumerable<AuctionHub.Application.DTOs.AuctionDto>)ViewBag.EndingSoon).Any())
-{
-    <section class="py-5">
-        <div class="container">
-            <div class="d-flex justify-content-between align-items-center mb-4 animate-fade-up">
-                <div>
-                    <span class="badge bg-danger-subtle text-danger mb-2 px-3 py-1 rounded-pill fw-bold">Don't Miss Out</span>
-                    <h2 class="fw-bold m-0 h1">Ending <span class="text-primary">Soon</span></h2>
-                </div>
-                <a asp-controller="Auctions" asp-action="Index" asp-route-status="active" class="btn btn-outline-primary rounded-pill px-4">
-                    View All <i class="bi bi-arrow-right ms-1"></i>
-                </a>
-            </div>
-            
-            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4 animate-fade-up delay-100">
-                @foreach (var auction in (IEnumerable<AuctionHub.Application.DTOs.AuctionDto>)ViewBag.EndingSoon)
-                {
-                    <div class="col">
-                        <partial name="_AuctionCardPartial" model="new AuctionHub.Models.ViewModels.AuctionListViewModel { 
-                            Id = auction.Id, 
-                            Title = auction.Title, 
-                            ImageUrl = auction.ImageUrl, 
-                            CurrentPrice = auction.CurrentPrice, 
-                            EndTime = auction.EndTime, 
-                            Category = auction.Category,
-                            SellerName = auction.SellerName,
-                            IsTopSeller = auction.IsTopSeller
-                        }" />
-                    </div>
-                }
-            </div>
-        </div>
-    </section>
-}
-
 <!-- Stats Section -->
 <section class="py-6">
     <div class="container py-4">
@@ -122,6 +86,43 @@
         </div>
     </div>
 </section>
+
+<!-- Ending Soon Section -->
+@if (ViewBag.EndingSoon != null && ((IEnumerable<AuctionHub.Application.DTOs.AuctionDto>)ViewBag.EndingSoon).Any())
+{
+    <section class="py-5">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center mb-4 animate-fade-up">
+                <div>
+                    <span class="badge bg-danger-subtle text-danger mb-2 px-3 py-1 rounded-pill fw-bold">Don't Miss Out</span>
+                    <h2 class="fw-bold m-0 h1">Ending <span class="text-primary">Soon</span></h2>
+                </div>
+                <a asp-controller="Auctions" asp-action="Index" asp-route-status="active" class="btn btn-outline-primary rounded-pill px-4">
+                    View All <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4 animate-fade-up delay-100">
+                @foreach (var auction in (IEnumerable<AuctionHub.Application.DTOs.AuctionDto>)ViewBag.EndingSoon)
+                {
+                    <div class="col">
+                        <partial name="_AuctionCardPartial" model="new AuctionHub.Models.ViewModels.AuctionListViewModel { 
+                            Id = auction.Id, 
+                            Title = auction.Title, 
+                            ImageUrl = auction.ImageUrl, 
+                            CurrentPrice = auction.CurrentPrice, 
+                            EndTime = auction.EndTime, 
+                            Category = auction.Category,
+                            SellerName = auction.SellerName,
+                            IsTopSeller = auction.IsTopSeller,
+                            IsWinning = auction.IsWinning
+                        }" />
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+}
 
 <!-- About Us Preview Section -->
 <section class="py-6 my-5">

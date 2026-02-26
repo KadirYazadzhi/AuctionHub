@@ -32,7 +32,8 @@ public class HomeController : Controller
 
     public async Task<IActionResult> Index()
     {
-        ViewBag.EndingSoon = await _auctionService.GetEndingSoonAuctionsAsync(4);
+        var currentUserId = _userManager.GetUserId(User);
+        ViewBag.EndingSoon = await _auctionService.GetEndingSoonAuctionsAsync(4, currentUserId);
         var globalMessages = await _chatService.GetGlobalMessagesAsync(50);
         return View(globalMessages);
     }
