@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using AuctionHub.Infrastructure.Data;
+using AuctionHub.Infrastructure.ModelBinders;
 using AuctionHub.Domain.Models;
 using AuctionHub.Application.Interfaces;
 using AuctionHub.Application.Services;
@@ -64,7 +65,11 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options => {
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<AuctionHubDbContext>();
 
-builder.Services.AddControllersWithViews();
+using AuctionHub.Infrastructure.ModelBinders;
+
+builder.Services.AddControllersWithViews(options => {
+    options.ModelBinderProviders.Insert(0, new DecimalModelBinderProvider());
+});
 builder.Services.AddRazorPages();
 
 var app = builder.Build();
