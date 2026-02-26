@@ -122,7 +122,7 @@ public class AuctionsController : Controller
         // Check if user can leave a review
         if (currentUserId != null)
         {
-            ViewBag.CanLeaveReview = await _reviewService.CanLeaveReviewAsync(id, currentUserId);
+            ViewBag.CanLeaveReview = await _reviewService.CanReviewAsync(id, currentUserId);
         }
 
         return View(model);
@@ -134,15 +134,23 @@ public class AuctionsController : Controller
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (currentUserId == null) return Challenge();
 
-        var result = await _reviewService.LeaveReviewAsync(auctionId, currentUserId, rating, comment);
-
-        if (result.Success)
+        var reviewDto = new ReviewDto
         {
-            TempData["Success"] = result.Message;
+            AuctionId = auctionId,
+            ReviewerId = currentUserId,
+            Rating = rating,
+            Comment = comment
+        };
+
+        var success = await _reviewService.AddReviewAsync(reviewDto);
+
+        if (success)
+        {
+            TempData["Success"] = "Thank you for your feedback!";
         }
         else
         {
-            TempData["Error"] = result.Message;
+            TempData["Error"] = "Could not submit review. Please ensure you are the winner and the auction is closed.";
         }
 
         return RedirectToAction(nameof(Details), new { id = auctionId });
