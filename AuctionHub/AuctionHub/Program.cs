@@ -65,8 +65,6 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options => {
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<AuctionHubDbContext>();
 
-using AuctionHub.Infrastructure.ModelBinders;
-
 builder.Services.AddControllersWithViews(options => {
     options.ModelBinderProviders.Insert(0, new DecimalModelBinderProvider());
 });
