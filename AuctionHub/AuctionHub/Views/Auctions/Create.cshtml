@@ -1,306 +1,359 @@
 @model AuctionHub.Models.ViewModels.AuctionFormModel
 @{
-    ViewData["Title"] = "Create Auction";
+    ViewData["Title"] = "List Your Item";
 }
 
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-10">
-            <div class="card border-0 shadow-lg rounded-5 overflow-hidden animate-fade-up">
-                <div class="card-header bg-primary bg-gradient text-white p-4 p-lg-5">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div>
-                            <h1 class="fw-bold mb-2">List New Item</h1>
-                            <p class="mb-0 opacity-75">Reach thousands of bidders in seconds.</p>
-                        </div>
-                        <i class="bi bi-plus-circle display-4 opacity-50"></i>
+<div class="container-fluid py-5 bg-light min-vh-100">
+    <div class="container">
+        <div class="row g-5">
+            <!-- Left Side: The Wizard Form -->
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-lg rounded-5 overflow-hidden animate-fade-up">
+                    <!-- Progress Bar -->
+                    <div class="progress rounded-0" style="height: 6px;">
+                        <div id="formProgress" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 33%"></div>
                     </div>
-                </div>
-                
-                <div class="card-body p-4 p-lg-5">
-                    <form asp-action="Create" method="post" enctype="multipart/form-data" id="auctionForm">
-                        <div asp-validation-summary="ModelOnly" class="text-danger mb-4"></div>
-                        <input type="hidden" id="AdditionalImageUrlsJson" name="AdditionalImageUrlsJson" />
 
-                        <div class="row g-4">
-                            <!-- Left Column: Basic Info -->
-                            <div class="col-lg-7">
-                                <h5 class="fw-bold mb-4 text-primary border-bottom pb-2">1. Item Details</h5>
-                                
+                    <div class="card-body p-4 p-lg-5">
+                        <form asp-action="Create" method="post" enctype="multipart/form-data" id="auctionForm">
+                            <div asp-validation-summary="ModelOnly" class="text-danger mb-4"></div>
+                            <input type="hidden" id="AdditionalImageUrlsJson" name="AdditionalImageUrlsJson" />
+
+                            <!-- Step 1: Basic Information -->
+                            <div class="form-step" id="step1">
+                                <div class="d-flex align-items-center mb-4">
+                                    <div class="step-num bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold me-3">1</div>
+                                    <h3 class="fw-bold mb-0">What are you selling?</h3>
+                                </div>
+
                                 <div class="mb-4">
-                                    <label asp-for="Title" class="form-label small fw-bold text-muted text-uppercase">Listing Title</label>
-                                    <input asp-for="Title" class="form-control form-control-lg border-0 bg-light rounded-4 px-4" placeholder="e.g. Vintage 1970s Camera" />
+                                    <label asp-for="Title" class="form-label fw-bold text-dark">Title <span class="text-danger">*</span></label>
+                                    <input asp-for="Title" id="inputTitle" class="form-control form-control-lg rounded-4 border-2 border-light bg-light focus-ring" placeholder="Describe your item in a few words..." />
+                                    <div class="form-text text-muted">A clear title helps buyers find your listing faster.</div>
                                     <span asp-validation-for="Title" class="text-danger"></span>
                                 </div>
 
                                 <div class="mb-4">
-                                    <label asp-for="Description" class="form-label small fw-bold text-muted text-uppercase">Description</label>
-                                    <textarea asp-for="Description" class="form-control border-0 bg-light rounded-4 px-4 py-3" rows="8" placeholder="Tell the story of your item..."></textarea>
+                                    <label asp-for="CategoryId" class="form-label fw-bold text-dark">Category <span class="text-danger">*</span></label>
+                                    <select asp-for="CategoryId" id="inputCategory" class="form-select form-select-lg rounded-4 border-2 border-light bg-light focus-ring" asp-items="Model.Categories">
+                                        <option value="">Choose a category...</option>
+                                    </select>
+                                    <span asp-validation-for="CategoryId" class="text-danger"></span>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label asp-for="Description" class="form-label fw-bold text-dark">Description <span class="text-danger">*</span></label>
+                                    <textarea asp-for="Description" id="inputDescription" class="form-control rounded-4 border-2 border-light bg-light focus-ring" rows="6" placeholder="Details about condition, history, or special features..."></textarea>
                                     <span asp-validation-for="Description" class="text-danger"></span>
                                 </div>
 
-                                <div class="row g-3 mb-4">
-                                    <div class="col-md-6">
-                                        <label asp-for="CategoryId" class="form-label small fw-bold text-muted text-uppercase">Category</label>
-                                        <select asp-for="CategoryId" class="form-select border-0 bg-light rounded-4 px-4 py-3" asp-items="Model.Categories">
-                                            <option value="">Select Category</option>
-                                        </select>
-                                        <span asp-validation-for="CategoryId" class="text-danger"></span>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label asp-for="EndTime" class="form-label small fw-bold text-muted text-uppercase">Ends On</label>
-                                        <input asp-for="EndTime" class="form-control border-0 bg-light rounded-4 px-4 py-3" type="datetime-local" />
-                                        <span asp-validation-for="EndTime" class="text-danger"></span>
-                                    </div>
+                                <div class="d-flex justify-content-end mt-5">
+                                    <button type="button" class="btn btn-primary btn-lg rounded-pill px-5 py-3 fw-bold shadow-sm next-step" data-next="2">
+                                        Next: Pricing & Time <i class="bi bi-arrow-right ms-2"></i>
+                                    </button>
                                 </div>
                             </div>
 
-                            <!-- Right Column: Media & Pricing -->
-                            <div class="col-lg-5">
-                                <h5 class="fw-bold mb-4 text-primary border-bottom pb-2">2. Visuals & Price</h5>
-                                
-                                <!-- Multi-Photo Upload Area -->
-                                <div class="mb-4">
-                                    <label class="form-label small fw-bold text-muted text-uppercase">Item Gallery</label>
-                                    <div class="image-upload-zone rounded-5 bg-light border-2 border-dashed d-flex flex-column align-items-center justify-content-center p-4 mb-3 transition-all" id="dropZone">
-                                        <i class="bi bi-images display-5 text-primary mb-2 opacity-50"></i>
-                                        <p class="small text-center mb-3">Drag photos here or click to upload</p>
-                                        <input type="file" id="fileInput" name="AdditionalImageFiles" multiple class="d-none" accept="image/*" />
-                                        <button type="button" class="btn btn-primary btn-sm rounded-pill px-4" onclick="document.getElementById('fileInput').click()">Select Files</button>
-                                    </div>
-
-                                    <!-- URL Input -->
-                                    <div class="input-group mb-3 shadow-sm rounded-pill overflow-hidden">
-                                        <input type="text" id="urlInput" class="form-control border-0 bg-light px-4" placeholder="Or paste image URL..." />
-                                        <button type="button" class="btn btn-secondary px-4 fw-bold" id="addUrlBtn"><i class="bi bi-link-45deg"></i></button>
-                                    </div>
-
-                                    <!-- Thumbnail Grid -->
-                                    <div class="row row-cols-4 g-2 mb-2" id="thumbnailGrid">
-                                        <!-- Thumbnails injected here by JS -->
-                                    </div>
-                                    <small class="text-muted"><i class="bi bi-info-circle me-1"></i> Tip: First image will be your main listing photo.</small>
+                            <!-- Step 2: Pricing and Time -->
+                            <div class="form-step d-none" id="step2">
+                                <div class="d-flex align-items-center mb-4">
+                                    <div class="step-num bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold me-3">2</div>
+                                    <h3 class="fw-bold mb-0">Set your price & duration</h3>
                                 </div>
 
-                                <div class="bg-white p-4 rounded-5 shadow-sm border border-light mb-4">
-                                    <div class="mb-3">
-                                        <label asp-for="StartPrice" class="form-label small fw-bold text-muted text-uppercase">Starting Price</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text bg-transparent border-0 pe-0 fw-bold">€</span>
-                                            <input asp-for="StartPrice" class="form-control border-0 fs-4 fw-bold p-0 ps-2" step="0.01" />
+                                <div class="row g-4 mb-4">
+                                    <div class="col-md-6">
+                                        <label asp-for="StartPrice" class="form-label fw-bold text-dark">Starting Price (€)</label>
+                                        <div class="input-group input-group-lg shadow-sm rounded-4 overflow-hidden">
+                                            <span class="input-group-text bg-white border-0 ps-4">€</span>
+                                            <input asp-for="StartPrice" id="inputPrice" class="form-control border-0 ps-2" placeholder="0.00" step="0.01" />
                                         </div>
                                         <span asp-validation-for="StartPrice" class="text-danger"></span>
                                     </div>
-
-                                    <div class="mb-3">
-                                        <label asp-for="MinIncrease" class="form-label small fw-bold text-muted text-uppercase">Min Bid Step</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text bg-transparent border-0 pe-0 fw-bold">€</span>
-                                            <input asp-for="MinIncrease" class="form-control border-0 fs-5 p-0 ps-2" step="0.01" />
+                                    <div class="col-md-6">
+                                        <label asp-for="MinIncrease" class="form-label fw-bold text-dark">Min Increase (€)</label>
+                                        <div class="input-group input-group-lg shadow-sm rounded-4 overflow-hidden">
+                                            <span class="input-group-text bg-white border-0 ps-4">€</span>
+                                            <input asp-for="MinIncrease" class="form-control border-0 ps-2" placeholder="0.10" step="0.01" />
                                         </div>
                                         <span asp-validation-for="MinIncrease" class="text-danger"></span>
                                     </div>
+                                </div>
 
-                                    <div class="mb-0">
-                                        <label asp-for="BuyItNowPrice" class="form-label small fw-bold text-muted text-uppercase">Buy It Now (Optional)</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text bg-transparent border-0 pe-0 fw-bold">€</span>
-                                            <input asp-for="BuyItNowPrice" class="form-control border-0 fs-5 p-0 ps-2" step="0.01" placeholder="Disabled" />
-                                        </div>
-                                        <span asp-validation-for="BuyItNowPrice" class="text-danger"></span>
+                                <div class="mb-4">
+                                    <label asp-for="BuyItNowPrice" class="form-label fw-bold text-dark">Buy It Now Price (Optional)</label>
+                                    <div class="input-group input-group-lg shadow-sm rounded-4 overflow-hidden">
+                                        <span class="input-group-text bg-white border-0 ps-4">€</span>
+                                        <input asp-for="BuyItNowPrice" class="form-control border-0 ps-2" placeholder="Leave empty to disable" step="0.01" />
+                                    </div>
+                                    <div class="form-text text-muted">Buyers can end the auction instantly by paying this price.</div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label asp-for="EndTime" class="form-label fw-bold text-dark">Auction End Date & Time</label>
+                                    <input asp-for="EndTime" id="inputEndTime" class="form-control form-control-lg rounded-4 border-2 border-light bg-light mb-3" type="datetime-local" />
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="setPresetTime(3)">3 Days</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="setPresetTime(7)">1 Week</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="setPresetTime(14)">2 Weeks</button>
+                                    </div>
+                                    <span asp-validation-for="EndTime" class="text-danger"></span>
+                                </div>
+
+                                <div class="d-flex justify-content-between mt-5">
+                                    <button type="button" class="btn btn-light btn-lg rounded-pill px-4 prev-step" data-prev="1">Back</button>
+                                    <button type="button" class="btn btn-primary btn-lg rounded-pill px-5 py-3 fw-bold shadow-sm next-step" data-next="3">
+                                        Next: Photos & Boost <i class="bi bi-arrow-right ms-2"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Step 3: Photos and Promotion -->
+                            <div class="form-step d-none" id="step3">
+                                <div class="d-flex align-items-center mb-4">
+                                    <div class="step-num bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold me-3">3</div>
+                                    <h3 class="fw-bold mb-0">Visuals & Visibility</h3>
+                                </div>
+
+                                <div class="image-upload-zone rounded-5 bg-light border-2 border-dashed d-flex flex-column align-items-center justify-content-center p-5 mb-4 transition-all" id="dropZone">
+                                    <i class="bi bi-cloud-arrow-up display-3 text-primary mb-3 opacity-50"></i>
+                                    <h5 class="fw-bold">Drag & Drop photos here</h5>
+                                    <p class="text-muted small">Supports JPG, PNG, WebP (Max 5MB per file)</p>
+                                    <input type="file" id="fileInput" name="AdditionalImageFiles" multiple class="d-none" accept="image/*" />
+                                    <button type="button" class="btn btn-primary rounded-pill px-4" onclick="document.getElementById('fileInput').click()">
+                                        <i class="bi bi-folder2-open me-2"></i>Browse Files
+                                    </button>
+                                </div>
+
+                                <div class="mb-4">
+                                    <div class="input-group shadow-sm rounded-pill overflow-hidden border">
+                                        <span class="input-group-text bg-white border-0 ps-4 text-primary"><i class="bi bi-link-45deg"></i></span>
+                                        <input type="text" id="urlInput" class="form-control border-0 px-2" placeholder="Add image by URL..." />
+                                        <button type="button" class="btn btn-primary px-4 fw-bold" id="addUrlBtn">Add</button>
                                     </div>
                                 </div>
 
-                                <!-- Promotion Card -->
-                                <div class="promotion-card card border-0 rounded-5 overflow-hidden mb-4 shadow-sm bg-warning bg-opacity-10">
-                                    <div class="card-body p-4 d-flex align-items-center">
-                                        <div class="form-check form-switch fs-4 mb-0">
+                                <div class="row row-cols-3 row-cols-md-5 g-2 mb-5" id="thumbnailGrid">
+                                    <!-- Thumbs here -->
+                                </div>
+
+                                <!-- Premium Promotion -->
+                                <div class="promotion-card card border-0 rounded-5 overflow-hidden mb-4 shadow-sm bg-warning bg-opacity-10 p-1">
+                                    <div class="card-body p-4 d-flex align-items-start">
+                                        <div class="form-check form-switch fs-3 mb-0 mt-1">
                                             <input class="form-check-input" type="checkbox" asp-for="ShouldPromote" role="switch" id="promoToggle">
                                         </div>
                                         <div class="ms-3">
-                                            <label class="form-check-label fw-bold d-block mb-0 cursor-pointer" for="promoToggle">🚀 Boost Listing</label>
-                                            <small class="text-muted">Stay at top of results for only 5.00€</small>
+                                            <h5 class="fw-bold mb-1">🚀 Boost My Listing (Recommended)</h5>
+                                            <p class="text-muted small mb-0">Feature your item at the top of search results and give it a premium golden highlight. Best for fast sales.</p>
+                                            <div class="mt-2 text-primary fw-bold fs-5">Cost: 5.00€</div>
                                         </div>
                                     </div>
                                 </div>
+
+                                <div class="d-flex justify-content-between mt-5">
+                                    <button type="button" class="btn btn-light btn-lg rounded-pill px-4 prev-step" data-prev="2">Back</button>
+                                    <button type="submit" class="btn btn-success btn-lg rounded-pill px-5 py-3 fw-bold shadow hover-lift" id="submitBtn">
+                                        Launch Auction <i class="bi bi-rocket-takeoff ms-2"></i>
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-
-                        <hr class="my-5 opacity-10">
-
-                        <div class="d-flex justify-content-between align-items-center">
-                            <a asp-action="Index" class="btn btn-link text-muted text-decoration-none fw-bold">
-                                <i class="bi bi-arrow-left me-2"></i> Back to Auctions
-                            </a>
-                            <button type="submit" class="btn btn-primary btn-lg rounded-pill px-5 py-3 fw-bold shadow hover-lift" id="submitBtn">
-                                Create Listing <i class="bi bi-check-circle-fill ms-2"></i>
-                            </button>
-                        </div>
-                    </form>
+                        </form>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
 
-<!-- Image Preview Modal -->
-<div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-xl">
-        <div class="modal-content bg-transparent border-0">
-            <div class="modal-body p-0 position-relative">
-                <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-4 shadow-none" data-bs-dismiss="modal" aria-label="Close" style="z-index: 10;"></button>
-                <img src="" id="previewFullImg" class="img-fluid rounded-4 shadow-lg w-100" style="max-height: 90vh; object-fit: contain;" />
+            <!-- Right Side: Live Preview Card -->
+            <div class="col-lg-4 d-none d-lg-block">
+                <div class="sticky-top" style="top: 100px;">
+                    <h5 class="fw-bold mb-4 text-muted text-uppercase small letter-spacing-1">Live Preview</h5>
+                    
+                    <div id="previewCardContainer" class="animate-pulse-slow">
+                        <div class="card h-100 border-0 shadow-lg rounded-4 overflow-hidden" id="previewCard">
+                            <div class="position-absolute top-0 start-0 m-3 z-1">
+                                <span class="badge bg-dark bg-opacity-75 backdrop-blur rounded-pill px-3 py-2 shadow-sm" id="previewCategory">Category</span>
+                            </div>
+                            
+                            <div id="previewPromoteBadge" class="position-absolute top-0 end-0 m-3 z-1 d-none">
+                                <span class="badge bg-warning text-dark shadow-sm rounded-pill px-3 py-2 fw-bold">PROMOTED</span>
+                            </div>
+
+                            <div class="ratio ratio-4x3 overflow-hidden bg-light d-flex align-items-center justify-content-center">
+                                <img id="previewImage" src="https://via.placeholder.com/400x300?text=No+Image" class="img-fluid object-fit-cover transition-transform" style="transition: transform 0.5s ease;" />
+                            </div>
+
+                            <div class="card-body p-4">
+                                <h5 class="card-title fw-bold mb-3 text-truncate" id="previewTitle">Auction Title</h5>
+                                
+                                <div class="d-flex justify-content-between align-items-end mb-4">
+                                    <div>
+                                        <p class="text-muted small mb-1">Starting Price</p>
+                                        <h3 class="text-primary fw-bold mb-0" id="previewPrice">0.00€</h3>
+                                    </div>
+                                    <div class="text-end">
+                                        <p class="text-muted small mb-1">Time Remaining</p>
+                                        <span class="text-danger fw-bold small" id="previewTime">7 days</span>
+                                    </div>
+                                </div>
+
+                                <div class="d-grid">
+                                    <button class="btn btn-primary rounded-pill py-2 fw-bold disabled opacity-50">Place Bid</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 p-4 rounded-4 bg-white shadow-sm border-start border-4 border-primary">
+                        <h6 class="fw-bold"><i class="bi bi-lightbulb text-warning me-2"></i>Listing Tip</h6>
+                        <p class="small text-muted mb-0">Adding a detailed description and multiple high-quality photos increases buyer trust and final sale price by up to 40%.</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <style>
-    .image-upload-zone {
-        cursor: pointer;
-        border: 2px dashed #dee2e6;
-    }
-    .image-upload-zone:hover {
-        background-color: #e9ecef !important;
-        border-color: var(--bs-primary);
-    }
-    .thumb-wrapper {
-        position: relative;
-        aspect-ratio: 1/1;
-        overflow: hidden;
-        border-radius: 12px;
-        cursor: pointer;
-        border: 2px solid transparent;
-        transition: all 0.2s ease;
-    }
-    .thumb-wrapper:hover {
-        border-color: var(--bs-primary);
-        transform: scale(1.05);
-    }
-    .thumb-wrapper img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-    .thumb-remove {
-        position: absolute;
-        top: 4px;
-        right: 4px;
-        width: 20px;
-        height: 20px;
-        background: rgba(220, 53, 69, 0.9);
-        color: white;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 12px;
-        border: none;
-        z-index: 5;
-    }
-    .promotion-card {
-        border: 2px solid rgba(255, 193, 7, 0.3) !important;
-        transition: all 0.3s ease;
-    }
-    .promotion-card:has(.form-check-input:checked) {
-        background-color: rgba(255, 193, 7, 0.25) !important;
-        border-color: #ffc107 !important;
-        transform: scale(1.02);
-    }
-    .cursor-pointer { cursor: pointer; }
+    .step-num { width: 35px; height: 35px; font-size: 1.1rem; }
+    .image-upload-zone { cursor: pointer; transition: all 0.3s; }
+    .image-upload-zone:hover { background-color: #f8f9fa !important; border-color: var(--bs-primary) !important; }
+    .thumb-wrapper { position: relative; aspect-ratio: 1/1; overflow: hidden; border-radius: 12px; cursor: pointer; }
+    .thumb-wrapper img { width: 100%; height: 100%; object-fit: cover; }
+    .thumb-remove { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; background: rgba(220, 53, 69, 0.9); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; border: none; }
+    .promotion-card { border: 2px solid transparent !important; transition: all 0.3s ease; }
+    .promotion-card:has(.form-check-input:checked) { border-color: #ffc107 !important; background-color: rgba(255, 193, 7, 0.2) !important; transform: scale(1.02); }
+    .backdrop-blur { backdrop-filter: blur(8px); }
+    .animate-pulse-slow { animation: pulse-slow 3s infinite; }
+    @@keyframes pulse-slow { 0%, 100% { opacity: 1; } 50% { opacity: 0.95; } }
+    .focus-ring:focus { box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.15); border-color: var(--bs-primary) !important; outline: 0; }
 </style>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const dropZone = document.getElementById('dropZone');
+            const steps = document.querySelectorAll('.form-step');
+            const progressBar = document.getElementById('formProgress');
+            const nextBtns = document.querySelectorAll('.next-step');
+            const prevBtns = document.querySelectorAll('.prev-step');
+            const hiddenUrlJson = document.getElementById('AdditionalImageUrlsJson');
+            let additionalUrls = [];
+
+            // 1. Wizard Navigation
+            nextBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const stepNum = parseInt(btn.getAttribute('data-next'));
+                    goToStep(stepNum);
+                });
+            });
+
+            prevBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const stepNum = parseInt(btn.getAttribute('data-prev'));
+                    goToStep(stepNum);
+                });
+            });
+
+            function goToStep(num) {
+                steps.forEach(s => s.classList.add('d-none'));
+                document.getElementById('step' + num).classList.remove('d-none');
+                progressBar.style.width = (num * 33.33) + '%';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            // 2. Real-time Preview Logic
+            const inputs = {
+                title: document.getElementById('inputTitle'),
+                category: document.getElementById('inputCategory'),
+                price: document.getElementById('inputPrice'),
+                endTime: document.getElementById('inputEndTime'),
+                promo: document.getElementById('promoToggle')
+            };
+
+            const previews = {
+                title: document.getElementById('previewTitle'),
+                category: document.getElementById('previewCategory'),
+                price: document.getElementById('previewPrice'),
+                time: document.getElementById('previewTime'),
+                badge: document.getElementById('previewPromoteBadge'),
+                card: document.getElementById('previewCard')
+            };
+
+            function updatePreview() {
+                previews.title.innerText = inputs.title.value || "Auction Title";
+                previews.category.innerText = inputs.category.options[inputs.category.selectedIndex]?.text || "Category";
+                previews.price.innerText = (parseFloat(inputs.price.value) || 0).toFixed(2) + '€';
+                
+                if (inputs.endTime.value) {
+                    const diff = new Date(inputs.endTime.value) - new Date();
+                    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    previews.time.innerText = days > 0 ? days + " days" : "Expiring soon";
+                }
+
+                if (inputs.promo.checked) {
+                    previews.badge.classList.remove('d-none');
+                    previews.card.classList.add('border-warning', 'border-2');
+                } else {
+                    previews.badge.classList.add('d-none');
+                    previews.card.classList.remove('border-warning', 'border-2');
+                }
+            }
+
+            Object.values(inputs).forEach(input => input.addEventListener('input', updatePreview));
+
+            // 3. Gallery Logic
             const fileInput = document.getElementById('fileInput');
             const urlInput = document.getElementById('urlInput');
             const addUrlBtn = document.getElementById('addUrlBtn');
             const thumbnailGrid = document.getElementById('thumbnailGrid');
-            const hiddenUrlJson = document.getElementById('AdditionalImageUrlsJson');
-            const previewModal = new bootstrap.Modal(document.getElementById('imagePreviewModal'));
-            const previewImg = document.getElementById('previewFullImg');
-            
-            let additionalUrls = [];
-            let filePreviews = [];
+            const previewImage = document.getElementById('previewImage');
 
-            // 1. Handle File Selection & Previews
-            fileInput.addEventListener('change', function(e) {
-                handleFiles(e.target.files);
-            });
-
-            dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('bg-white'); });
-            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('bg-white'));
-            dropZone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dropZone.classList.remove('bg-white');
-                fileInput.files = e.dataTransfer.files;
-                handleFiles(e.dataTransfer.files);
-            });
-
-            function handleFiles(files) {
-                // We keep track of file previews locally just for UI
-                for (let file of files) {
+            fileInput.addEventListener('change', (e) => {
+                for (let file of e.target.files) {
                     const reader = new FileReader();
-                    reader.onload = function(e) {
-                        renderThumbnail(e.target.result, true);
-                    }
+                    reader.onload = (f) => {
+                        renderThumbnail(f.target.result, true);
+                        previewImage.src = f.target.result;
+                    };
                     reader.readAsDataURL(file);
                 }
-            }
+            });
 
-            // 2. Handle URL Adding
-            addUrlBtn.addEventListener('click', function() {
+            addUrlBtn.addEventListener('click', () => {
                 const url = urlInput.value.trim();
-                if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+                if (url) {
                     additionalUrls.push(url);
                     renderThumbnail(url, false, additionalUrls.length - 1);
+                    previewImage.src = url;
                     urlInput.value = '';
-                    updateHiddenJson();
-                } else {
-                    alert('Please enter a valid image URL starting with http:// or https://');
+                    hiddenUrlJson.value = JSON.stringify(additionalUrls);
                 }
             });
 
             function renderThumbnail(src, isFile, index) {
                 const col = document.createElement('div');
-                col.className = 'col animate-fade-in';
-                
-                const wrapper = document.createElement('div');
-                wrapper.className = 'thumb-wrapper shadow-sm';
-                wrapper.onclick = () => {
-                    previewImg.src = src;
-                    previewModal.show();
-                };
-
-                const img = document.createElement('img');
-                img.src = src;
-                
-                wrapper.appendChild(img);
-
-                // Remove button (only for URLs in this demo for simplicity, files managed by input)
-                if (!isFile) {
-                    const removeBtn = document.createElement('button');
-                    removeBtn.className = 'thumb-remove';
-                    removeBtn.innerHTML = '<i class="bi bi-x"></i>';
-                    removeBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        additionalUrls.splice(index, 1);
-                        col.remove();
-                        updateHiddenJson();
-                    };
-                    wrapper.appendChild(removeBtn);
-                }
-
-                col.appendChild(wrapper);
+                col.className = 'col animate-fade-up';
+                col.innerHTML = `
+                    <div class="thumb-wrapper shadow-sm border">
+                        <img src="${src}" />
+                        ${!isFile ? `<button type="button" class="thumb-remove" onclick="removeUrl(${index}, this)"><i class="bi bi-x"></i></button>` : ''}
+                    </div>
+                `;
                 thumbnailGrid.appendChild(col);
             }
 
-            function updateHiddenJson() {
+            window.removeUrl = (index, btn) => {
+                additionalUrls.splice(index, 1);
+                btn.closest('.col').remove();
                 hiddenUrlJson.value = JSON.stringify(additionalUrls);
-            }
+            };
+
+            window.setPresetTime = (days) => {
+                const date = new Date();
+                date.setDate(date.getDate() + days);
+                inputs.endTime.value = date.toISOString().slice(0, 16);
+                updatePreview();
+            };
         });
     </script>
 }
