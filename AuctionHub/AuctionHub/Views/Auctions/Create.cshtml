@@ -15,9 +15,21 @@
                     </div>
 
                     <div class="card-body p-4 p-lg-5">
+                        @if (TempData["Error"] != null)
+                        {
+                            <div class="alert alert-danger border-0 rounded-4 mb-4 shadow-sm animate-fade-up">
+                                <i class="bi bi-exclamation-octagon-fill me-2"></i> @TempData["Error"]
+                            </div>
+                        }
+                        
                         <form asp-action="Create" method="post" enctype="multipart/form-data" id="auctionForm">
                             <div asp-validation-summary="ModelOnly" class="text-danger mb-4"></div>
                             <input type="hidden" id="AdditionalImageUrlsJson" name="AdditionalImageUrlsJson" />
+                            
+                            <!-- Hidden clean numeric inputs for the server -->
+                            <input type="hidden" name="StartPrice" id="hiddenStartPrice" />
+                            <input type="hidden" name="MinIncrease" id="hiddenMinIncrease" />
+                            <input type="hidden" name="BuyItNowPrice" id="hiddenBuyItNowPrice" />
 
                             <!-- Step 1: Basic Information -->
                             <div class="form-step" id="step1">
@@ -63,28 +75,26 @@
 
                                 <div class="row g-4 mb-4">
                                     <div class="col-md-6">
-                                        <label asp-for="StartPrice" class="form-label fw-bold text-dark">Starting Price (€)</label>
+                                        <label class="form-label fw-bold text-dark">Starting Price (€)</label>
                                         <div class="input-group input-group-lg shadow-sm rounded-4 overflow-hidden">
                                             <span class="input-group-text bg-white border-0 ps-4">€</span>
-                                            <input type="text" asp-for="StartPrice" id="inputPrice" class="form-control border-0 ps-2 price-input" placeholder="0,00" inputmode="decimal" />
+                                            <input type="text" id="inputPrice" class="form-control border-0 ps-2 price-input" value="@Model.StartPrice.ToString("F2")" placeholder="0,00" inputmode="decimal" />
                                         </div>
-                                        <span asp-validation-for="StartPrice" class="text-danger"></span>
                                     </div>
                                     <div class="col-md-6">
-                                        <label asp-for="MinIncrease" class="form-label fw-bold text-dark">Min Increase (€)</label>
+                                        <label class="form-label fw-bold text-dark">Min Increase (€)</label>
                                         <div class="input-group input-group-lg shadow-sm rounded-4 overflow-hidden">
                                             <span class="input-group-text bg-white border-0 ps-4">€</span>
-                                            <input type="text" asp-for="MinIncrease" id="inputMinIncrease" class="form-control border-0 ps-2 price-input" placeholder="0,10" inputmode="decimal" />
+                                            <input type="text" id="inputMinIncrease" class="form-control border-0 ps-2 price-input" value="@Model.MinIncrease.ToString("F2")" placeholder="0,10" inputmode="decimal" />
                                         </div>
-                                        <span asp-validation-for="MinIncrease" class="text-danger"></span>
                                     </div>
                                 </div>
 
                                 <div class="mb-4">
-                                    <label asp-for="BuyItNowPrice" class="form-label fw-bold text-dark">Buy It Now Price (Optional)</label>
+                                    <label class="form-label fw-bold text-dark">Buy It Now Price (Optional)</label>
                                     <div class="input-group input-group-lg shadow-sm rounded-4 overflow-hidden">
                                         <span class="input-group-text bg-white border-0 ps-4">€</span>
-                                        <input type="text" asp-for="BuyItNowPrice" id="inputBuyItNow" class="form-control border-0 ps-2 price-input" placeholder="Leave empty to disable" inputmode="decimal" />
+                                        <input type="text" id="inputBuyItNow" class="form-control border-0 ps-2 price-input" value="@(Model.BuyItNowPrice?.ToString("F2"))" placeholder="Leave empty to disable" inputmode="decimal" />
                                     </div>
                                     <div class="form-text text-muted">Buyers can end the auction instantly by paying this price.</div>
                                 </div>
@@ -312,16 +322,16 @@
                     if (parts.length > 2) {
                         val = parts[0] + ',' + parts.slice(1).join('');
                     }
-                    this.value = val; // Keep what user types for now
+                    this.value = val;
                     updatePreview();
                 });
             });
 
-            // Handle Form Submission - Convert commas to dots for the server
+            // Handle Form Submission - Convert commas to dots for the hidden server-bound inputs
             document.getElementById('auctionForm').addEventListener('submit', function() {
-                document.querySelectorAll('.price-input').forEach(input => {
-                    input.value = input.value.replace(',', '.');
-                });
+                document.getElementById('hiddenStartPrice').value = document.getElementById('inputPrice').value.replace(',', '.');
+                document.getElementById('hiddenMinIncrease').value = document.getElementById('inputMinIncrease').value.replace(',', '.');
+                document.getElementById('hiddenBuyItNowPrice').value = document.getElementById('inputBuyItNow').value.replace(',', '.');
             });
 
             // 4. Gallery Logic
