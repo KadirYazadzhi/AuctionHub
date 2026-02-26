@@ -10,4 +10,9 @@ public class AuctionFormDto
     public decimal? BuyItNowPrice { get; set; }
     public DateTime EndTime { get; set; }
     public int CategoryId { get; set; }
+    
+    public List<Stream> ImageStreams { get; set; } = new();
+    public List<string> ImageFileNames { get; set; } = new();
+    public List<string> AdditionalImageUrls { get; set; } = new();
+    public bool ShouldPromote { get; set; }
 }

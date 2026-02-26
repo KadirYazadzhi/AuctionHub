@@ -1,220 +1,305 @@
 @model AuctionHub.Models.ViewModels.AuctionFormModel
-
 @{
     ViewData["Title"] = "Create Auction";
 }
 
 <div class="container py-5">
     <div class="row justify-content-center">
-        <div class="col-lg-9">
-            <!-- Header -->
-            <div class="text-center mb-5 animate-fade-up">
-                <span class="badge bg-primary-subtle text-primary mb-3 px-4 py-2 rounded-pill fw-bold">New Listing</span>
-                <h1 class="display-4 fw-bold mb-3">Start a New <span class="text-primary">Auction</span></h1>
-                <p class="text-muted mx-auto" style="max-width: 600px;">Share your extraordinary items with our global community of collectors.</p>
-            </div>
-
-            <form asp-action="Create" method="post" enctype="multipart/form-data" class="animate-fade-up delay-100">
-                <div class="card border-0 shadow-lg rounded-5 overflow-hidden bg-white">
-                    <div class="card-body p-4 p-lg-5">
-                        
-                        <!-- Basic Information -->
-                        <h5 class="fw-bold mb-4 d-flex align-items-center">
-                            <span class="icon-box-sm bg-primary text-white rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-size: 0.9rem;">1</span>
-                            Basic Information
-                        </h5>
-                        
-                        <div class="row g-4 mb-5">
-                            <div class="col-md-8">
-                                <label asp-for="Title" class="form-label small text-muted fw-bold text-uppercase">Item Title</label>
-                                <input asp-for="Title" class="form-control form-control-lg rounded-pill px-4" placeholder="What are you selling?" />
-                                <span asp-validation-for="Title" class="text-danger small ms-3"></span>
-                            </div>
-                            <div class="col-md-4">
-                                <label asp-for="CategoryId" class="form-label small text-muted fw-bold text-uppercase">Category</label>
-                                <select asp-for="CategoryId" asp-items="Model.Categories" class="form-select form-select-lg rounded-pill px-4">
-                                    <option value="" disabled selected>Select...</option>
-                                </select>
-                                <span asp-validation-for="CategoryId" class="text-danger small ms-3"></span>
-                            </div>
+        <div class="col-lg-10">
+            <div class="card border-0 shadow-lg rounded-5 overflow-hidden animate-fade-up">
+                <div class="card-header bg-primary bg-gradient text-white p-4 p-lg-5">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <h1 class="fw-bold mb-2">List New Item</h1>
+                            <p class="mb-0 opacity-75">Reach thousands of bidders in seconds.</p>
                         </div>
-
-                        <!-- Pricing & Time -->
-                        <h5 class="fw-bold mb-4 d-flex align-items-center">
-                            <span class="icon-box-sm bg-primary text-white rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-size: 0.9rem;">2</span>
-                            Pricing & Duration
-                        </h5>
-
-                        <div class="row g-4 mb-5">
-                            <div class="col-md-4">
-                                <label asp-for="StartPrice" class="form-label small text-muted fw-bold text-uppercase">Starting Price (€)</label>
-                                <div class="input-group input-group-lg shadow-sm rounded-pill overflow-hidden border">
-                                    <span class="input-group-text bg-white border-0 ps-4 fw-bold text-primary">€</span>
-                                    <input asp-for="StartPrice" class="form-control border-0 py-3" type="number" step="0.01" min="0.01" />
-                                </div>
-                                <span asp-validation-for="StartPrice" class="text-danger small ms-3"></span>
-                            </div>
-
-                            <div class="col-md-4">
-                                <label asp-for="MinIncrease" class="form-label small text-muted fw-bold text-uppercase">Min. Increment (€)</label>
-                                <div class="input-group input-group-lg shadow-sm rounded-pill overflow-hidden border">
-                                    <span class="input-group-text bg-white border-0 ps-4 fw-bold text-primary">€</span>
-                                    <input asp-for="MinIncrease" class="form-control border-0 py-3" type="number" step="0.01" min="0.01" />
-                                </div>
-                                <span asp-validation-for="MinIncrease" class="text-danger small ms-3"></span>
-                            </div>
-
-                            <div class="col-md-4">
-                                <label asp-for="BuyItNowPrice" class="form-label small text-muted fw-bold text-uppercase">Buy It Now <span class="fw-normal">(Optional)</span></label>
-                                <div class="input-group input-group-lg shadow-sm rounded-pill overflow-hidden border">
-                                    <span class="input-group-text bg-white border-0 ps-4 fw-bold text-success">€</span>
-                                    <input asp-for="BuyItNowPrice" class="form-control border-0 py-3" type="number" step="0.01" />
-                                </div>
-                                <span asp-validation-for="BuyItNowPrice" class="text-danger small ms-3"></span>
-                            </div>
-
-                            <div class="col-12">
-                                <label asp-for="EndTime" class="form-label small text-muted fw-bold text-uppercase">Auction End Date & Time</label>
-                                <input asp-for="EndTime" class="form-control form-control-lg rounded-pill px-4 bg-light border-0" type="datetime-local" step="60" />
-                                <span asp-validation-for="EndTime" class="text-danger small ms-3"></span>
-                            </div>
-                        </div>
-
-                        <!-- Media -->
-                        <h5 class="fw-bold mb-4 d-flex align-items-center">
-                            <span class="icon-box-sm bg-primary text-white rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-size: 0.9rem;">3</span>
-                            Item Presentation
-                        </h5>
-
-                        <div class="mb-5">
-                            <label class="form-label small text-muted fw-bold text-uppercase mb-3">Item Image</label>
-                            
-                            <div class="card border border-light rounded-4 overflow-hidden mb-3">
-                                <ul class="nav nav-pills nav-fill bg-light p-1" id="imageTabs" role="tablist">
-                                    <li class="nav-item">
-                                        <button class="nav-link active rounded-4 fw-bold py-2" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload-pane" type="button">Upload File</button>
-                                    </li>
-                                    <li class="nav-item">
-                                        <button class="nav-link rounded-4 fw-bold py-2" id="url-tab" data-bs-toggle="tab" data-bs-target="#url-pane" type="button">Image URL</button>
-                                    </li>
-                                </ul>
-                                
-                                <div class="tab-content p-4" id="imageTabsContent">
-                                    <div class="tab-pane fade show active" id="upload-pane">
-                                        <div class="drop-zone p-5 rounded-4 border-2 border-dashed text-center transition-all bg-light" id="dropZone" style="cursor: pointer;">
-                                            <i class="bi bi-cloud-arrow-up display-4 text-primary mb-3"></i>
-                                            <h6 class="fw-bold mb-1">Drag and drop your image here</h6>
-                                            <p class="text-muted small">Supports: JPG, PNG, WEBP (Max 5MB)</p>
-                                            <input asp-for="ImageFile" type="file" class="d-none" id="fileInput" accept="image/*" />
-                                            <button type="button" class="btn btn-primary rounded-pill px-4 mt-2 shadow-sm">Browse Files</button>
-                                            <p class="mt-3 text-success fw-bold d-none" id="fileNamePreview"></p>
-                                        </div>
-                                    </div>
-                                    <div class="tab-pane fade" id="url-pane">
-                                        <input asp-for="ImageUrl" class="form-control form-control-lg rounded-pill px-4" placeholder="https://example.com/image.jpg" />
-                                        <small class="text-muted mt-2 d-block ms-3">Paste a direct link to a high-quality image of the item.</small>
-                                    </div>
-                                </div>
-                            </div>
-                            <span asp-validation-for="ImageUrl" class="text-danger small ms-3"></span>
-                        </div>
-
-                        <!-- Description -->
-                        <div class="mb-5">
-                            <label asp-for="Description" class="form-label small text-muted fw-bold text-uppercase">Detailed Description</label>
-                            <textarea asp-for="Description" class="form-control rounded-4 p-4 bg-light border-0" rows="6" placeholder="Tell buyers about the condition, history, and features of the item..."></textarea>
-                            <span asp-validation-for="Description" class="text-danger small ms-3"></span>
-                        </div>
-
-                        <!-- Submit Buttons -->
-                        <div class="d-flex flex-column flex-md-row gap-3 justify-content-end pt-4 border-top mt-5">
-                            <a asp-controller="Home" asp-action="Index" class="btn btn-light btn-lg rounded-pill px-5 text-muted fw-bold">Cancel</a>
-                            <button type="submit" class="btn btn-primary btn-lg rounded-pill px-5 fw-bold shadow-lg hover-lift">
-                                Publish Auction <i class="bi bi-rocket-takeoff-fill ms-2"></i>
-                            </button>
-                        </div>
+                        <i class="bi bi-plus-circle display-4 opacity-50"></i>
                     </div>
                 </div>
-            </form>
+                
+                <div class="card-body p-4 p-lg-5">
+                    <form asp-action="Create" method="post" enctype="multipart/form-data" id="auctionForm">
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-4"></div>
+                        <input type="hidden" id="AdditionalImageUrlsJson" name="AdditionalImageUrlsJson" />
+
+                        <div class="row g-4">
+                            <!-- Left Column: Basic Info -->
+                            <div class="col-lg-7">
+                                <h5 class="fw-bold mb-4 text-primary border-bottom pb-2">1. Item Details</h5>
+                                
+                                <div class="mb-4">
+                                    <label asp-for="Title" class="form-label small fw-bold text-muted text-uppercase">Listing Title</label>
+                                    <input asp-for="Title" class="form-control form-control-lg border-0 bg-light rounded-4 px-4" placeholder="e.g. Vintage 1970s Camera" />
+                                    <span asp-validation-for="Title" class="text-danger"></span>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label asp-for="Description" class="form-label small fw-bold text-muted text-uppercase">Description</label>
+                                    <textarea asp-for="Description" class="form-control border-0 bg-light rounded-4 px-4 py-3" rows="8" placeholder="Tell the story of your item..."></textarea>
+                                    <span asp-validation-for="Description" class="text-danger"></span>
+                                </div>
+
+                                <div class="row g-3 mb-4">
+                                    <div class="col-md-6">
+                                        <label asp-for="CategoryId" class="form-label small fw-bold text-muted text-uppercase">Category</label>
+                                        <select asp-for="CategoryId" class="form-select border-0 bg-light rounded-4 px-4 py-3" asp-items="Model.Categories">
+                                            <option value="">Select Category</option>
+                                        </select>
+                                        <span asp-validation-for="CategoryId" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="EndTime" class="form-label small fw-bold text-muted text-uppercase">Ends On</label>
+                                        <input asp-for="EndTime" class="form-control border-0 bg-light rounded-4 px-4 py-3" type="datetime-local" />
+                                        <span asp-validation-for="EndTime" class="text-danger"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Right Column: Media & Pricing -->
+                            <div class="col-lg-5">
+                                <h5 class="fw-bold mb-4 text-primary border-bottom pb-2">2. Visuals & Price</h5>
+                                
+                                <!-- Multi-Photo Upload Area -->
+                                <div class="mb-4">
+                                    <label class="form-label small fw-bold text-muted text-uppercase">Item Gallery</label>
+                                    <div class="image-upload-zone rounded-5 bg-light border-2 border-dashed d-flex flex-column align-items-center justify-content-center p-4 mb-3 transition-all" id="dropZone">
+                                        <i class="bi bi-images display-5 text-primary mb-2 opacity-50"></i>
+                                        <p class="small text-center mb-3">Drag photos here or click to upload</p>
+                                        <input type="file" id="fileInput" name="AdditionalImageFiles" multiple class="d-none" accept="image/*" />
+                                        <button type="button" class="btn btn-primary btn-sm rounded-pill px-4" onclick="document.getElementById('fileInput').click()">Select Files</button>
+                                    </div>
+
+                                    <!-- URL Input -->
+                                    <div class="input-group mb-3 shadow-sm rounded-pill overflow-hidden">
+                                        <input type="text" id="urlInput" class="form-control border-0 bg-light px-4" placeholder="Or paste image URL..." />
+                                        <button type="button" class="btn btn-secondary px-4 fw-bold" id="addUrlBtn"><i class="bi bi-link-45deg"></i></button>
+                                    </div>
+
+                                    <!-- Thumbnail Grid -->
+                                    <div class="row row-cols-4 g-2 mb-2" id="thumbnailGrid">
+                                        <!-- Thumbnails injected here by JS -->
+                                    </div>
+                                    <small class="text-muted"><i class="bi bi-info-circle me-1"></i> Tip: First image will be your main listing photo.</small>
+                                </div>
+
+                                <div class="bg-white p-4 rounded-5 shadow-sm border border-light mb-4">
+                                    <div class="mb-3">
+                                        <label asp-for="StartPrice" class="form-label small fw-bold text-muted text-uppercase">Starting Price</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-transparent border-0 pe-0 fw-bold">€</span>
+                                            <input asp-for="StartPrice" class="form-control border-0 fs-4 fw-bold p-0 ps-2" step="0.01" />
+                                        </div>
+                                        <span asp-validation-for="StartPrice" class="text-danger"></span>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label asp-for="MinIncrease" class="form-label small fw-bold text-muted text-uppercase">Min Bid Step</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-transparent border-0 pe-0 fw-bold">€</span>
+                                            <input asp-for="MinIncrease" class="form-control border-0 fs-5 p-0 ps-2" step="0.01" />
+                                        </div>
+                                        <span asp-validation-for="MinIncrease" class="text-danger"></span>
+                                    </div>
+
+                                    <div class="mb-0">
+                                        <label asp-for="BuyItNowPrice" class="form-label small fw-bold text-muted text-uppercase">Buy It Now (Optional)</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-transparent border-0 pe-0 fw-bold">€</span>
+                                            <input asp-for="BuyItNowPrice" class="form-control border-0 fs-5 p-0 ps-2" step="0.01" placeholder="Disabled" />
+                                        </div>
+                                        <span asp-validation-for="BuyItNowPrice" class="text-danger"></span>
+                                    </div>
+                                </div>
+
+                                <!-- Promotion Card -->
+                                <div class="promotion-card card border-0 rounded-5 overflow-hidden mb-4 shadow-sm bg-warning bg-opacity-10">
+                                    <div class="card-body p-4 d-flex align-items-center">
+                                        <div class="form-check form-switch fs-4 mb-0">
+                                            <input class="form-check-input" type="checkbox" asp-for="ShouldPromote" role="switch" id="promoToggle">
+                                        </div>
+                                        <div class="ms-3">
+                                            <label class="form-check-label fw-bold d-block mb-0 cursor-pointer" for="promoToggle">🚀 Boost Listing</label>
+                                            <small class="text-muted">Stay at top of results for only 5.00€</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-5 opacity-10">
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a asp-action="Index" class="btn btn-link text-muted text-decoration-none fw-bold">
+                                <i class="bi bi-arrow-left me-2"></i> Back to Auctions
+                            </a>
+                            <button type="submit" class="btn btn-primary btn-lg rounded-pill px-5 py-3 fw-bold shadow hover-lift" id="submitBtn">
+                                Create Listing <i class="bi bi-check-circle-fill ms-2"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Image Preview Modal -->
+<div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content bg-transparent border-0">
+            <div class="modal-body p-0 position-relative">
+                <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-4 shadow-none" data-bs-dismiss="modal" aria-label="Close" style="z-index: 10;"></button>
+                <img src="" id="previewFullImg" class="img-fluid rounded-4 shadow-lg w-100" style="max-height: 90vh; object-fit: contain;" />
+            </div>
         </div>
     </div>
 </div>
 
 <style>
-    .drop-zone:hover {
-        background-color: rgba(var(--bs-primary-rgb), 0.05) !important;
-        border-color: var(--bs-primary) !important;
+    .image-upload-zone {
+        cursor: pointer;
+        border: 2px dashed #dee2e6;
     }
-    
-    .nav-pills .nav-link.active {
-        background-color: var(--bs-white);
-        color: var(--bs-primary);
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    .image-upload-zone:hover {
+        background-color: #e9ecef !important;
+        border-color: var(--bs-primary);
     }
-
-    [data-bs-theme="dark"] .nav-pills .nav-link.active {
-        background-color: var(--bg-white);
-        color: var(--primary-color);
+    .thumb-wrapper {
+        position: relative;
+        aspect-ratio: 1/1;
+        overflow: hidden;
+        border-radius: 12px;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: all 0.2s ease;
     }
+    .thumb-wrapper:hover {
+        border-color: var(--bs-primary);
+        transform: scale(1.05);
+    }
+    .thumb-wrapper img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .thumb-remove {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        width: 20px;
+        height: 20px;
+        background: rgba(220, 53, 69, 0.9);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        border: none;
+        z-index: 5;
+    }
+    .promotion-card {
+        border: 2px solid rgba(255, 193, 7, 0.3) !important;
+        transition: all 0.3s ease;
+    }
+    .promotion-card:has(.form-check-input:checked) {
+        background-color: rgba(255, 193, 7, 0.25) !important;
+        border-color: #ffc107 !important;
+        transform: scale(1.02);
+    }
+    .cursor-pointer { cursor: pointer; }
 </style>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
-        const dropZone = document.getElementById('dropZone');
-        const fileInput = document.getElementById('fileInput');
-        const fileNamePreview = document.getElementById('fileNamePreview');
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+            const urlInput = document.getElementById('urlInput');
+            const addUrlBtn = document.getElementById('addUrlBtn');
+            const thumbnailGrid = document.getElementById('thumbnailGrid');
+            const hiddenUrlJson = document.getElementById('AdditionalImageUrlsJson');
+            const previewModal = new bootstrap.Modal(document.getElementById('imagePreviewModal'));
+            const previewImg = document.getElementById('previewFullImg');
+            
+            let additionalUrls = [];
+            let filePreviews = [];
 
-        fileInput.addEventListener('click', (e) => e.stopPropagation());
-        dropZone.addEventListener('click', () => fileInput.click());
+            // 1. Handle File Selection & Previews
+            fileInput.addEventListener('change', function(e) {
+                handleFiles(e.target.files);
+            });
 
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('border-primary');
-        });
-
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('border-primary');
-        });
-
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('border-primary');
-            if (e.dataTransfer.files.length) {
-                fileInput.files = e.dataTransfer.files;
-                updatePreview();
-            }
-        });
-
-        fileInput.addEventListener('change', updatePreview);
-
-        function updatePreview() {
-            if (fileInput.files.length > 0) {
-                fileNamePreview.textContent = "✓ Selected: " + fileInput.files[0].name;
-                fileNamePreview.classList.remove('d-none');
-            } else {
-                fileNamePreview.classList.add('d-none');
-            }
-        }
-
-        // Prevent multiple form submissions (Double-Click protection)
-        const auctionForm = document.querySelector('form');
-        auctionForm.addEventListener('submit', function (e) {
-            if (auctionForm.getAttribute('data-submitting') === 'true') {
+            dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('bg-white'); });
+            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('bg-white'));
+            dropZone.addEventListener('drop', (e) => {
                 e.preventDefault();
-                return false;
+                dropZone.classList.remove('bg-white');
+                fileInput.files = e.dataTransfer.files;
+                handleFiles(e.dataTransfer.files);
+            });
+
+            function handleFiles(files) {
+                // We keep track of file previews locally just for UI
+                for (let file of files) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        renderThumbnail(e.target.result, true);
+                    }
+                    reader.readAsDataURL(file);
+                }
             }
 
-            if ($(auctionForm).valid()) {
-                auctionForm.setAttribute('data-submitting', 'true');
+            // 2. Handle URL Adding
+            addUrlBtn.addEventListener('click', function() {
+                const url = urlInput.value.trim();
+                if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+                    additionalUrls.push(url);
+                    renderThumbnail(url, false, additionalUrls.length - 1);
+                    urlInput.value = '';
+                    updateHiddenJson();
+                } else {
+                    alert('Please enter a valid image URL starting with http:// or https://');
+                }
+            });
+
+            function renderThumbnail(src, isFile, index) {
+                const col = document.createElement('div');
+                col.className = 'col animate-fade-in';
                 
-                const btn = auctionForm.querySelector('button[type="submit"]');
-                // Use a slight timeout to allow the browser to process the submit before visual disabling
-                setTimeout(() => {
-                    btn.classList.add('opacity-50');
-                    btn.style.pointerEvents = 'none';
-                    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Publishing...';
-                }, 10);
+                const wrapper = document.createElement('div');
+                wrapper.className = 'thumb-wrapper shadow-sm';
+                wrapper.onclick = () => {
+                    previewImg.src = src;
+                    previewModal.show();
+                };
+
+                const img = document.createElement('img');
+                img.src = src;
+                
+                wrapper.appendChild(img);
+
+                // Remove button (only for URLs in this demo for simplicity, files managed by input)
+                if (!isFile) {
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'thumb-remove';
+                    removeBtn.innerHTML = '<i class="bi bi-x"></i>';
+                    removeBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        additionalUrls.splice(index, 1);
+                        col.remove();
+                        updateHiddenJson();
+                    };
+                    wrapper.appendChild(removeBtn);
+                }
+
+                col.appendChild(wrapper);
+                thumbnailGrid.appendChild(col);
+            }
+
+            function updateHiddenJson() {
+                hiddenUrlJson.value = JSON.stringify(additionalUrls);
             }
         });
     </script>

@@ -42,5 +42,9 @@ public class AuctionFormModel
     [Display(Name = "Category")]
     public int CategoryId { get; set; }
 
+    public List<IFormFile> AdditionalImageFiles { get; set; } = new();
+    public string? AdditionalImageUrlsJson { get; set; } 
+    public bool ShouldPromote { get; set; }
+
     public IEnumerable<SelectListItem> Categories { get; set; } = new List<SelectListItem>();
 }

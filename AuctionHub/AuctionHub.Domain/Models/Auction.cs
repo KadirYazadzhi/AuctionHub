@@ -57,5 +57,6 @@ public class Auction
     [ForeignKey(nameof(CategoryId))]
     public virtual Category Category { get; set; } = null!;
 
+    public virtual ICollection<AuctionImage> Images { get; set; } = new HashSet<AuctionImage>();
     public virtual ICollection<Bid> Bids { get; set; } = new HashSet<Bid>();
 }

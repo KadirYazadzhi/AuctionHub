@@ -104,6 +104,7 @@ public class AuctionsController : Controller
             BuyItNowPrice = auction.BuyItNowPrice,
             EndTime = auction.EndTime,
             Category = auction.Category,
+            Images = auction.AdditionalImages,
             Seller = auction.Seller,
             SellerId = auction.SellerId,
             SellerRating = auction.SellerRating,

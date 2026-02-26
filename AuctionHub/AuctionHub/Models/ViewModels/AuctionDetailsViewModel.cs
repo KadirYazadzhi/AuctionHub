@@ -23,9 +23,10 @@ public class AuctionDetailsViewModel
     public DateTime EndTime { get; set; }
 
     public string Category { get; set; } = null!;
+    public List<string> Images { get; set; } = new();
 
-        public string Seller { get; set; } = null!;
-        public string SellerId { get; set; } = null!;
+    public string Seller { get; set; } = null!;
+    public string SellerId { get; set; } = null!;
         public double SellerRating { get; set; }
         public int SellerReviewCount { get; set; }
             public bool IsActive { get; set; }

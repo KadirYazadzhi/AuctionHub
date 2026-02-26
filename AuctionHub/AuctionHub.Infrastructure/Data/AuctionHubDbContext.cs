@@ -21,6 +21,7 @@ public class AuctionHubDbContext : IdentityDbContext<ApplicationUser>, IAuctionH
     public DbSet<ContactMessage> ContactMessages { get; set; } = null!;
     public DbSet<ChatMessage> ChatMessages { get; set; } = null!;
     public DbSet<AutoBid> AutoBids { get; set; } = null!;
+    public DbSet<AuctionImage> AuctionImages { get; set; } = null!;
     public DbSet<Review> Reviews { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)

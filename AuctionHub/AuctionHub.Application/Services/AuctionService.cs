@@ -15,19 +15,22 @@ public class AuctionService : IAuctionService
     private readonly IBiddingNotificationService _biddingNotificationService;
     private readonly IDistributedCache _cache;
     private readonly ILogger<AuctionService> _logger;
+    private readonly IPhotoService _photoService;
 
     public AuctionService(
         IAuctionHubDbContext context, 
         INotificationService notificationService, 
         IBiddingNotificationService biddingNotificationService,
         IDistributedCache cache,
-        ILogger<AuctionService> logger)
+        ILogger<AuctionService> logger,
+        IPhotoService photoService)
     {
         _context = context;
         _notificationService = notificationService;
         _biddingNotificationService = biddingNotificationService;
         _cache = cache;
         _logger = logger;
+        _photoService = photoService;
     }
 
     public async Task<PaginatedList<AuctionDto>> GetAuctionsAsync(
@@ -505,6 +508,7 @@ public class AuctionService : IAuctionService
         var auction = await _context.Auctions
             .Include(a => a.Category)
             .Include(a => a.Seller)
+            .Include(a => a.Images)
             .Include(a => a.Bids)
                 .ThenInclude(b => b.Bidder)
             .FirstOrDefaultAsync(a => a.Id == id);
@@ -542,6 +546,7 @@ public class AuctionService : IAuctionService
             EndTime = auction.EndTime,
             Category = auction.Category.Name,
             CategoryId = auction.CategoryId,
+            AdditionalImages = auction.Images.Select(i => i.Url).ToList(),
             Seller = auction.Seller.DisplayName,
             SellerId = auction.SellerId,
             SellerRating = sellerRating,
@@ -617,7 +622,7 @@ public class AuctionService : IAuctionService
             {
                 Title = model.Title,
                 Description = model.Description,
-                ImageUrl = model.ImageUrl,
+                ImageUrl = model.ImageUrl, // Default or first image
                 StartPrice = model.StartPrice,
                 CurrentPrice = model.StartPrice,
                 MinIncrease = model.MinIncrease,
@@ -626,10 +631,66 @@ public class AuctionService : IAuctionService
                                      model.EndTime.Hour, model.EndTime.Minute, 0, 0, model.EndTime.Kind),
                 CreatedOn = now,
                 IsActive = true,
+                IsPromoted = model.ShouldPromote,
                 CategoryId = model.CategoryId,
                 SellerId = sellerId,
                 RowVersion = new byte[8]
             };
+
+            // --- Handle Images ---
+            var imageList = new List<AuctionImage>();
+
+            // 1. Upload new files to Cloudinary
+            for (int i = 0; i < model.ImageStreams.Count; i++)
+            {
+                var uploadResult = await _photoService.AddPhotoAsync(model.ImageStreams[i], model.ImageFileNames[i]);
+                if (uploadResult.Success)
+                {
+                    imageList.Add(new AuctionImage { Url = uploadResult.Url, PublicId = uploadResult.PublicId });
+                }
+            }
+
+            // 2. Add external URLs
+            foreach (var url in model.AdditionalImageUrls)
+            {
+                if (!string.IsNullOrWhiteSpace(url))
+                {
+                    imageList.Add(new AuctionImage { Url = url });
+                }
+            }
+
+            // 3. Set Cover Image (if not already set or if gallery has items)
+            if (imageList.Any())
+            {
+                auction.Images = imageList;
+                if (string.IsNullOrEmpty(auction.ImageUrl))
+                {
+                    auction.ImageUrl = imageList.First().Url;
+                }
+            }
+
+            // --- Handle Initial Promotion ---
+            if (model.ShouldPromote)
+            {
+                var user = await _context.Users.FindAsync(sellerId);
+                decimal promoFee = 5.00m;
+                if (user != null && user.WalletBalance >= promoFee)
+                {
+                    user.WalletBalance -= promoFee;
+                    _context.Transactions.Add(new Transaction
+                    {
+                        UserId = sellerId,
+                        Amount = promoFee,
+                        Description = $"Promotion for new auction: '{auction.Title}'",
+                        TransactionType = "Promotion",
+                        TransactionDate = DateTime.UtcNow
+                    });
+                }
+                else
+                {
+                    auction.IsPromoted = false; // Insufficient funds, silently fail promotion but create auction
+                }
+            }
 
             _context.Auctions.Add(auction);
             await _context.SaveChangesAsync();
