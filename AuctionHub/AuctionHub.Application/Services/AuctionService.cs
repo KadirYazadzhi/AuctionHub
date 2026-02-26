@@ -931,50 +931,65 @@ public class AuctionService : IAuctionService
 
     private async Task ProcessAutoBidsAsync(Auction auction, string lastBidderId)
     {
-        // 1. Get ALL active auto-bids that have enough money to at least place one more bid
-        decimal minStep = auction.CurrentPrice + auction.MinIncrease;
-        
-        var activeAutoBids = await _context.AutoBids
+        // 1. Get ALL active auto-bids for this auction
+        var allActiveAutoBids = await _context.AutoBids
             .Include(ab => ab.User)
-            .Where(ab => ab.AuctionId == auction.Id && 
-                         ab.IsActive && 
+            .Where(ab => ab.AuctionId == auction.Id && ab.IsActive)
+            .ToListAsync();
+
+        if (!allActiveAutoBids.Any()) return;
+
+        // 2. Identify bots that are now disqualified (manual bid exceeded their MaxAmount)
+        // We deactivate them so they don't try to bid again
+        var disqualifiedBots = allActiveAutoBids
+            .Where(ab => ab.MaxAmount < auction.CurrentPrice + auction.MinIncrease)
+            .ToList();
+        
+        foreach (var bot in disqualifiedBots)
+        {
+            bot.IsActive = false;
+        }
+
+        // 3. Only consider bots that CAN still bid (have enough money AND MaxAmount is high enough)
+        var validBots = allActiveAutoBids
+            .Where(ab => ab.IsActive && 
+                         ab.UserId != lastBidderId && 
+                         ab.MaxAmount >= auction.CurrentPrice + auction.MinIncrease &&
                          ab.User.WalletBalance >= auction.CurrentPrice + auction.MinIncrease)
             .OrderByDescending(ab => ab.MaxAmount)
             .ThenBy(ab => ab.CreatedOn)
-            .ToListAsync();
+            .ToList();
 
-        if (!activeAutoBids.Any()) return;
+        if (!validBots.Any()) return;
 
-        // 2. Identify the winner among bots (must not be the person who just placed the manual bid)
-        var winnerAutoBid = activeAutoBids.FirstOrDefault(ab => ab.UserId != lastBidderId);
-        if (winnerAutoBid == null) return;
+        // 4. The winner among bots is the one with the highest MaxAmount
+        var winnerAutoBid = validBots.First();
 
-        // 3. Calculate final price based on the second-best challenger
-        // Challenger can be another bot OR the current manual bidder's price
-        var otherBots = activeAutoBids.Where(ab => ab.Id != winnerAutoBid.Id).ToList();
-        var secondBestMax = otherBots.Any() ? otherBots.Max(ab => ab.MaxAmount) : auction.CurrentPrice;
+        // 5. Calculate final price
+        // It should be (highest challenger's limit + step) OR (manual bid + step)
+        var challengers = allActiveAutoBids.Where(ab => ab.UserId != winnerAutoBid.UserId).ToList();
+        decimal highestChallengerLimit = challengers.Any() ? challengers.Max(ab => ab.MaxAmount) : 0;
+        
+        // The price needs to beat both the manual bid AND any other bot's limit
+        decimal baseToBeat = Math.Max(auction.CurrentPrice, highestChallengerLimit);
+        decimal finalPrice = baseToBeat + auction.MinIncrease;
 
-        decimal finalPrice = secondBestMax + auction.MinIncrease;
-
-        // Ensure we don't exceed the winner's own limit
+        // Cap the price at the winner's own limit
         if (finalPrice > winnerAutoBid.MaxAmount)
         {
             finalPrice = winnerAutoBid.MaxAmount;
         }
 
-        // Final check: Is the calculated final price actually higher than current?
+        // Final safety check: if for some reason the price didn't increase, force a step
         if (finalPrice <= auction.CurrentPrice)
         {
             finalPrice = auction.CurrentPrice + auction.MinIncrease;
         }
 
-        // 4. Update Entities (NO SaveChangesAsync here!)
+        // Ensure winner can still afford it
         var autoUser = winnerAutoBid.User;
-
-        // Ensure user can still afford the calculated final price
         if (autoUser.WalletBalance < finalPrice)
         {
-            // If they can't afford the jump, they just bid what they have or lose
             winnerAutoBid.IsActive = false;
             return;
         }
