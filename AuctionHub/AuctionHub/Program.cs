@@ -35,7 +35,19 @@ builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddHostedService<AuctionCleanupService>();
 
-builder.Services.AddSignalR();
+// Redis Configuration (Standard for K8s deployments)
+var redisConnectionString = builder.Configuration.GetConnectionString("Redis") 
+    ?? Environment.GetEnvironmentVariable("REDIS_URL") 
+    ?? "localhost:6379";
+
+builder.Services.AddSignalR().AddStackExchangeRedis(redisConnectionString, options => {
+    options.Configuration.ChannelPrefix = "AuctionHub_SignalR";
+});
+
+builder.Services.AddStackExchangeRedisCache(options => {
+    options.Configuration = redisConnectionString;
+    options.InstanceName = "AuctionHub_Cache_";
+});
 
 builder.Services.AddDefaultIdentity<ApplicationUser>(options => {
     options.SignIn.RequireConfirmedAccount = false;

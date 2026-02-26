@@ -1,7 +1,7 @@
-using AuctionHub.Domain.Models;
-using AuctionHub.Application.Interfaces;
-using AuctionHub.Application.DTOs;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace AuctionHub.Application.Services;
 
@@ -10,12 +10,21 @@ public class AuctionService : IAuctionService
     private readonly IAuctionHubDbContext _context;
     private readonly INotificationService _notificationService;
     private readonly IBiddingNotificationService _biddingNotificationService;
+    private readonly IDistributedCache _cache;
+    private readonly ILogger<AuctionService> _logger;
 
-    public AuctionService(IAuctionHubDbContext context, INotificationService notificationService, IBiddingNotificationService biddingNotificationService)
+    public AuctionService(
+        IAuctionHubDbContext context, 
+        INotificationService notificationService, 
+        IBiddingNotificationService biddingNotificationService,
+        IDistributedCache cache,
+        ILogger<AuctionService> logger)
     {
         _context = context;
         _notificationService = notificationService;
         _biddingNotificationService = biddingNotificationService;
+        _cache = cache;
+        _logger = logger;
     }
 
     public async Task<PaginatedList<AuctionDto>> GetAuctionsAsync(
@@ -114,6 +123,9 @@ public class AuctionService : IAuctionService
     {
         var query = _context.Auctions
             .Include(a => a.Category)
+            .Include(a => a.Seller)
+                .ThenInclude(u => u.ReceivedReviews)
+            .Include(a => a.Bids)
             .Where(a => a.SellerId == userId);
 
         // Filtering & Sorting (Same logic)
@@ -137,7 +149,10 @@ public class AuctionService : IAuctionService
             Category = a.Category.Name,
             CategoryId = a.CategoryId,
             IsActive = a.IsActive,
-            IsSuspended = a.IsSuspended
+            IsSuspended = a.IsSuspended,
+            SellerName = a.Seller.UserName ?? a.Seller.Email ?? "Unknown",
+            IsTopSeller = a.Seller.ReceivedReviews.Count >= 5 && (a.Seller.ReceivedReviews.Any() ? a.Seller.ReceivedReviews.Average(r => r.Rating) : 0) >= 4.8,
+            IsWinning = a.Bids.Any() && a.Bids.OrderByDescending(b => b.Amount).First().BidderId == userId
         });
 
         return await PaginatedList<AuctionDto>.CreateAsync(projectedQuery, pageNumber, pageSize);
@@ -160,6 +175,9 @@ public class AuctionService : IAuctionService
 
         var query = _context.Auctions
             .Include(a => a.Category)
+            .Include(a => a.Seller)
+                .ThenInclude(u => u.ReceivedReviews)
+            .Include(a => a.Bids)
             .Where(a => myBids.Any(b => b.AuctionId == a.Id) && !adminIds.Contains(a.SellerId));
 
         query = ApplyFilters(query, searchTerm, categoryId, minPrice, maxPrice, status);
@@ -171,16 +189,7 @@ public class AuctionService : IAuctionService
             _ => query.OrderByDescending(a => a.EndTime)
         };
 
-        var myMaxBids = await myBids
-            .GroupBy(b => b.AuctionId)
-            .Select(g => new { AuctionId = g.Key, MaxAmount = g.Max(b => b.Amount) })
-            .ToDictionaryAsync(x => x.AuctionId, x => x.MaxAmount);
-
-        // Paginate before projection or after? Better after to get correct total count.
-        // Actually, we need to project to get IsWinning.
-        
-        var list = await query.ToListAsync();
-        var projectedList = list.Select(a => new AuctionDto
+        var projectedQuery = query.Select(a => new AuctionDto
         {
             Id = a.Id,
             Title = a.Title,
@@ -191,13 +200,12 @@ public class AuctionService : IAuctionService
             CategoryId = a.CategoryId,
             IsActive = a.IsActive,
             IsSuspended = a.IsSuspended,
-            IsWinning = myMaxBids.ContainsKey(a.Id) && myMaxBids[a.Id] >= a.CurrentPrice
-        }).ToList();
+            SellerName = a.Seller.UserName ?? a.Seller.Email ?? "Unknown",
+            IsTopSeller = a.Seller.ReceivedReviews.Count >= 5 && (a.Seller.ReceivedReviews.Any() ? a.Seller.ReceivedReviews.Average(r => r.Rating) : 0) >= 4.8,
+            IsWinning = a.Bids.Any() && a.Bids.OrderByDescending(b => b.Amount).First().BidderId == userId
+        });
 
-        var totalCount = projectedList.Count;
-        var items = projectedList.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
-
-        return new PaginatedList<AuctionDto>(items, totalCount, pageNumber, pageSize);
+        return await PaginatedList<AuctionDto>.CreateAsync(projectedQuery, pageNumber, pageSize);
     }
 
     public async Task<PaginatedList<AuctionDto>> GetUserAuctionsAsync(
@@ -216,6 +224,9 @@ public class AuctionService : IAuctionService
 
         var query = _context.Auctions
             .Include(a => a.Category)
+            .Include(a => a.Seller)
+                .ThenInclude(u => u.ReceivedReviews)
+            .Include(a => a.Bids)
             .Where(a => a.SellerId == user.Id);
 
         query = ApplyFilters(query, searchTerm, categoryId, minPrice, maxPrice, status);
@@ -237,7 +248,10 @@ public class AuctionService : IAuctionService
             Category = a.Category.Name,
             CategoryId = a.CategoryId,
             IsActive = a.IsActive,
-            IsSuspended = a.IsSuspended
+            IsSuspended = a.IsSuspended,
+            SellerName = a.Seller.UserName ?? a.Seller.Email ?? "Unknown",
+            IsTopSeller = a.Seller.ReceivedReviews.Count >= 5 && (a.Seller.ReceivedReviews.Any() ? a.Seller.ReceivedReviews.Average(r => r.Rating) : 0) >= 4.8,
+            IsWinning = false // Not relevant in this view usually
         });
 
         return await PaginatedList<AuctionDto>.CreateAsync(projectedQuery, pageNumber, pageSize);
@@ -259,7 +273,12 @@ public class AuctionService : IAuctionService
         var query = _context.Watchlist
             .Where(w => w.UserId == userId)
             .Include(w => w.Auction)
-            .ThenInclude(a => a.Category)
+                .ThenInclude(a => a.Category)
+            .Include(w => w.Auction)
+                .ThenInclude(a => a.Seller)
+                .ThenInclude(u => u.ReceivedReviews)
+            .Include(w => w.Auction)
+                .ThenInclude(a => a.Bids)
             .Select(w => w.Auction)
             .Where(a => !adminIds.Contains(a.SellerId))
             .AsQueryable();
@@ -283,21 +302,34 @@ public class AuctionService : IAuctionService
             Category = a.Category.Name,
             CategoryId = a.CategoryId,
             IsActive = a.IsActive,
-            IsSuspended = a.IsSuspended
+            IsSuspended = a.IsSuspended,
+            SellerName = a.Seller.UserName ?? a.Seller.Email ?? "Unknown",
+            IsTopSeller = a.Seller.ReceivedReviews.Count >= 5 && (a.Seller.ReceivedReviews.Any() ? a.Seller.ReceivedReviews.Average(r => r.Rating) : 0) >= 4.8,
+            IsWinning = a.Bids.Any() && a.Bids.OrderByDescending(b => b.Amount).First().BidderId == userId
         });
 
         return await PaginatedList<AuctionDto>.CreateAsync(projectedQuery, pageNumber, pageSize);
     }
 
-    public async Task<IEnumerable<AuctionDto>> GetEndingSoonAuctionsAsync(int count)
+    public async Task<IEnumerable<AuctionDto>> GetEndingSoonAuctionsAsync(int count, string? currentUserId = null)
     {
+        string cacheKey = $"ending_soon_{count}_{currentUserId ?? "anonymous"}";
+        var cachedData = await _cache.GetStringAsync(cacheKey);
+
+        if (!string.IsNullOrEmpty(cachedData))
+        {
+            _logger.LogInformation("Returning cached ending soon auctions.");
+            return JsonSerializer.Deserialize<IEnumerable<AuctionDto>>(cachedData) ?? new List<AuctionDto>();
+        }
+
         var adminIds = await GetAdminIdsAsync();
         var now = DateTime.UtcNow;
 
-        return await _context.Auctions
+        var auctions = await _context.Auctions
             .Include(a => a.Category)
             .Include(a => a.Seller)
                 .ThenInclude(u => u.ReceivedReviews)
+            .Include(a => a.Bids)
             .Where(a => a.IsActive && a.EndTime > now && !adminIds.Contains(a.SellerId))
             .OrderBy(a => a.EndTime)
             .Take(count)
@@ -313,9 +345,18 @@ public class AuctionService : IAuctionService
                 IsActive = a.IsActive,
                 IsSuspended = a.IsSuspended,
                 SellerName = a.Seller.UserName ?? a.Seller.Email ?? "Unknown",
-                IsTopSeller = a.Seller.ReceivedReviews.Count >= 5 && (a.Seller.ReceivedReviews.Any() ? a.Seller.ReceivedReviews.Average(r => r.Rating) : 0) >= 4.8
+                IsTopSeller = a.Seller.ReceivedReviews.Count >= 5 && (a.Seller.ReceivedReviews.Any() ? a.Seller.ReceivedReviews.Average(r => r.Rating) : 0) >= 4.8,
+                IsWinning = currentUserId != null && a.Bids.Any() && a.Bids.OrderByDescending(b => b.Amount).First().BidderId == currentUserId
             })
             .ToListAsync();
+
+        var options = new DistributedCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30)
+        };
+        await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(auctions), options);
+
+        return auctions;
     }
 
     public async Task<(bool Success, string Message)> ConfirmDeliveryAsync(int auctionId, string userId)
@@ -379,10 +420,26 @@ public class AuctionService : IAuctionService
 
     private async Task<List<string>> GetAdminIdsAsync()
     {
+        string cacheKey = "admin_user_ids";
+        var cachedData = await _cache.GetStringAsync(cacheKey);
+
+        if (!string.IsNullOrEmpty(cachedData))
+        {
+            return JsonSerializer.Deserialize<List<string>>(cachedData) ?? new List<string>();
+        }
+
         var adminRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Administrator");
-        return adminRole != null 
+        var adminIds = adminRole != null 
             ? await _context.UserRoles.Where(ur => ur.RoleId == adminRole.Id).Select(ur => ur.UserId).ToListAsync() 
             : new List<string>();
+
+        var options = new DistributedCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+        };
+        await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(adminIds), options);
+
+        return adminIds;
     }
 
     public async Task<AuctionDetailsDto?> GetAuctionDetailsAsync(int id, string? currentUserId = null)
@@ -452,7 +509,15 @@ public class AuctionService : IAuctionService
 
     public async Task<IEnumerable<CategoryDto>> GetCategoriesAsync()
     {
-        return await _context.Categories
+        string cacheKey = "all_categories";
+        var cachedData = await _cache.GetStringAsync(cacheKey);
+
+        if (!string.IsNullOrEmpty(cachedData))
+        {
+            return JsonSerializer.Deserialize<IEnumerable<CategoryDto>>(cachedData) ?? new List<CategoryDto>();
+        }
+
+        var categories = await _context.Categories
             .OrderBy(c => c.Name)
             .Select(c => new CategoryDto
             {
@@ -460,6 +525,14 @@ public class AuctionService : IAuctionService
                 Name = c.Name
             })
             .ToListAsync();
+
+        var options = new DistributedCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1)
+        };
+        await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(categories), options);
+
+        return categories;
     }
 
     public async Task<int> CreateAuctionAsync(AuctionFormDto model, string sellerId)
