@@ -565,52 +565,96 @@ public class AuctionsController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(AuctionFormModel model)
     {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (currentUserId == null) return Challenge();
+
+        // 1. Validation
         ValidateImage(model.ImageFile);
-
-        string? imagePath = model.ImageUrl;
-        if (model.ImageFile != null)
+        if (model.AdditionalImageFiles != null)
         {
-            imagePath = await SaveImageAsync(model.ImageFile);
-        }
-
-        if (string.IsNullOrEmpty(imagePath))
-        {
-             ModelState.AddModelError("ImageUrl", "Please provide either an Image URL or upload a file.");
+            foreach (var file in model.AdditionalImageFiles)
+            {
+                ValidateImage(file);
+            }
         }
 
         if (!ModelState.IsValid)
         {
+            var errors = string.Join(" | ", ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage));
+            TempData["Error"] = "Validation failed: " + errors;
+            
             model.Categories = await GetCategoriesAsync();
             return View(model);
         }
 
-        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (currentUserId == null) return Challenge();
-
+        // 2. Prepare DTO
         var dto = new AuctionFormDto
         {
             Title = model.Title,
             Description = model.Description,
-            ImageUrl = imagePath,
+            ImageUrl = model.ImageUrl, // Main URL if provided
             StartPrice = model.StartPrice,
             MinIncrease = model.MinIncrease,
             BuyItNowPrice = model.BuyItNowPrice,
             EndTime = model.EndTime,
-            CategoryId = model.CategoryId
+            CategoryId = model.CategoryId,
+            ShouldPromote = model.ShouldPromote
         };
 
-        var id = await _auctionService.CreateAuctionAsync(dto, currentUserId);
-
-        if (id == -1)
+        // Process File Streams
+        if (model.ImageFile != null)
         {
-            // Idempotent behavior: The auction was likely already created by a previous rapid request.
-            // Instead of showing an error, we redirect to Index to provide a smooth experience.
-            return RedirectToAction(nameof(Index));
+            dto.ImageStreams.Add(model.ImageFile.OpenReadStream());
+            dto.ImageFileNames.Add(model.ImageFile.FileName);
         }
 
-        return RedirectToAction(nameof(Index));
+        if (model.AdditionalImageFiles != null)
+        {
+            foreach (var file in model.AdditionalImageFiles)
+            {
+                if (file.Length > 0)
+                {
+                    dto.ImageStreams.Add(file.OpenReadStream());
+                    dto.ImageFileNames.Add(file.FileName);
+                }
+            }
+        }
+
+        // Process JSON URLs
+        if (!string.IsNullOrEmpty(model.AdditionalImageUrlsJson))
+        {
+            try
+            {
+                var urls = System.Text.Json.JsonSerializer.Deserialize<List<string>>(model.AdditionalImageUrlsJson);
+                if (urls != null) dto.AdditionalImageUrls.AddRange(urls);
+            }
+            catch { }
+        }
+
+        // 3. Call Service
+        int auctionId = await _auctionService.CreateAuctionAsync(dto, currentUserId);
+
+        if (auctionId > 0)
+        {
+            TempData["Success"] = "Your auction is live!";
+            return RedirectToAction(nameof(Details), new { id = auctionId });
+        }
+        
+        if (auctionId == -1)
+        {
+            TempData["Error"] = "A similar auction was recently created. Please wait a few seconds.";
+        }
+        else
+        {
+            TempData["Error"] = "Failed to list item. Please try again.";
+        }
+
+        return RedirectToAction(nameof(MyAuctions));
     }
 
     [HttpPost]

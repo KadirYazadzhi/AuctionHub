@@ -304,17 +304,23 @@
 
             Object.values(inputs).forEach(input => input.addEventListener('input', updatePreview));
 
-            // 3. Price Input Sanitizer (Fix for Bulgarian comma/dot issue)
+            // 3. Price Input Sanitizer
             document.querySelectorAll('.price-input').forEach(input => {
                 input.addEventListener('input', function(e) {
-                    // Allow only numbers and one comma/dot
                     let val = this.value.replace(/[^0-9,.]/g, '');
                     const parts = val.split(/[,.]/);
                     if (parts.length > 2) {
                         val = parts[0] + ',' + parts.slice(1).join('');
                     }
-                    this.value = val.replace('.', ','); // Standardize to comma for display
+                    this.value = val; // Keep what user types for now
                     updatePreview();
+                });
+            });
+
+            // Handle Form Submission - Convert commas to dots for the server
+            document.getElementById('auctionForm').addEventListener('submit', function() {
+                document.querySelectorAll('.price-input').forEach(input => {
+                    input.value = input.value.replace(',', '.');
                 });
             });
 
@@ -326,13 +332,19 @@
             const previewImage = document.getElementById('previewImage');
 
             fileInput.addEventListener('change', (e) => {
-                for (let file of e.target.files) {
-                    const reader = new FileReader();
-                    reader.onload = (f) => {
-                        renderThumbnail(f.target.result, true);
-                        previewImage.src = f.target.result;
-                    };
-                    reader.readAsDataURL(file);
+                const files = e.target.files;
+                if (files.length > 0) {
+                    for (let i = 0; i < files.length; i++) {
+                        const reader = new FileReader();
+                        reader.onload = (f) => {
+                            renderThumbnail(f.target.result, true);
+                            // Set first image as main preview
+                            if (i === 0 && thumbnailGrid.children.length === 1) {
+                                previewImage.src = f.target.result;
+                            }
+                        };
+                        reader.readAsDataURL(files[i]);
+                    }
                 }
             });
 
@@ -341,7 +353,12 @@
                 if (url) {
                     additionalUrls.push(url);
                     renderThumbnail(url, false, additionalUrls.length - 1);
-                    previewImage.src = url;
+                    
+                    // If it's the first image, set as preview
+                    if (thumbnailGrid.children.length === 1) {
+                        previewImage.src = url;
+                    }
+                    
                     urlInput.value = '';
                     hiddenUrlJson.value = JSON.stringify(additionalUrls);
                 }
