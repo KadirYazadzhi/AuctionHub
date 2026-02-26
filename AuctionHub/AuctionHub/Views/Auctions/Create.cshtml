@@ -66,7 +66,7 @@
                                         <label asp-for="StartPrice" class="form-label fw-bold text-dark">Starting Price (€)</label>
                                         <div class="input-group input-group-lg shadow-sm rounded-4 overflow-hidden">
                                             <span class="input-group-text bg-white border-0 ps-4">€</span>
-                                            <input asp-for="StartPrice" id="inputPrice" class="form-control border-0 ps-2" placeholder="0.00" step="0.01" />
+                                            <input type="text" asp-for="StartPrice" id="inputPrice" class="form-control border-0 ps-2 price-input" placeholder="0,00" inputmode="decimal" />
                                         </div>
                                         <span asp-validation-for="StartPrice" class="text-danger"></span>
                                     </div>
@@ -74,7 +74,7 @@
                                         <label asp-for="MinIncrease" class="form-label fw-bold text-dark">Min Increase (€)</label>
                                         <div class="input-group input-group-lg shadow-sm rounded-4 overflow-hidden">
                                             <span class="input-group-text bg-white border-0 ps-4">€</span>
-                                            <input asp-for="MinIncrease" class="form-control border-0 ps-2" placeholder="0.10" step="0.01" />
+                                            <input type="text" asp-for="MinIncrease" id="inputMinIncrease" class="form-control border-0 ps-2 price-input" placeholder="0,10" inputmode="decimal" />
                                         </div>
                                         <span asp-validation-for="MinIncrease" class="text-danger"></span>
                                     </div>
@@ -84,7 +84,7 @@
                                     <label asp-for="BuyItNowPrice" class="form-label fw-bold text-dark">Buy It Now Price (Optional)</label>
                                     <div class="input-group input-group-lg shadow-sm rounded-4 overflow-hidden">
                                         <span class="input-group-text bg-white border-0 ps-4">€</span>
-                                        <input asp-for="BuyItNowPrice" class="form-control border-0 ps-2" placeholder="Leave empty to disable" step="0.01" />
+                                        <input type="text" asp-for="BuyItNowPrice" id="inputBuyItNow" class="form-control border-0 ps-2 price-input" placeholder="Leave empty to disable" inputmode="decimal" />
                                     </div>
                                     <div class="form-text text-muted">Buyers can end the auction instantly by paying this price.</div>
                                 </div>
@@ -282,7 +282,10 @@
             function updatePreview() {
                 previews.title.innerText = inputs.title.value || "Auction Title";
                 previews.category.innerText = inputs.category.options[inputs.category.selectedIndex]?.text || "Category";
-                previews.price.innerText = (parseFloat(inputs.price.value) || 0).toFixed(2) + '€';
+                
+                // Parse price handling Bulgarian comma
+                const rawPrice = inputs.price.value.replace(',', '.');
+                previews.price.innerText = (parseFloat(rawPrice) || 0).toFixed(2) + '€';
                 
                 if (inputs.endTime.value) {
                     const diff = new Date(inputs.endTime.value) - new Date();
@@ -301,7 +304,21 @@
 
             Object.values(inputs).forEach(input => input.addEventListener('input', updatePreview));
 
-            // 3. Gallery Logic
+            // 3. Price Input Sanitizer (Fix for Bulgarian comma/dot issue)
+            document.querySelectorAll('.price-input').forEach(input => {
+                input.addEventListener('input', function(e) {
+                    // Allow only numbers and one comma/dot
+                    let val = this.value.replace(/[^0-9,.]/g, '');
+                    const parts = val.split(/[,.]/);
+                    if (parts.length > 2) {
+                        val = parts[0] + ',' + parts.slice(1).join('');
+                    }
+                    this.value = val.replace('.', ','); // Standardize to comma for display
+                    updatePreview();
+                });
+            });
+
+            // 4. Gallery Logic
             const fileInput = document.getElementById('fileInput');
             const urlInput = document.getElementById('urlInput');
             const addUrlBtn = document.getElementById('addUrlBtn');
