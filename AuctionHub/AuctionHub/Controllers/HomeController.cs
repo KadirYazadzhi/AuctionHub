@@ -115,9 +115,10 @@ public class HomeController : Controller
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error(int? statusCode = null)
     {
-        if (statusCode.HasValue && statusCode.Value == 404)
+        if (statusCode.HasValue)
         {
-            return View("NotFound");
+            if (statusCode.Value == 404) return View("NotFound");
+            if (statusCode.Value == 500) return View("ServerError");
         }
 
         return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });

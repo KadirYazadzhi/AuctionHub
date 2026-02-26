@@ -1,0 +1,34 @@
+@{
+    ViewData["Title"] = "Server Error";
+}
+
+<div class="container py-5 my-5">
+    <div class="row justify-content-center text-center">
+        <div class="col-lg-6">
+            <div class="error-illustration mb-5 animate-fade-up">
+                <i class="bi bi-exclamation-triangle display-1 text-danger opacity-25"></i>
+                <h1 class="display-1 fw-bold text-danger mt-n4">500</h1>
+            </div>
+            
+            <h2 class="fw-bold mb-3 h1">Bidding Interrupted.</h2>
+            <p class="text-muted fs-5 mb-5">Something went wrong on our end. Our technicians are already on the case, like an outbid notification!</p>
+            
+            <div class="d-flex flex-column flex-sm-row justify-content-center gap-3">
+                <a asp-controller="Home" asp-action="Index" class="btn btn-primary rounded-pill px-5 py-3 fw-bold shadow-sm hover-lift">
+                    <i class="bi bi-arrow-left me-2"></i> Safe Return to Home
+                </a>
+                <a href="mailto:support@auctionhub.com" class="btn btn-outline-secondary rounded-pill px-5 py-3 fw-bold hover-lift">
+                    <i class="bi bi-envelope-fill me-2"></i> Report Issue
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .error-illustration {
+        position: relative;
+        padding: 2rem;
+    }
+    .mt-n4 { margin-top: -1.5rem; }
+</style>
