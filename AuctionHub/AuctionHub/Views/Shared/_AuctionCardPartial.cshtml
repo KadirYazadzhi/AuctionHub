@@ -1,7 +1,15 @@
 @model AuctionHub.Models.ViewModels.AuctionListViewModel
 
 <div class="col">
-    <div class="card h-100 border-0 shadow-sm rounded-4 position-relative">
+    <div class="card h-100 border-0 shadow-sm rounded-4 position-relative @(Model.IsPromoted ? "border-promoted" : "")">
+        @if (Model.IsPromoted)
+        {
+            <div class="position-absolute top-0 end-0 m-3 z-1">
+                <span class="badge bg-warning text-dark shadow-sm rounded-pill px-3 py-2 animate-pulse">
+                    <i class="bi bi-megaphone-fill me-1"></i> PROMOTED
+                </span>
+            </div>
+        }
         <div class="position-absolute top-0 start-0 m-3 z-1 d-flex flex-column gap-2">
             <a asp-controller="Auctions" asp-action="Index" asp-route-categoryId="@Model.CategoryId" class="badge bg-white text-dark shadow-sm rounded-pill px-3 py-2 text-decoration-none">
                 <i class="bi bi-tag-fill text-primary me-1"></i> @Model.Category
@@ -62,17 +70,31 @@
                 </div>
             </div>
             
-            <div class="d-grid mt-4">
+            <div class="d-grid mt-4 gap-2">
                 <a asp-controller="Auctions" asp-action="Details" asp-route-id="@Model.Id" 
                    class="btn btn-primary rounded-pill py-2 fw-bold">
                    Place Bid <i class="bi bi-arrow-right ms-2"></i>
                 </a>
+                
+                @if (User.Identity?.IsAuthenticated == true && Model.SellerName == User.Identity.Name && !Model.IsPromoted && Model.IsActive)
+                {
+                    <form asp-controller="Auctions" asp-action="Promote" method="post" class="d-grid">
+                        <input type="hidden" name="auctionId" value="@Model.Id" />
+                        <button type="submit" class="btn btn-outline-warning btn-sm rounded-pill py-2 fw-bold" onclick="return confirm('Promote this auction for 5.00€? It will appear at the top of all searches.');">
+                            <i class="bi bi-megaphone me-1"></i> Boost Listing
+                        </button>
+                    </form>
+                }
             </div>
         </div>
     </div>
 </div>
 
 <style>
+    .border-promoted {
+        border: 2px solid #ffc107 !important;
+        background: linear-gradient(to bottom, #fff9e6, #ffffff) !important;
+    }
     .transition-transform {
         transition: transform 0.5s ease;
     }

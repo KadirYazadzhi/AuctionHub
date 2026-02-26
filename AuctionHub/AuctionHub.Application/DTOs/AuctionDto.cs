@@ -10,6 +10,7 @@ public class AuctionDto
     public string Category { get; set; } = null!;
     public int CategoryId { get; set; }
     public bool IsActive { get; set; }
+    public bool IsPromoted { get; set; }
     public bool IsSuspended { get; set; }
     public string SellerName { get; set; } = null!;
     public bool IsTopSeller { get; set; }

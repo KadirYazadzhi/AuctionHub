@@ -1,3 +1,6 @@
+using AuctionHub.Domain.Models;
+using AuctionHub.Application.Interfaces;
+using AuctionHub.Application.DTOs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
@@ -81,10 +84,10 @@ public class AuctionService : IAuctionService
         // Sorting
         query = sortOrder switch
         {
-            "price_desc" => query.OrderByDescending(a => a.CurrentPrice),
-            "price_asc" => query.OrderBy(a => a.CurrentPrice),
-            "newest" => query.OrderByDescending(a => a.CreatedOn),
-            _ => query.OrderBy(a => a.EndTime) // Default: Ending soonest
+            "price_desc" => query.OrderByDescending(a => a.IsPromoted).ThenByDescending(a => a.CurrentPrice),
+            "price_asc" => query.OrderByDescending(a => a.IsPromoted).ThenBy(a => a.CurrentPrice),
+            "newest" => query.OrderByDescending(a => a.IsPromoted).ThenByDescending(a => a.CreatedOn),
+            _ => query.OrderByDescending(a => a.IsPromoted).ThenBy(a => a.EndTime) // Default: Ending soonest
         };
 
         var projectedQuery = query
@@ -101,6 +104,7 @@ public class AuctionService : IAuctionService
                 Category = a.Category.Name,
                 CategoryId = a.CategoryId,
                 IsActive = a.IsActive,
+                IsPromoted = a.IsPromoted,
                 IsSuspended = a.IsSuspended,
                 SellerName = a.Seller.UserName ?? a.Seller.Email ?? "Unknown",
                 IsTopSeller = a.Seller.ReceivedReviews.Count >= 5 && (a.Seller.ReceivedReviews.Any() ? a.Seller.ReceivedReviews.Average(r => r.Rating) : 0) >= 4.8,
@@ -149,6 +153,7 @@ public class AuctionService : IAuctionService
             Category = a.Category.Name,
             CategoryId = a.CategoryId,
             IsActive = a.IsActive,
+            IsPromoted = a.IsPromoted,
             IsSuspended = a.IsSuspended,
             SellerName = a.Seller.UserName ?? a.Seller.Email ?? "Unknown",
             IsTopSeller = a.Seller.ReceivedReviews.Count >= 5 && (a.Seller.ReceivedReviews.Any() ? a.Seller.ReceivedReviews.Average(r => r.Rating) : 0) >= 4.8,
@@ -199,6 +204,7 @@ public class AuctionService : IAuctionService
             Category = a.Category.Name,
             CategoryId = a.CategoryId,
             IsActive = a.IsActive,
+            IsPromoted = a.IsPromoted,
             IsSuspended = a.IsSuspended,
             SellerName = a.Seller.UserName ?? a.Seller.Email ?? "Unknown",
             IsTopSeller = a.Seller.ReceivedReviews.Count >= 5 && (a.Seller.ReceivedReviews.Any() ? a.Seller.ReceivedReviews.Average(r => r.Rating) : 0) >= 4.8,
@@ -248,6 +254,7 @@ public class AuctionService : IAuctionService
             Category = a.Category.Name,
             CategoryId = a.CategoryId,
             IsActive = a.IsActive,
+            IsPromoted = a.IsPromoted,
             IsSuspended = a.IsSuspended,
             SellerName = a.Seller.UserName ?? a.Seller.Email ?? "Unknown",
             IsTopSeller = a.Seller.ReceivedReviews.Count >= 5 && (a.Seller.ReceivedReviews.Any() ? a.Seller.ReceivedReviews.Average(r => r.Rating) : 0) >= 4.8,
@@ -302,6 +309,7 @@ public class AuctionService : IAuctionService
             Category = a.Category.Name,
             CategoryId = a.CategoryId,
             IsActive = a.IsActive,
+            IsPromoted = a.IsPromoted,
             IsSuspended = a.IsSuspended,
             SellerName = a.Seller.UserName ?? a.Seller.Email ?? "Unknown",
             IsTopSeller = a.Seller.ReceivedReviews.Count >= 5 && (a.Seller.ReceivedReviews.Any() ? a.Seller.ReceivedReviews.Average(r => r.Rating) : 0) >= 4.8,
@@ -343,6 +351,7 @@ public class AuctionService : IAuctionService
                 Category = a.Category.Name,
                 CategoryId = a.CategoryId,
                 IsActive = a.IsActive,
+                IsPromoted = a.IsPromoted,
                 IsSuspended = a.IsSuspended,
                 SellerName = a.Seller.UserName ?? a.Seller.Email ?? "Unknown",
                 IsTopSeller = a.Seller.ReceivedReviews.Count >= 5 && (a.Seller.ReceivedReviews.Any() ? a.Seller.ReceivedReviews.Average(r => r.Rating) : 0) >= 4.8,
@@ -415,6 +424,49 @@ public class AuctionService : IAuctionService
         {
             await dbTransaction.RollbackAsync();
             return (false, "An error occurred while confirming delivery.");
+        }
+    }
+
+    public async Task<(bool Success, string Message)> PromoteAuctionAsync(int auctionId, string userId)
+    {
+        using var dbTransaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            var auction = await _context.Auctions.FirstOrDefaultAsync(a => a.Id == auctionId);
+            if (auction == null) return (false, "Auction not found.");
+            if (auction.SellerId != userId) return (false, "Forbidden.");
+            if (auction.IsPromoted) return (false, "This auction is already promoted.");
+            if (!auction.IsActive) return (false, "Cannot promote a closed auction.");
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return (false, "User not found.");
+
+            decimal promotionFee = 5.00m; 
+            if (user.WalletBalance < promotionFee) return (false, $"Insufficient funds. Promotion costs {promotionFee:C}.");
+
+            // 1. Charge User
+            user.WalletBalance -= promotionFee;
+            _context.Transactions.Add(new Transaction
+            {
+                UserId = userId,
+                Amount = promotionFee,
+                Description = $"Promoted auction: '{auction.Title}'",
+                TransactionType = "Promotion",
+                TransactionDate = DateTime.UtcNow
+            });
+
+            // 2. Mark Auction as Promoted
+            auction.IsPromoted = true;
+
+            await _context.SaveChangesAsync();
+            await dbTransaction.CommitAsync();
+
+            return (true, "Successfully promoted! Your auction will now appear highlighted at the top of lists.");
+        }
+        catch (Exception)
+        {
+            await dbTransaction.RollbackAsync();
+            return (false, "An error occurred while promoting the auction.");
         }
     }
 

@@ -181,10 +181,16 @@ public class AuctionsController : Controller
     [HttpPost]
     public async Task<IActionResult> ConfirmDelivery(int auctionId)
     {
+        // ... (existing)
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Promote(int auctionId)
+    {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (currentUserId == null) return Challenge();
 
-        var result = await _auctionService.ConfirmDeliveryAsync(auctionId, currentUserId);
+        var result = await _auctionService.PromoteAuctionAsync(auctionId, currentUserId);
 
         if (result.Success)
         {
@@ -195,7 +201,7 @@ public class AuctionsController : Controller
             TempData["Error"] = result.Message;
         }
 
-        return RedirectToAction(nameof(Details), new { id = auctionId });
+        return RedirectToAction(nameof(MyAuctions));
     }
 
     [HttpPost]
@@ -285,7 +291,10 @@ public class AuctionsController : Controller
             Category = a.Category,
             CategoryId = a.CategoryId,
             IsActive = a.IsActive,
-            IsSuspended = a.IsSuspended
+            IsSuspended = a.IsSuspended,
+            SellerName = a.SellerName,
+            IsTopSeller = a.IsTopSeller,
+            IsWinning = a.IsWinning
         }).ToList();
 
         var paginatedViewModel = new PaginatedList<AuctionListViewModel>(
@@ -381,7 +390,10 @@ public class AuctionsController : Controller
             Category = a.Category,
             CategoryId = a.CategoryId,
             IsActive = a.IsActive,
-            IsSuspended = a.IsSuspended
+            IsSuspended = a.IsSuspended,
+            SellerName = a.SellerName,
+            IsTopSeller = a.IsTopSeller,
+            IsWinning = a.IsWinning
         }).ToList();
 
         var paginatedViewModel = new PaginatedList<AuctionListViewModel>(
@@ -615,7 +627,10 @@ public class AuctionsController : Controller
             Category = a.Category,
             CategoryId = a.CategoryId,
             IsActive = a.IsActive,
-            IsSuspended = a.IsSuspended
+            IsSuspended = a.IsSuspended,
+            SellerName = a.SellerName,
+            IsTopSeller = a.IsTopSeller,
+            IsWinning = a.IsWinning
         }).ToList();
 
         var paginatedViewModel = new PaginatedList<AuctionListViewModel>(
