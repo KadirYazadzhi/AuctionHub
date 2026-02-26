@@ -76,11 +76,11 @@
                    Place Bid <i class="bi bi-arrow-right ms-2"></i>
                 </a>
                 
-                @if (User.Identity?.IsAuthenticated == true && Model.SellerName == User.Identity.Name && !Model.IsPromoted && Model.IsActive)
+                @if (User.Identity?.IsAuthenticated == true && Model.SellerId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value && !Model.IsPromoted && Model.IsActive)
                 {
-                    <form asp-controller="Auctions" asp-action="Promote" method="post" class="d-grid">
+                    <form asp-controller="Auctions" asp-action="Promote" method="post" class="d-grid" onsubmit="return showConfirm('Promote this auction for <strong>5.00€</strong>? It will appear at the top of all searches.', this);">
                         <input type="hidden" name="auctionId" value="@Model.Id" />
-                        <button type="submit" class="btn btn-outline-warning btn-sm rounded-pill py-2 fw-bold" onclick="return confirm('Promote this auction for 5.00€? It will appear at the top of all searches.');">
+                        <button type="submit" class="btn btn-outline-warning btn-sm rounded-pill py-2 fw-bold">
                             <i class="bi bi-megaphone me-1"></i> Boost Listing
                         </button>
                     </form>
