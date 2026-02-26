@@ -24,7 +24,7 @@ public class ChatService : IChatService
             {
                 Id = m.Id,
                 SenderId = m.SenderId,
-                SenderName = m.Sender.DisplayName ?? m.Sender.UserName,
+                SenderName = m.Sender.DisplayName ?? m.Sender.UserName ?? "Unknown",
                 Content = m.Content,
                 SentOn = m.SentOn,
                 IsGlobal = true
@@ -45,9 +45,9 @@ public class ChatService : IChatService
             {
                 Id = m.Id,
                 SenderId = m.SenderId,
-                SenderName = m.Sender.DisplayName ?? m.Sender.UserName,
+                SenderName = m.Sender.DisplayName ?? m.Sender.UserName ?? "Unknown",
                 ReceiverId = m.ReceiverId,
-                ReceiverName = m.Receiver!.DisplayName ?? m.Receiver.UserName,
+                ReceiverName = m.Receiver!.DisplayName ?? m.Receiver.UserName ?? "Unknown",
                 AuctionId = m.AuctionId,
                 Content = m.Content,
                 SentOn = m.SentOn,

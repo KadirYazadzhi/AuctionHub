@@ -1045,7 +1045,7 @@ public class AuctionService : IAuctionService
         auction.Bids.Add(newBid);
 
         // D. Deactivate bots that are now out of the race
-        foreach (var bot in activeAutoBids.Where(ab => ab.MaxAmount < finalPrice + auction.MinIncrease))
+        foreach (var bot in allActiveAutoBids.Where(ab => ab.MaxAmount < finalPrice + auction.MinIncrease))
         {
             bot.IsActive = false;
         }
