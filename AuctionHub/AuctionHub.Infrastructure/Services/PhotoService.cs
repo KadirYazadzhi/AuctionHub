@@ -7,21 +7,28 @@ namespace AuctionHub.Infrastructure.Services;
 
 public class PhotoService : IPhotoService
 {
-    private readonly Cloudinary _cloudinary;
+    private readonly Cloudinary? _cloudinary;
 
     public PhotoService(IConfiguration config)
     {
-        var acc = new Account(
-            config["Cloudinary:CloudName"],
-            config["Cloudinary:ApiKey"],
-            config["Cloudinary:ApiSecret"]
-        );
+        var cloudName = config["Cloudinary:CloudName"];
+        var apiKey = config["Cloudinary:ApiKey"];
+        var apiSecret = config["Cloudinary:ApiSecret"];
 
-        _cloudinary = new Cloudinary(acc);
+        if (!string.IsNullOrEmpty(cloudName) && !string.IsNullOrEmpty(apiKey) && !string.IsNullOrEmpty(apiSecret))
+        {
+            var acc = new Account(cloudName, apiKey, apiSecret);
+            _cloudinary = new Cloudinary(acc);
+        }
     }
 
     public async Task<(bool Success, string Url, string PublicId)> AddPhotoAsync(Stream fileStream, string fileName)
     {
+        if (_cloudinary == null)
+        {
+            return (false, string.Empty, string.Empty);
+        }
+
         var uploadResult = new ImageUploadResult();
 
         if (fileStream.Length > 0)
@@ -44,6 +51,11 @@ public class PhotoService : IPhotoService
 
     public async Task<(bool Success, string Message)> DeletePhotoAsync(string publicId)
     {
+        if (_cloudinary == null)
+        {
+            return (false, "Cloudinary service not configured.");
+        }
+
         var deleteParams = new DeletionParams(publicId);
         var result = await _cloudinary.DestroyAsync(deleteParams);
 
