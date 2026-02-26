@@ -14,30 +14,30 @@ public class ReviewService : IReviewService
         _context = context;
     }
 
-    public async Task<(bool Success, string Message)> LeaveReviewAsync(int auctionId, string reviewerId, int rating, string comment)
+    public async Task<bool> AddReviewAsync(ReviewDto model)
     {
-        if (!await CanLeaveReviewAsync(auctionId, reviewerId))
+        if (!await CanReviewAsync(model.AuctionId, model.ReviewerId))
         {
-            return (false, "You do not have permission to leave a review for this auction.");
+            return false;
         }
 
-        var auction = await _context.Auctions.FindAsync(auctionId);
-        if (auction == null) return (false, "Auction not found.");
+        var auction = await _context.Auctions.FindAsync(model.AuctionId);
+        if (auction == null) return false;
 
         var review = new Review
         {
-            AuctionId = auctionId,
-            ReviewerId = reviewerId,
+            AuctionId = model.AuctionId,
+            ReviewerId = model.ReviewerId,
             TargetUserId = auction.SellerId,
-            Rating = rating,
-            Comment = comment.Trim(),
+            Rating = model.Rating,
+            Comment = model.Comment.Trim(),
             CreatedOn = DateTime.UtcNow
         };
 
         _context.Reviews.Add(review);
         await _context.SaveChangesAsync();
 
-        return (true, "Your review has been submitted successfully.");
+        return true;
     }
 
     public async Task<IEnumerable<ReviewDto>> GetUserReviewsAsync(string userId)
@@ -48,6 +48,7 @@ public class ReviewService : IReviewService
             .Select(r => new ReviewDto
             {
                 Id = r.Id,
+                AuctionId = r.AuctionId,
                 ReviewerName = r.Reviewer.FirstName != null ? $"{r.Reviewer.FirstName} {r.Reviewer.LastName}" : r.Reviewer.UserName!,
                 ReviewerId = r.ReviewerId,
                 Rating = r.Rating,
@@ -58,7 +59,7 @@ public class ReviewService : IReviewService
             .ToListAsync();
     }
 
-    public async Task<bool> CanLeaveReviewAsync(int auctionId, string userId)
+    public async Task<bool> CanReviewAsync(int auctionId, string userId)
     {
         var auction = await _context.Auctions
             .Include(a => a.Bids)

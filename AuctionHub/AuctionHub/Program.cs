@@ -41,7 +41,7 @@ var redisConnectionString = builder.Configuration.GetConnectionString("Redis")
     ?? "localhost:6379";
 
 builder.Services.AddSignalR().AddStackExchangeRedis(redisConnectionString, options => {
-    options.Configuration.ChannelPrefix = "AuctionHub_SignalR";
+    options.Configuration.ChannelPrefix = StackExchange.Redis.RedisChannel.Literal("AuctionHub_SignalR");
 });
 
 builder.Services.AddStackExchangeRedisCache(options => {

@@ -4,7 +4,7 @@ namespace AuctionHub.Application.Interfaces;
 
 public interface IReviewService
 {
-    Task<(bool Success, string Message)> LeaveReviewAsync(int auctionId, string reviewerId, int rating, string comment);
+    Task<bool> AddReviewAsync(ReviewDto model);
     Task<IEnumerable<ReviewDto>> GetUserReviewsAsync(string userId);
-    Task<bool> CanLeaveReviewAsync(int auctionId, string userId);
+    Task<bool> CanReviewAsync(int auctionId, string userId);
 }

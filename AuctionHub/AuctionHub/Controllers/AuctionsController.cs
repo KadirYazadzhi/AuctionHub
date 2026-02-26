@@ -181,7 +181,21 @@ public class AuctionsController : Controller
     [HttpPost]
     public async Task<IActionResult> ConfirmDelivery(int auctionId)
     {
-        // ... (existing)
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (currentUserId == null) return Challenge();
+
+        var result = await _auctionService.ConfirmDeliveryAsync(auctionId, currentUserId);
+
+        if (result.Success)
+        {
+            TempData["Success"] = result.Message;
+        }
+        else
+        {
+            TempData["Error"] = result.Message;
+        }
+
+        return RedirectToAction(nameof(Details), new { id = auctionId });
     }
 
     [HttpPost]
