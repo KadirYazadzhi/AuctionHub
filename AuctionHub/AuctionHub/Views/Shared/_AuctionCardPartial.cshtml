@@ -14,7 +14,7 @@
             <a asp-controller="Auctions" asp-action="Index" asp-route-categoryId="@Model.CategoryId" class="badge bg-white text-dark shadow-sm rounded-pill px-3 py-2 text-decoration-none">
                 <i class="bi bi-tag-fill text-primary me-1"></i> @Model.Category
             </a>
-            @if (Model.IsWinning.HasValue)
+            @if (User.Identity?.IsAuthenticated == true && Model.IsWinning.HasValue)
             {
                 if (Model.IsWinning.Value)
                 {
