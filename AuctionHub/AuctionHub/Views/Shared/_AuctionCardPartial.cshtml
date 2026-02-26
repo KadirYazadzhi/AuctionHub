@@ -93,8 +93,26 @@
 <style>
     .border-promoted {
         border: 2px solid #ffc107 !important;
+        position: relative;
+    }
+    
+    /* Light Mode */
+    [data-bs-theme="light"] .border-promoted,
+    body:not([data-bs-theme="dark"]) .border-promoted {
         background: linear-gradient(to bottom, #fff9e6, #ffffff) !important;
     }
+
+    /* Dark Mode */
+    [data-bs-theme="dark"] .border-promoted {
+        background: linear-gradient(to bottom, #2d2605, #1a1d20) !important;
+        box-shadow: 0 0 20px rgba(255, 193, 7, 0.1) !important;
+    }
+
+    /* Ensure text is readable in both */
+    .border-promoted .text-dark {
+        color: inherit !important;
+    }
+
     .transition-transform {
         transition: transform 0.5s ease;
     }
