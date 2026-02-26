@@ -1,0 +1,80 @@
+@model AuctionHub.Application.DTOs.ReviewDto
+@{
+    ViewData["Title"] = "Rate Your Experience";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden animate-fade-up">
+                <div class="card-header bg-primary text-white p-4 text-center">
+                    <i class="bi bi-star-fill display-4 mb-2"></i>
+                    <h2 class="fw-bold mb-0">Rate Seller</h2>
+                    <p class="mb-0 opacity-75">Tell us about your experience with @Model.AuctionTitle</p>
+                </div>
+                <div class="card-body p-4 p-lg-5">
+                    <form asp-action="LeaveReview" method="post">
+                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                        <input type="hidden" asp-for="AuctionId" />
+                        <input type="hidden" asp-for="ReviewerId" />
+
+                        <div class="text-center mb-4">
+                            <label class="form-label d-block fw-bold text-muted text-uppercase small mb-3">Overall Rating</label>
+                            <div class="rating-stars display-4 text-warning cursor-pointer">
+                                @for (int i = 5; i >= 1; i--)
+                                {
+                                    <input type="radio" asp-for="Rating" value="@i" id="star@i" class="d-none" required />
+                                    <label for="star@i" class="bi bi-star mx-1"></label>
+                                }
+                            </div>
+                            <span asp-validation-for="Rating" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-4">
+                            <label asp-for="Comment" class="form-label fw-bold text-muted text-uppercase small">Your Feedback</label>
+                            <textarea asp-for="Comment" class="form-control rounded-4 p-3 bg-light border-0" rows="4" placeholder="How was the item? Was the shipping fast?"></textarea>
+                            <span asp-validation-for="Comment" class="text-danger"></span>
+                        </div>
+
+                        <div class="d-grid gap-2 mt-5">
+                            <button type="submit" class="btn btn-primary btn-lg rounded-pill shadow-sm py-3 fw-bold">
+                                Submit Feedback <i class="bi bi-send ms-2"></i>
+                            </button>
+                            <a asp-controller="Auctions" asp-action="Details" asp-route-id="@Model.AuctionId" class="btn btn-link text-muted text-decoration-none">
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .rating-stars {
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: center;
+    }
+    .rating-stars label {
+        transition: all 0.2s ease;
+    }
+    .rating-stars label:hover,
+    .rating-stars label:hover ~ label,
+    .rating-stars input:checked ~ label {
+        color: #ffc107;
+        font-variation-settings: 'FILL' 1;
+        transform: scale(1.2);
+    }
+    /* Simple bootstrap icon fill replacement since webfonts don't support font-variation-settings easily */
+    .rating-stars input:checked ~ label:before,
+    .rating-stars label:hover ~ label:before,
+    .rating-stars label:hover:before {
+        content: "\f586"; /* bi-star-fill */
+    }
+</style>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
