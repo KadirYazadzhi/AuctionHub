@@ -580,7 +580,7 @@ a.card {
 .delay-300 { animation-delay: 0.3s; }
 
 /* Promoted Auction Cards - Ultra Specific Overrides */
-[data-bs-theme="light"] .card.border-promoted,
+html[data-bs-theme="light"] body .card.border-promoted,
 body:not([data-bs-theme="dark"]) .card.border-promoted {
     background: linear-gradient(180deg, #fffcf0 0%, #ffffff 100%) !important;
     background-color: #fffcf0 !important;
@@ -588,16 +588,16 @@ body:not([data-bs-theme="dark"]) .card.border-promoted {
     box-shadow: 0 10px 30px rgba(255, 193, 7, 0.15) !important;
 }
 
-[data-bs-theme="dark"] .card.border-promoted {
+html[data-bs-theme="dark"] body .card.border-promoted {
     background: linear-gradient(180deg, #241f0a 0%, #1e293b 100%) !important;
     background-color: #241f0a !important;
     border: 2px solid #ffc107 !important;
-    box-shadow: 0 0 25px rgba(255, 193, 7, 0.2) !important;
+    box-shadow: 0 0 25px rgba(255, 193, 7, 0.25) !important;
 }
 
-.card.border-promoted:hover {
+html body .card.border-promoted:hover {
     transform: translateY(-8px) scale(1.01) !important;
-    box-shadow: 0 15px 40px rgba(255, 193, 7, 0.3) !important;
+    box-shadow: 0 15px 40px rgba(255, 193, 7, 0.35) !important;
 }
 
 .animate-pulse-gold {
