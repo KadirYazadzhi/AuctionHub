@@ -347,7 +347,8 @@ public class AuctionService : IAuctionService
                 .ThenInclude(u => u.ReceivedReviews)
             .Include(a => a.Bids)
             .Where(a => a.IsActive && a.EndTime > now && !adminIds.Contains(a.SellerId))
-            .OrderBy(a => a.EndTime)
+            .OrderByDescending(a => a.IsPromoted)
+            .ThenBy(a => a.EndTime)
             .Take(count)
             .Select(a => new AuctionDto
             {
