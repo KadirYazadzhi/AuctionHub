@@ -91,34 +91,27 @@
 </div>
 
 <style>
-    /* Base Promoted Styles */
-    .card.border-promoted {
-        border: 2px solid #ffc107 !important;
-        position: relative;
-        transition: all 0.3s ease;
-    }
-    
-    /* Light Mode Refinement */
-    [data-bs-theme="light"] .card.border-promoted,
-    body:not([data-bs-theme="dark"]) .card.border-promoted {
-        background: linear-gradient(180deg, #fffcf0 0%, #ffffff 100%) !important;
-        box-shadow: 0 10px 30px rgba(255, 193, 7, 0.15) !important;
-    }
-
-    /* Dark Mode Refinement - Deep Gold Glow */
+    /* Ultra-high specificity to beat site.css !important rules */
+    html[data-bs-theme="dark"] div.card.border-promoted,
     [data-bs-theme="dark"] .card.border-promoted {
         background: linear-gradient(180deg, #241f0a 0%, #1e293b 100%) !important;
-        background-color: #1e293b !important;
+        background-color: #241f0a !important;
+        border: 2px solid #ffc107 !important;
         box-shadow: 0 0 25px rgba(255, 193, 7, 0.15) !important;
     }
 
-    /* Hover effect for promoted cards */
-    .card.border-promoted:hover {
-        transform: translateY(-8px) scale(1.01);
-        box-shadow: 0 15px 40px rgba(255, 193, 7, 0.25) !important;
+    html[data-bs-theme="light"] div.card.border-promoted,
+    body:not([data-bs-theme="dark"]) div.card.border-promoted {
+        background: linear-gradient(180deg, #fffcf0 0%, #ffffff 100%) !important;
+        background-color: #fffcf0 !important;
+        border: 2px solid #ffc107 !important;
+        box-shadow: 0 10px 30px rgba(255, 193, 7, 0.15) !important;
     }
 
-    /* Pulse animation for the badge */
+    .card.border-promoted:hover {
+        transform: translateY(-8px) scale(1.01) !important;
+    }
+
     .animate-pulse {
         animation: pulse-gold 2s infinite;
     }
@@ -131,5 +124,8 @@
 
     .transition-transform {
         transition: transform 0.5s ease;
+    }
+    .card:hover .transition-transform {
+        transform: scale(1.1);
     }
 </style>
