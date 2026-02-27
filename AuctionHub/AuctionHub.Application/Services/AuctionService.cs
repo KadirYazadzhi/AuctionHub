@@ -341,12 +341,19 @@ public class AuctionService : IAuctionService
         var adminIds = await GetAdminIdsAsync();
         var now = DateTime.UtcNow;
 
-        var auctions = await _context.Auctions
+        var auctionsQuery = _context.Auctions
             .Include(a => a.Category)
             .Include(a => a.Seller)
                 .ThenInclude(u => u.ReceivedReviews)
             .Include(a => a.Bids)
-            .Where(a => a.IsActive && a.EndTime > now && !adminIds.Contains(a.SellerId))
+            .Where(a => a.IsActive && a.EndTime > now && !adminIds.Contains(a.SellerId));
+
+        if (currentUserId != null)
+        {
+            auctionsQuery = auctionsQuery.Where(a => a.SellerId != currentUserId);
+        }
+
+        var auctions = await auctionsQuery
             .OrderByDescending(a => a.IsPromoted)
             .ThenBy(a => a.EndTime)
             .Take(count)

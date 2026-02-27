@@ -79,8 +79,15 @@
             
             <div class="d-grid mt-4 gap-2">
                 <a asp-controller="Auctions" asp-action="Details" asp-route-id="@Model.Id" 
-                   class="btn btn-primary rounded-pill py-2 fw-bold">
-                   Place Bid <i class="bi bi-arrow-right ms-2"></i>
+                   class="btn @(isOwner ? "btn-outline-primary" : "btn-primary") rounded-pill py-2 fw-bold">
+                   @if (isOwner)
+                   {
+                       <text><i class="bi bi-eye-fill me-2"></i> View My Listing</text>
+                   }
+                   else
+                   {
+                       <text>Place Bid <i class="bi bi-arrow-right ms-2"></i></text>
+                   }
                 </a>
                 
                 @if (User.Identity?.IsAuthenticated == true && isOwner && !Model.IsPromoted && Model.IsActive)
