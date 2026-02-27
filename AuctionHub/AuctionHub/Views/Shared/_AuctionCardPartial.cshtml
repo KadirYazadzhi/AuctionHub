@@ -1,11 +1,17 @@
+@using System.Security.Claims
 @model AuctionHub.Models.ViewModels.AuctionListViewModel
+
+@{
+    var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    bool isOwner = Model.SellerId == currentUserId;
+}
 
 <div class="col">
     <div class="card h-100 border-0 shadow-sm rounded-4 position-relative @(Model.IsPromoted ? "border-promoted" : "")">
         @if (Model.IsPromoted)
         {
             <div class="position-absolute top-0 end-0 m-3 z-1">
-                <span class="badge bg-warning text-dark shadow-sm rounded-pill px-3 py-2 animate-pulse">
+                <span class="badge bg-warning text-dark shadow-sm rounded-pill px-3 py-2 animate-pulse-gold">
                     <i class="bi bi-megaphone-fill me-1"></i> PROMOTED
                 </span>
             </div>
@@ -14,7 +20,8 @@
             <a asp-controller="Auctions" asp-action="Index" asp-route-categoryId="@Model.CategoryId" class="badge bg-white text-dark shadow-sm rounded-pill px-3 py-2 text-decoration-none">
                 <i class="bi bi-tag-fill text-primary me-1"></i> @Model.Category
             </a>
-            @if (User.Identity?.IsAuthenticated == true && Model.SellerId != User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value && Model.IsWinning.HasValue)
+            
+            @if (User.Identity?.IsAuthenticated == true && !isOwner && Model.IsWinning.HasValue)
             {
                 if (Model.IsWinning.Value)
                 {
@@ -38,7 +45,7 @@
             }
         </div>
         
-        <div class="overflow-hidden rounded-top-4" style="height: 220px; cursor: pointer;">
+        <div class="overflow-hidden rounded-top-4" style="height: 220px; cursor: pointer;" onclick="window.location.href='@Url.Action("Details", "Auctions", new { id = Model.Id })'">
             <img src="@(string.IsNullOrEmpty(Model.ImageUrl) ? "https://via.placeholder.com/400x300?text=No+Image" : Model.ImageUrl)" 
                  class="card-img-top h-100 w-100 object-fit-cover transition-transform" 
                  alt="@Model.Title">
@@ -76,7 +83,7 @@
                    Place Bid <i class="bi bi-arrow-right ms-2"></i>
                 </a>
                 
-                @if (User.Identity?.IsAuthenticated == true && Model.SellerId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value && !Model.IsPromoted && Model.IsActive)
+                @if (User.Identity?.IsAuthenticated == true && isOwner && !Model.IsPromoted && Model.IsActive)
                 {
                     <form asp-controller="Auctions" asp-action="Promote" method="post" class="d-grid" onsubmit="return showConfirm('Promote this auction for <strong>5.00€</strong>? It will appear at the top of all searches.', this);">
                         <input type="hidden" name="auctionId" value="@Model.Id" />
@@ -91,37 +98,6 @@
 </div>
 
 <style>
-    /* Ultra-high specificity to beat site.css !important rules */
-    html[data-bs-theme="dark"] div.card.border-promoted,
-    [data-bs-theme="dark"] .card.border-promoted {
-        background: linear-gradient(180deg, #241f0a 0%, #1e293b 100%) !important;
-        background-color: #241f0a !important;
-        border: 2px solid #ffc107 !important;
-        box-shadow: 0 0 25px rgba(255, 193, 7, 0.15) !important;
-    }
-
-    html[data-bs-theme="light"] div.card.border-promoted,
-    body:not([data-bs-theme="dark"]) div.card.border-promoted {
-        background: linear-gradient(180deg, #fffcf0 0%, #ffffff 100%) !important;
-        background-color: #fffcf0 !important;
-        border: 2px solid #ffc107 !important;
-        box-shadow: 0 10px 30px rgba(255, 193, 7, 0.15) !important;
-    }
-
-    .card.border-promoted:hover {
-        transform: translateY(-8px) scale(1.01) !important;
-    }
-
-    .animate-pulse {
-        animation: pulse-gold 2s infinite;
-    }
-
-    @@keyframes pulse-gold {
-        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
-        70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
-        100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
-    }
-
     .transition-transform {
         transition: transform 0.5s ease;
     }
