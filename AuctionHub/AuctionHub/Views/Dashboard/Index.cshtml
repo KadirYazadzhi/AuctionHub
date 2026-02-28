@@ -11,13 +11,13 @@
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-5">
         <div class="mb-3 mb-md-0">
             <h1 class="fw-bold mb-1 text-main">Welcome back, @Model.DisplayName! 👋</h1>
-            <p class="text-muted mb-0">Here's what's happening with your auctions today.</p>
+            <p class="text-muted mb-0">Here's an overview of your activity and performance.</p>
         </div>
         <div class="d-flex gap-2">
             <a asp-controller="Auctions" asp-action="Create" class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold">
                 <i class="bi bi-plus-lg me-2"></i> List New Item
             </a>
-            <a asp-area="Identity" asp-page="/Account/Manage/Index" class="btn btn-white bg-white border shadow-sm rounded-pill px-4 fw-bold">
+            <a asp-area="Identity" asp-page="/Account/Manage/Index" class="btn btn-white bg-card border shadow-sm rounded-pill px-4 fw-bold text-main">
                 <i class="bi bi-person-gear me-2"></i> Profile Settings
             </a>
         </div>
@@ -26,38 +26,38 @@
     <!-- Quick Stats Cards -->
     <div class="row g-4 mb-5">
         <div class="col-6 col-lg-3">
-            <div class="card border-0 shadow-sm rounded-5 h-100 bg-white border-start border-primary border-5 transition-all hover-lift">
+            <div class="card border-0 shadow-sm rounded-5 h-100 bg-card border-start border-primary border-5 transition-all hover-lift">
                 <div class="card-body p-4">
                     <small class="text-muted text-uppercase fw-bold letter-spacing-1 d-block mb-2">Active Bids</small>
-                    <h2 class="fw-bold mb-0 text-dark">@Model.ActiveBidsCount</h2>
+                    <h2 class="fw-bold mb-0 text-main">@Model.ActiveBidsCount</h2>
                     <small class="text-primary fw-medium">Items you're chasing</small>
                 </div>
             </div>
         </div>
         <div class="col-6 col-lg-3">
-            <div class="card border-0 shadow-sm rounded-5 h-100 bg-white border-start border-success border-5 transition-all hover-lift">
+            <div class="card border-0 shadow-sm rounded-5 h-100 bg-card border-start border-success border-5 transition-all hover-lift">
                 <div class="card-body p-4">
                     <small class="text-muted text-uppercase fw-bold letter-spacing-1 d-block mb-2">Win Rate</small>
-                    <h2 class="fw-bold mb-0 text-dark">@Model.WinRate%</h2>
+                    <h2 class="fw-bold mb-0 text-main">@Model.WinRate%</h2>
                     <small class="text-success fw-medium">Success performance</small>
                 </div>
             </div>
         </div>
         <div class="col-6 col-lg-3">
-            <div class="card border-0 shadow-sm rounded-5 h-100 bg-white border-start border-info border-5 transition-all hover-lift">
+            <div class="card border-0 shadow-sm rounded-5 h-100 bg-card border-start border-info border-5 transition-all hover-lift">
                 <div class="card-body p-4">
                     <small class="text-muted text-uppercase fw-bold letter-spacing-1 d-block mb-2">Total Spent</small>
-                    <h2 class="fw-bold mb-0 text-dark">@Model.TotalSpent.ToString("C0")</h2>
-                    <small class="text-muted">Investment in items</small>
+                    <h2 class="fw-bold mb-0 text-main">@Model.TotalSpent.ToString("C0")</h2>
+                    <small class="text-info fw-medium">Investment in items</small>
                 </div>
             </div>
         </div>
         <div class="col-6 col-lg-3">
-            <div class="card border-0 shadow-sm rounded-5 h-100 bg-white border-start border-warning border-5 transition-all hover-lift">
+            <div class="card border-0 shadow-sm rounded-5 h-100 bg-card border-start border-warning border-5 transition-all hover-lift">
                 <div class="card-body p-4">
                     <small class="text-muted text-uppercase fw-bold letter-spacing-1 d-block mb-2">Net Earnings</small>
-                    <h2 class="fw-bold mb-0 text-dark">@Model.TotalEarned.ToString("C0")</h2>
-                    <small class="text-muted">From your sales</small>
+                    <h2 class="fw-bold mb-0 text-main">@Model.TotalEarned.ToString("C0")</h2>
+                    <small class="text-warning fw-medium">From your sales</small>
                 </div>
             </div>
         </div>
@@ -66,7 +66,7 @@
     <div class="row g-4 mb-5">
         <!-- Activity Chart -->
         <div class="col-lg-8">
-            <div class="card border-0 shadow-sm rounded-5 bg-white h-100 p-2">
+            <div class="card border-0 shadow-sm rounded-5 bg-card h-100 p-2 border border-light-subtle">
                 <div class="card-body p-4">
                     <h5 class="fw-bold mb-4 text-main">Your Bidding Activity <small class="text-muted fw-normal fs-6 ms-2">(Last 7 days)</small></h5>
                     <div style="height: 300px;">
@@ -78,16 +78,28 @@
 
         <!-- Wallet Card -->
         <div class="col-lg-4">
-            <div class="card border-0 shadow-sm rounded-5 bg-primary bg-gradient text-white h-100 p-4 shadow-lg position-relative overflow-hidden">
-                <div class="position-absolute top-0 end-0 m-n3 opacity-10" style="font-size: 10rem;">
+            <div class="card border-0 shadow-lg rounded-5 bg-primary bg-gradient text-white h-100 p-4 position-relative overflow-hidden">
+                <!-- Decorative element -->
+                <div class="position-absolute top-0 end-0 m-n4 opacity-10" style="font-size: 12rem; line-height: 1;">
                     <i class="bi bi-wallet2"></i>
                 </div>
-                <div class="position-relative z-1">
-                    <h6 class="text-white-50 text-uppercase fw-bold letter-spacing-1 mb-4">Wallet Balance</h6>
-                    <h1 class="display-4 fw-bold mb-4">@Model.WalletBalance.ToString("C")</h1>
-                    <div class="d-grid gap-2">
-                        <a asp-controller="Wallet" asp-action="AddFunds" class="btn btn-white bg-white text-primary rounded-pill py-2 fw-bold">Top Up Wallet</a>
-                        <a asp-controller="Wallet" asp-action="History" class="btn btn-link text-white-50 text-decoration-none small">View Transaction History</a>
+                
+                <div class="position-relative z-1 d-flex flex-column h-100">
+                    <div class="mb-auto">
+                        <h6 class="text-white-50 text-uppercase fw-bold letter-spacing-1 mb-2">Available Balance</h6>
+                        <h1 class="display-4 fw-bold mb-0">@Model.WalletBalance.ToString("C")</h1>
+                        <p class="text-white-50 small mt-2">Ready for your next bid</p>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <div class="d-grid gap-2">
+                            <a asp-controller="Wallet" asp-action="AddFunds" class="btn btn-white bg-white text-primary rounded-pill py-3 fw-bold shadow-sm hover-lift">
+                                <i class="bi bi-plus-circle-fill me-2"></i>Top Up Wallet
+                            </a>
+                            <a asp-controller="Wallet" asp-action="History" class="btn btn-link text-white text-decoration-none small text-center opacity-75 hover-opacity-100">
+                                <i class="bi bi-clock-history me-1"></i> View Transaction History
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -97,10 +109,10 @@
     <div class="row g-4">
         <!-- Current Participation -->
         <div class="col-lg-7">
-            <div class="card border-0 shadow-sm rounded-5 bg-white h-100 overflow-hidden">
-                <div class="card-header bg-white border-0 p-4 pb-0 d-flex justify-content-between align-items-center">
-                    <h5 class="fw-bold mb-0">Ongoing Participations</h5>
-                    <a asp-controller="Auctions" asp-action="MyBids" class="text-primary small text-decoration-none fw-bold">View My Bids</a>
+            <div class="card border-0 shadow-sm rounded-5 bg-card h-100 overflow-hidden border border-light-subtle">
+                <div class="card-header bg-transparent border-0 p-4 pb-0 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0 text-main">Ongoing Participations</h5>
+                    <a asp-controller="Auctions" asp-action="MyBids" class="text-primary small text-decoration-none fw-bold">View All <i class="bi bi-arrow-right"></i></a>
                 </div>
                 <div class="card-body p-4">
                     @if (Model.Auctions.Any(a => a.IsActive))
@@ -108,17 +120,17 @@
                         <div class="list-group list-group-flush">
                             @foreach (var auction in Model.Auctions.Where(a => a.IsActive).Take(5))
                             {
-                                <div class="list-group-item px-0 border-0 d-flex align-items-center mb-3">
-                                    <div class="rounded-4 overflow-hidden me-3" style="width: 60px; height: 60px;">
-                                        <img src="@auction.ImageUrl" class="w-100 h-100 object-fit-cover" alt="@auction.Title">
+                                <div class="list-group-item px-0 border-0 d-flex align-items-center mb-3 bg-transparent">
+                                    <div class="rounded-4 overflow-hidden me-3 shadow-sm" style="width: 64px; height: 64px;">
+                                        <img src="@(string.IsNullOrEmpty(auction.ImageUrl) ? "https://via.placeholder.com/100" : auction.ImageUrl)" class="w-100 h-100 object-fit-cover" alt="@auction.Title">
                                     </div>
-                                    <div class="flex-grow-1">
-                                        <h6 class="fw-bold text-dark mb-1 text-truncate" style="max-width: 250px;">@auction.Title</h6>
-                                        <span class="badge bg-light text-muted rounded-pill px-2">@auction.Category</span>
+                                    <div class="flex-grow-1 overflow-hidden">
+                                        <h6 class="fw-bold text-main mb-1 text-truncate">@auction.Title</h6>
+                                        <span class="badge bg-light-custom text-muted rounded-pill px-2 small">@auction.Category</span>
                                     </div>
-                                    <div class="text-end">
+                                    <div class="text-end ms-3">
                                         <div class="fw-bold text-primary">@auction.CurrentPrice.ToString("C")</div>
-                                        <a asp-controller="Auctions" asp-action="Details" asp-route-id="@auction.Id" class="smallest text-muted text-decoration-underline">Go to auction</a>
+                                        <a asp-controller="Auctions" asp-action="Details" asp-route-id="@auction.Id" class="smallest text-muted text-decoration-none hover-primary">Details</a>
                                     </div>
                                 </div>
                             }
@@ -127,9 +139,11 @@
                     else
                     {
                         <div class="text-center py-5 text-muted">
-                            <i class="bi bi-search display-1 opacity-10 mb-3 d-block"></i>
-                            <p>You are not participating in any active auctions.</p>
-                            <a asp-controller="Auctions" asp-action="Index" class="btn btn-outline-primary btn-sm rounded-pill">Start Browsing</a>
+                            <div class="mb-3 opacity-25">
+                                <i class="bi bi-hammer display-1"></i>
+                            </div>
+                            <p class="fs-5">You are not participating in any active auctions.</p>
+                            <a asp-controller="Auctions" asp-action="Index" class="btn btn-outline-primary rounded-pill px-4">Start Browsing</a>
                         </div>
                     }
                 </div>
@@ -138,23 +152,29 @@
 
         <!-- Ending Soon (Personalized) -->
         <div class="col-lg-5">
-            <div class="card border-0 shadow-sm rounded-5 bg-card p-4 h-100">
-                <h5 class="fw-bold mb-4">Ends Soon <small class="text-muted fw-normal ms-1">(Recommended for you)</small></h5>
-                @foreach (var auction in (IEnumerable<AuctionHub.Application.DTOs.AuctionDto>)ViewBag.EndingSoon)
-                {
-                    <div class="d-flex align-items-center mb-4 p-2 transition-all hover-lift rounded-4 bg-light bg-opacity-50">
-                        <div class="rounded-3 overflow-hidden me-3" style="width: 50px; height: 50px;">
-                            <img src="@auction.ImageUrl" class="w-100 h-100 object-fit-cover" />
+            <div class="card border-0 shadow-sm rounded-5 bg-card p-4 h-100 border border-light-subtle">
+                <h5 class="fw-bold mb-4 text-main">Ending Soon <small class="text-muted fw-normal ms-1">(Handpicked for you)</small></h5>
+                <div class="d-flex flex-column gap-3">
+                    @foreach (var auction in (IEnumerable<AuctionHub.Application.DTOs.AuctionDto>)ViewBag.EndingSoon)
+                    {
+                        <div class="d-flex align-items-center p-3 transition-all hover-lift rounded-4 bg-light-custom border border-light-subtle shadow-sm">
+                            <div class="rounded-3 overflow-hidden me-3 shadow-sm" style="width: 56px; height: 56px;">
+                                <img src="@(string.IsNullOrEmpty(auction.ImageUrl) ? "https://via.placeholder.com/100" : auction.ImageUrl)" class="w-100 h-100 object-fit-cover" />
+                            </div>
+                            <div class="flex-grow-1 overflow-hidden">
+                                <h6 class="fw-bold text-main mb-0 text-truncate">@auction.Title</h6>
+                                <div class="d-flex align-items-center gap-2 mt-1">
+                                    <span class="text-danger fw-bold smallest"><i class="bi bi-clock-fill me-1"></i>@((auction.EndTime - DateTime.UtcNow).Hours)h @((auction.EndTime - DateTime.UtcNow).Minutes)m</span>
+                                    <span class="text-muted smallest">|</span>
+                                    <span class="text-primary fw-bold smallest">@auction.CurrentPrice.ToString("C")</span>
+                                </div>
+                            </div>
+                            <a asp-controller="Auctions" asp-action="Details" asp-route-id="@auction.Id" class="btn btn-primary btn-sm rounded-circle shadow-sm ms-2" style="width: 36px; height: 36px; padding: 0; display: flex; align-items: center; justify-content: center;">
+                                <i class="bi bi-arrow-right"></i>
+                            </a>
                         </div>
-                        <div class="flex-grow-1 overflow-hidden">
-                            <h6 class="fw-bold text-dark mb-0 text-truncate">@auction.Title</h6>
-                            <small class="text-danger fw-bold smallest">Ends in: @((auction.EndTime - DateTime.UtcNow).Hours)h @((auction.EndTime - DateTime.UtcNow).Minutes)m</small>
-                        </div>
-                        <a asp-controller="Auctions" asp-action="Details" asp-route-id="@auction.Id" class="btn btn-sm btn-primary rounded-circle shadow-sm" style="width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;">
-                            <i class="bi bi-arrow-right small"></i>
-                        </a>
-                    </div>
-                }
+                    }
+                </div>
             </div>
         </div>
     </div>
@@ -162,14 +182,19 @@
 
 <style>
     .letter-spacing-1 { letter-spacing: 1px; }
-    .smallest { font-size: 0.7rem; }
-    .hover-lift:hover { transform: translateY(-5px); }
+    .smallest { font-size: 0.75rem; }
+    .hover-lift:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important; }
+    .hover-opacity-100:hover { opacity: 1 !important; }
     .transition-all { transition: all 0.3s ease; }
+    .bg-light-custom { background-color: var(--bg-light) !important; }
     
-    /* Dark Mode Support for Dashboard */
-    [data-bs-theme="dark"] .bg-white { background-color: var(--bg-card) !important; }
-    [data-bs-theme="dark"] .text-dark { color: var(--text-main) !important; }
-    [data-bs-theme="dark"] .bg-light { background-color: rgba(255,255,255,0.05) !important; }
+    [data-bs-theme="dark"] .bg-card { background-color: var(--bg-card) !important; }
+    [data-bs-theme="dark"] .text-main { color: var(--text-main) !important; }
+    [data-bs-theme="dark"] .bg-light-custom { background-color: rgba(255,255,255,0.03) !important; }
+    [data-bs-theme="dark"] .border-light-subtle { border-color: rgba(255,255,255,0.05) !important; }
+    
+    .btn-white { background-color: white; color: var(--primary-color); border: none; }
+    .btn-white:hover { background-color: #f8f9fa; color: var(--primary-color); }
 </style>
 
 @section Scripts {
@@ -180,36 +205,53 @@
             const textColor = isDark ? '#94a3b8' : '#64748b';
             const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
 
-            new Chart(document.getElementById('userActivityChart'), {
-                type: 'line',
-                data: {
-                    labels: @Html.Raw(JsonSerializer.Serialize(activityLabels)),
-                    datasets: [{
-                        label: 'My Bids',
-                        data: @Html.Raw(JsonSerializer.Serialize(activityData)),
-                        borderColor: '#4361ee',
-                        backgroundColor: 'rgba(67, 97, 238, 0.1)',
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 5,
-                        pointBackgroundColor: '#4361ee',
-                        borderWidth: 3
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { 
-                            beginAtZero: true, 
-                            grid: { color: gridColor }, 
-                            ticks: { color: textColor, stepSize: 1, precision: 0 } 
+            const ctx = document.getElementById('userActivityChart');
+            if (ctx) {
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: @Html.Raw(JsonSerializer.Serialize(activityLabels)),
+                        datasets: [{
+                            label: 'My Bids',
+                            data: @Html.Raw(JsonSerializer.Serialize(activityData)),
+                            borderColor: '#4361ee',
+                            backgroundColor: 'rgba(67, 97, 238, 0.15)',
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 6,
+                            pointHoverRadius: 8,
+                            pointBackgroundColor: '#4361ee',
+                            pointBorderColor: isDark ? '#1e293b' : '#ffffff',
+                            pointBorderWidth: 2,
+                            borderWidth: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { 
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                                titleColor: isDark ? '#ffffff' : '#1e293b',
+                                bodyColor: isDark ? '#ffffff' : '#1e293b',
+                                borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                                borderWidth: 1,
+                                padding: 12,
+                                displayColors: false
+                            }
                         },
-                        x: { grid: { display: false }, ticks: { color: textColor } }
+                        scales: {
+                            y: { 
+                                beginAtZero: true, 
+                                grid: { color: gridColor }, 
+                                ticks: { color: textColor, stepSize: 1, precision: 0 } 
+                            },
+                            x: { grid: { display: false }, ticks: { color: textColor } }
+                        }
                     }
-                }
-            });
+                });
+            }
         });
     </script>
 }
