@@ -21,28 +21,25 @@ public class EmailSender : IEmailSender
     public async Task SendEmailAsync(string email, string subject, string htmlMessage)
     {
         var apiToken = _config["EmailSettings:ApiToken"];
+        const string inboxId = "4420755"; // Your specific Mailtrap Sandbox Inbox ID
         
         if (string.IsNullOrEmpty(apiToken) || apiToken == "YOUR_MAILTRAP_TOKEN")
         {
-            // Fallback for local development - logs to console
-            Console.WriteLine("--- MAILTRAP API LOG (No Token) ---");
+            Console.WriteLine("--- MAILTRAP LOG (No Token) ---");
             Console.WriteLine($"To: {email}");
             Console.WriteLine($"Subject: {subject}");
-            Console.WriteLine("----------------------------------");
             return;
         }
 
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiToken);
-        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
         var emailData = new
         {
-            from = new { email = "mailtrap@auctionhub.com", name = "AuctionHub Team" },
+            from = new { email = "hello@auctionhub.com", name = "AuctionHub" },
             to = new[] { new { email = email } },
             subject = subject,
-            html = htmlMessage,
-            category = "Identity Verification"
+            html = htmlMessage
         };
 
         var json = JsonSerializer.Serialize(emailData);
@@ -50,20 +47,18 @@ public class EmailSender : IEmailSender
 
         try
         {
-            // Note: If using Sandbox, the URL is different. This is for the Sending API.
-            // For Sandbox testing, use: https://sandbox.api.mailtrap.io/api/send/{inbox_id}
-            // We'll use the universal Sending API URL here.
-            var response = await client.PostAsync("https://send.api.mailtrap.io/api/send", content);
+            // Using the Mailtrap Sandbox API URL with your Inbox ID
+            var response = await client.PostAsync($"https://sandbox.api.mailtrap.io/api/send/{inboxId}", content);
             
             if (!response.IsSuccessStatusCode)
             {
                 var error = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"MAILTRAP ERROR: {response.StatusCode} - {error}");
+                Console.WriteLine($"MAILTRAP SANDBOX ERROR: {response.StatusCode} - {error}");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"CRITICAL EMAIL FAILURE: {ex.Message}");
+            Console.WriteLine($"EMAIL CRITICAL FAILURE: {ex.Message}");
         }
     }
 }
