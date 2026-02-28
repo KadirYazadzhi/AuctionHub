@@ -2,8 +2,17 @@
 @inject SignInManager<ApplicationUser> SignInManager
 @{
     var hasExternalLogins = (await SignInManager.GetExternalAuthenticationSchemesAsync()).Any();
+    var isUser = !User.IsInRole("Administrator");
 }
 <ul class="nav nav-pills flex-column profile-nav">
+    @if (isUser)
+    {
+        <li class="nav-item">
+            <a class="nav-link rounded-0 border-bottom p-3 fw-bold text-primary" asp-area="" asp-controller="Dashboard" asp-action="Index">
+                <i class="bi bi-speedometer2 me-2"></i> My Analytics
+            </a>
+        </li>
+    }
     <li class="nav-item">
         <a class="nav-link rounded-0 border-bottom p-3 @ManageNavPages.IndexNavClass(ViewContext)" id="profile" asp-page="./Index">
             <i class="bi bi-person me-2"></i> Profile

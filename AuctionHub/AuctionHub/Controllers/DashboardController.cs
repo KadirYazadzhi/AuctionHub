@@ -19,6 +19,11 @@ public class DashboardController : Controller
 
     public async Task<IActionResult> Index()
     {
+        if (User.IsInRole("Administrator"))
+        {
+            return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
+        }
+
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId == null) return Challenge();
 

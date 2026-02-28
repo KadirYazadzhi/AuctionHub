@@ -54,6 +54,14 @@
                     <i class="bi bi-person-circle me-2"></i>My Profile
                 </a>
             </li>
+            @if (!User.IsInRole("Administrator"))
+            {
+                <li>
+                    <a class="dropdown-item py-2 px-3" asp-area="" asp-controller="Dashboard" asp-action="Index">
+                        <i class="bi bi-speedometer2 me-2 text-primary"></i>My Analytics
+                    </a>
+                </li>
+            }
             <li>
                 <a class="dropdown-item py-2 px-3" asp-area="" asp-controller="Auctions" asp-action="MyWatchlist">
                     <i class="bi bi-star-fill me-2 text-warning"></i>Watchlist
