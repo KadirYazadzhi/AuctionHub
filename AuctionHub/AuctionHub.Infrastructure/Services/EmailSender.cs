@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.Extensions.Configuration;
-using SendGrid;
-using CloudinaryDotNet;
-using SendGrid.Helpers.Mail;
+using MailKit.Net.Smtp;
+using MimeKit;
+using MailKit.Security;
 
 namespace AuctionHub.Infrastructure.Services;
 
@@ -17,22 +17,40 @@ public class EmailSender : IEmailSender
 
     public async Task SendEmailAsync(string email, string subject, string htmlMessage)
     {
-        var apiKey = _config["SendGrid:ApiKey"];
-        if (string.IsNullOrEmpty(apiKey))
+        var host = _config["EmailSettings:Host"];
+        var port = int.Parse(_config["EmailSettings:Port"] ?? "0");
+        var user = _config["EmailSettings:Username"];
+        var pass = _config["EmailSettings:Password"];
+
+        if (string.IsNullOrEmpty(host) || string.IsNullOrEmpty(user) || string.IsNullOrEmpty(pass))
         {
-            // Fallback for development if no key is provided
-            Console.WriteLine("--- EMAIL SENT (No API Key) ---");
+            // Fallback for local development
+            Console.WriteLine("--- SMTP EMAIL LOG ---");
             Console.WriteLine($"To: {email}");
             Console.WriteLine($"Subject: {subject}");
-            Console.WriteLine($"Body: {htmlMessage}");
+            Console.WriteLine("----------------------");
             return;
         }
 
-        var client = new SendGridClient(apiKey);
-        var from = new EmailAddress("no-reply@auctionhub.com", "AuctionHub Team");
-        var to = new EmailAddress(email);
-        var msg = MailHelper.CreateSingleEmail(from, to, subject, "", htmlMessage);
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress("AuctionHub", user));
+        message.To.Add(new MailboxAddress("", email));
+        message.Subject = subject;
 
-        await client.SendEmailAsync(msg);
+        var bodyBuilder = new BodyBuilder { HtmlBody = htmlMessage };
+        message.Body = bodyBuilder.ToMessageBody();
+
+        using var client = new SmtpClient();
+        try
+        {
+            await client.ConnectAsync(host, port, SecureSocketOptions.StartTls);
+            await client.AuthenticateAsync(user, pass);
+            await client.SendAsync(message);
+            await client.DisconnectAsync(true);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"FAILED TO SEND EMAIL: {ex.Message}");
+        }
     }
 }
