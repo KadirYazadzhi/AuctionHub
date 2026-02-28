@@ -45,15 +45,3 @@ public class AdminDashboardStatsDto
     public List<CategoryStatDto> TopCategories { get; set; } = new();
     public List<DailyActivityDto> ActivityTrend { get; set; } = new();
 }
-
-public class CategoryStatDto
-{
-    public string Name { get; set; } = null!;
-    public int BidCount { get; set; }
-}
-
-public class DailyActivityDto
-{
-    public DateTime Date { get; set; }
-    public int BidCount { get; set; }
-}
