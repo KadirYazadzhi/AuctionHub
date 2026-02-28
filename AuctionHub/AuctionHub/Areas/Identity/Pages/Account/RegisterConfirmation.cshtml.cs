@@ -15,11 +15,13 @@ namespace AuctionHub.Areas.Identity.Pages.Account
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IEmailSender _sender;
+        private readonly IConfiguration _config;
 
-        public RegisterConfirmationModel(UserManager<ApplicationUser> userManager, IEmailSender sender)
+        public RegisterConfirmationModel(UserManager<ApplicationUser> userManager, IEmailSender sender, IConfiguration config)
         {
             _userManager = userManager;
             _sender = sender;
+            _config = config;
         }
 
         public string Email { get; set; } = null!;
@@ -42,8 +44,11 @@ namespace AuctionHub.Areas.Identity.Pages.Account
             }
 
             Email = email;
-            // Once you add a real email sender, you should set this to false
-            DisplayConfirmAccountLink = true;
+            
+            // If Mailtrap token is missing, show the link for easy development testing
+            var apiToken = _config["EmailSettings:ApiToken"];
+            DisplayConfirmAccountLink = string.IsNullOrEmpty(apiToken) || apiToken == "YOUR_MAILTRAP_TOKEN";
+
             if (DisplayConfirmAccountLink)
             {
                 var userId = await _userManager.GetUserIdAsync(user);
