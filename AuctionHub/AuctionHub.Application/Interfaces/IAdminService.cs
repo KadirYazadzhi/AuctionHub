@@ -37,8 +37,10 @@ public class SuspiciousActivityDto
 public class AdminDashboardStatsDto
 {
     public decimal TotalRevenue { get; set; }
+    public decimal DailyRevenue { get; set; }
     public decimal ActiveEscrowAmount { get; set; }
     public int ActiveUsersCount { get; set; }
+    public int NewUsersToday { get; set; }
     public int TotalAuctionsCount { get; set; }
     public List<CategoryStatDto> TopCategories { get; set; } = new();
     public List<DailyActivityDto> ActivityTrend { get; set; } = new();

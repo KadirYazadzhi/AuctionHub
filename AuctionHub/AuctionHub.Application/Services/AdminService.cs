@@ -24,16 +24,18 @@ public class AdminService : IAdminService
             .Where(t => t.TransactionType == "Promotion")
             .SumAsync(t => t.Amount);
 
-        // 2. Active Escrow (Purchases that haven't reached seller yet)
-        // We identify Escrow by finding 'Purchase' or 'Escrow' transactions 
-        // that don't have a matching 'Sale' transaction yet.
-        // Simplified: Sum of all transactions type 'Escrow'
+        stats.DailyRevenue = await _context.Transactions
+            .Where(t => t.TransactionType == "Promotion" && t.TransactionDate >= now.Date)
+            .SumAsync(t => t.Amount);
+
+        // 2. Active Escrow
         stats.ActiveEscrowAmount = await _context.Transactions
             .Where(t => t.TransactionType == "Escrow")
             .SumAsync(t => t.Amount);
 
         // 3. General Stats
         stats.ActiveUsersCount = await _context.Users.CountAsync();
+        stats.NewUsersToday = await _context.Users.CountAsync(u => u.CreatedOn >= now.Date);
         stats.TotalAuctionsCount = await _context.Auctions.CountAsync();
 
         // 4. Top Categories by Bid Count

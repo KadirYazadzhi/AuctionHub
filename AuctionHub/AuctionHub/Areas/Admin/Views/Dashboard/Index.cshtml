@@ -1,169 +1,298 @@
 @using AuctionHub.Application.Interfaces
 @using AuctionHub.Domain.Models
+@using System.Text.Json
 @{
-    ViewData["Title"] = "System Dashboard";
+    ViewData["Title"] = "Analytics Dashboard";
     var stats = ViewBag.Stats as AdminDashboardStatsDto;
     var recentLogs = ViewBag.RecentLogs as List<AuditLog>;
     var suspiciousActivities = ViewBag.SuspiciousActivities as List<SuspiciousActivityDto>;
+    
+    // Serialize data for JS charts
+    var activityLabels = stats?.ActivityTrend.Select(d => d.Date.ToString("MMM dd")).ToList() ?? new();
+    var activityData = stats?.ActivityTrend.Select(d => d.BidCount).ToList() ?? new();
+    var categoryLabels = stats?.TopCategories.Select(c => c.Name).ToList() ?? new();
+    var categoryData = stats?.TopCategories.Select(c => c.BidCount).ToList() ?? new();
 }
 
-<div class="d-flex justify-content-between align-items-center mb-5 animate-fade-up">
-    <div>
-        <h2 class="fw-bold mb-1 text-dark">Dashboard</h2>
-        <p class="text-muted mb-0">Overview of platform performance and activity.</p>
+<div class="animate-fade-up">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1 text-main">Analytics Overview</h2>
+            <p class="text-muted mb-0">Real-time platform performance data.</p>
+        </div>
+        <div class="bg-card p-2 rounded-4 shadow-sm border border-light d-flex gap-3 px-4">
+            <div class="text-center">
+                <small class="text-muted d-block smallest fw-bold uppercase">Daily Revenue</small>
+                <span class="fw-bold text-success">@stats?.DailyRevenue.ToString("C2")</span>
+            </div>
+            <div class="vr opacity-10"></div>
+            <div class="text-center">
+                <small class="text-muted d-block smallest fw-bold uppercase">New Users</small>
+                <span class="fw-bold text-primary">@stats?.NewUsersToday</span>
+            </div>
+        </div>
     </div>
-    <div class="d-flex gap-2">
-        <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-2 border border-success border-opacity-25 d-flex align-items-center">
-            <span class="spinner-grow spinner-grow-sm me-2" role="status"></span>
-            System Live
-        </span>
-    </div>
-</div>
 
-<!-- Simple Professional Cards -->
-<div class="row g-4 mb-5">
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm rounded-4 h-100 bg-white border-start border-primary border-5">
-            <div class="card-body p-4">
-                <small class="text-muted text-uppercase fw-bold smallest letter-spacing-1 d-block mb-2">Total Revenue</small>
-                <h3 class="fw-bold mb-0 text-dark">@stats?.TotalRevenue.ToString("C0")</h3>
-                <small class="text-success fw-medium">From promotions</small>
+    <!-- Main Metric Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card border-0 rounded-5 shadow-sm h-100 p-2">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-3">
+                        <div class="icon-circle bg-primary-subtle text-primary">
+                            <i class="bi bi-wallet2"></i>
+                        </div>
+                        <span class="badge bg-success-subtle text-success rounded-pill">+12%</span>
+                    </div>
+                    <h3 class="fw-bold mb-1 text-main">@stats?.TotalRevenue.ToString("C0")</h3>
+                    <small class="text-muted">Lifetime Revenue</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card border-0 rounded-5 shadow-sm h-100 p-2">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-3">
+                        <div class="icon-circle bg-warning-subtle text-warning">
+                            <i class="bi bi-shield-lock"></i>
+                        </div>
+                    </div>
+                    <h3 class="fw-bold mb-1 text-main">@stats?.ActiveEscrowAmount.ToString("C0")</h3>
+                    <small class="text-muted">Active Escrow</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card border-0 rounded-5 shadow-sm h-100 p-2">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-3">
+                        <div class="icon-circle bg-success-subtle text-success">
+                            <i class="bi bi-people"></i>
+                        </div>
+                    </div>
+                    <h3 class="fw-bold mb-1 text-main">@stats?.ActiveUsersCount</h3>
+                    <small class="text-muted">Total Members</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card border-0 rounded-5 shadow-sm h-100 p-2">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-3">
+                        <div class="icon-circle bg-info-subtle text-info">
+                            <i class="bi bi-hammer"></i>
+                        </div>
+                    </div>
+                    <h3 class="fw-bold mb-1 text-main">@stats?.TotalAuctionsCount</h3>
+                    <small class="text-muted">Total Listings</small>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm rounded-4 h-100 bg-white border-start border-warning border-5">
-            <div class="card-body p-4">
-                <small class="text-muted text-uppercase fw-bold smallest letter-spacing-1 d-block mb-2">Escrow Held</small>
-                <h3 class="fw-bold mb-0 text-dark">@stats?.ActiveEscrowAmount.ToString("C0")</h3>
-                <small class="text-muted">Safe-guarded funds</small>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm rounded-4 h-100 bg-white border-start border-success border-5">
-            <div class="card-body p-4">
-                <small class="text-muted text-uppercase fw-bold smallest letter-spacing-1 d-block mb-2">Active Users</small>
-                <h3 class="fw-bold mb-0 text-dark">@stats?.ActiveUsersCount</h3>
-                <small class="text-muted">Member community</small>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm rounded-4 h-100 bg-white border-start border-info border-5">
-            <div class="card-body p-4">
-                <small class="text-muted text-uppercase fw-bold smallest letter-spacing-1 d-block mb-2">Auctions</small>
-                <h3 class="fw-bold mb-0 text-dark">@stats?.TotalAuctionsCount</h3>
-                <small class="text-muted">Lifetime listings</small>
-            </div>
-        </div>
-    </div>
-</div>
 
-<div class="row g-4">
-    <!-- Main Charts / Stats -->
-    <div class="col-lg-8">
-        <!-- Fraud Detection (Moved here for prominence) -->
-        <div class="card border-0 shadow-sm rounded-4 bg-white mb-4">
-            <div class="card-header bg-white border-0 p-4 pb-0">
-                <h5 class="fw-bold mb-0 text-danger"><i class="bi bi-shield-exclamation me-2"></i>Fraud Monitoring</h5>
+    <!-- Charts Row -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-5 bg-card h-100">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-4 text-main">Platform Activity <small class="text-muted fw-normal fs-6 ms-2">(Bids per day)</small></h5>
+                    <div style="height: 300px;">
+                        <canvas id="activityChart"></canvas>
+                    </div>
+                </div>
             </div>
-            <div class="card-body p-4">
-                @if (suspiciousActivities != null && suspiciousActivities.Any())
-                {
-                    <div class="list-group list-group-flush">
+        </div>
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm rounded-5 bg-card h-100">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-4 text-main">Category Market Share</h5>
+                    <div style="height: 300px;">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Monitoring & Logs -->
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-5 bg-card overflow-hidden mb-4 border-top border-danger border-5">
+                <div class="card-header bg-transparent border-0 p-4 pb-0 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0 text-danger"><i class="bi bi-shield-exclamation me-2"></i>Security Alerts</h5>
+                    <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill">Active Monitor</span>
+                </div>
+                <div class="card-body p-4">
+                    @if (suspiciousActivities != null && suspiciousActivities.Any())
+                    {
                         @foreach (var activity in suspiciousActivities)
                         {
-                            <div class="list-group-item px-0 border-0 d-flex justify-content-between align-items-center mb-2">
+                            <div class="d-flex justify-content-between align-items-center mb-3 p-3 bg-light rounded-4 border-start border-3 border-@(activity.Severity == "High" ? "danger" : "warning")">
                                 <div>
-                                    <div class="fw-bold text-dark small">@activity.Type</div>
+                                    <div class="fw-bold text-main small">@activity.Type</div>
                                     <div class="smallest text-muted">@activity.Description</div>
                                 </div>
-                                <span class="badge @(activity.Severity == "High" ? "bg-danger" : "bg-warning") rounded-pill">@activity.Severity</span>
+                                <span class="badge bg-@(activity.Severity == "High" ? "danger" : "warning") rounded-pill">@activity.Severity</span>
                             </div>
                         }
-                    </div>
-                }
-                else
-                {
-                    <div class="py-2 d-flex align-items-center text-success small">
-                        <i class="bi bi-check-circle-fill me-2"></i> No security anomalies detected.
-                    </div>
-                }
+                    }
+                    else
+                    {
+                        <div class="text-center py-3 text-success small">
+                            <i class="bi bi-check-circle-fill me-2"></i> System security verified. No anomalies.
+                        </div>
+                    }
+                </div>
             </div>
-        </div>
 
-        <!-- Audit Log Table -->
-        <div class="card border-0 shadow-sm rounded-4 bg-white">
-            <div class="card-header bg-white border-0 p-4 pb-0 d-flex justify-content-between align-items-center">
-                <h5 class="fw-bold mb-0">System Activity</h5>
-                <a asp-controller="Settings" asp-action="AuditLogs" class="btn btn-sm btn-light rounded-pill px-3">View All</a>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="bg-light">
-                            <tr>
-                                <th class="ps-4 border-0 smallest text-muted text-uppercase">Admin</th>
-                                <th class="border-0 smallest text-muted text-uppercase">Action</th>
-                                <th class="border-0 smallest text-muted text-uppercase text-end pe-4">Time</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var log in recentLogs ?? new())
-                            {
+            <div class="card border-0 shadow-sm rounded-5 bg-card overflow-hidden">
+                <div class="card-header bg-transparent border-0 p-4 pb-0 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0 text-main">Recent Audit Log</h5>
+                    <a asp-controller="Settings" asp-action="AuditLogs" class="btn btn-sm btn-link text-primary fw-bold text-decoration-none p-0">View All</a>
+                </div>
+                <div class="card-body p-0 mt-3">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 custom-admin-table">
+                            <thead class="bg-light-custom">
                                 <tr>
-                                    <td class="ps-4">
-                                        <span class="fw-bold small text-dark">@log.Admin.DisplayName</span>
-                                    </td>
-                                    <td>
-                                        <div class="small text-dark">@log.Action</div>
-                                        <div class="smallest text-muted text-truncate" style="max-width: 250px;">@log.Details</div>
-                                    </td>
-                                    <td class="text-end pe-4">
-                                        <small class="text-muted">@log.Timestamp.ToString("HH:mm")</small>
-                                    </td>
+                                    <th class="ps-4 border-0 smallest text-muted text-uppercase">Admin</th>
+                                    <th class="border-0 smallest text-muted text-uppercase">Action</th>
+                                    <th class="border-0 smallest text-muted text-uppercase text-end pe-4">Time</th>
                                 </tr>
-                            }
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                @foreach (var log in recentLogs ?? new())
+                                {
+                                    <tr class="border-bottom-custom">
+                                        <td class="ps-4">
+                                            <span class="fw-bold small text-main">@log.Admin.DisplayName</span>
+                                        </td>
+                                        <td>
+                                            <div class="small text-main">@log.Action</div>
+                                            <div class="smallest text-muted text-truncate" style="max-width: 200px;">@log.Details</div>
+                                        </td>
+                                        <td class="text-end pe-4 text-muted smallest">
+                                            @log.Timestamp.ToString("HH:mm")
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Right Column: Quick Actions -->
-    <div class="col-lg-4">
-        <div class="card border-0 shadow-sm rounded-4 bg-white p-4 mb-4">
-            <h5 class="fw-bold mb-4">Global Announcement</h5>
-            <form asp-action="SendAnnouncement" method="post">
-                <div class="mb-3">
-                    <textarea name="message" class="form-control bg-light border-0 rounded-4 p-3 small" rows="3" placeholder="Push alert to all users..."></textarea>
-                </div>
-                <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-bold shadow-sm">
-                    Send Notification
-                </button>
-            </form>
-        </div>
+        <!-- Quick Actions -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-5 bg-primary bg-gradient text-white p-4 mb-4 shadow-lg">
+                <h5 class="fw-bold mb-4">Global Broadcast</h5>
+                <form asp-action="SendAnnouncement" method="post">
+                    <div class="mb-3">
+                        <textarea name="message" class="form-control bg-white bg-opacity-10 border-0 text-white placeholder-white rounded-4 p-3 small" rows="3" placeholder="Push a message to all users..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-white bg-white text-primary w-100 rounded-pill py-3 fw-bold shadow-sm">
+                        <i class="bi bi-broadcast me-2"></i> Send Notification
+                    </button>
+                </form>
+            </div>
 
-        <div class="card border-0 shadow-sm rounded-4 bg-white p-4">
-            <h5 class="fw-bold mb-4">Top Categories</h5>
-            @foreach (var cat in stats?.TopCategories ?? new())
-            {
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="small fw-bold text-dark">@cat.Name</span>
-                    <span class="badge bg-light text-dark rounded-pill">@cat.BidCount bids</span>
+            <div class="card border-0 shadow-sm rounded-5 bg-card p-4">
+                <h5 class="fw-bold mb-4 text-main">Management Links</h5>
+                <div class="d-grid gap-2">
+                    <a asp-controller="Users" asp-action="Index" class="btn btn-action-admin text-start">
+                        <i class="bi bi-people-fill text-primary me-3"></i> User Directory
+                    </a>
+                    <a asp-controller="Reports" asp-action="Index" class="btn btn-action-admin text-start">
+                        <i class="bi bi-flag-fill text-danger me-3"></i> Conflict Reports
+                    </a>
+                    <a asp-controller="Transactions" asp-action="Index" class="btn btn-action-admin text-start">
+                        <i class="bi bi-ledger text-success me-3"></i> Financial Ledger
+                    </a>
                 </div>
-            }
+            </div>
         </div>
     </div>
 </div>
 
 <style>
     .smallest { font-size: 0.7rem; }
+    .uppercase { text-transform: uppercase; }
     .letter-spacing-1 { letter-spacing: 1px; }
-    /* Dark Mode Overrides for Admin Content */
-    [data-bs-theme="dark"] .bg-white { background-color: var(--bg-card) !important; }
-    [data-bs-theme="dark"] .text-dark { color: var(--text-main) !important; }
-    [data-bs-theme="dark"] .bg-light { background-color: rgba(255,255,255,0.05) !important; }
+    .icon-circle { width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; }
+    .bg-primary-subtle { background-color: rgba(var(--bs-primary-rgb), 0.1) !important; }
+    .bg-success-subtle { background-color: rgba(46, 196, 182, 0.1) !important; }
+    .bg-warning-subtle { background-color: rgba(255, 158, 0, 0.1) !important; }
+    .bg-info-subtle { background-color: rgba(67, 97, 238, 0.1) !important; }
+    
+    .stat-card { border: 1px solid var(--border-color) !important; background-color: var(--bg-card) !important; transition: transform 0.3s; }
+    .stat-card:hover { transform: translateY(-5px); }
+    
+    .btn-action-admin { background-color: var(--bg-light); border: 0; color: var(--text-main); padding: 12px 20px; border-radius: 15px; font-weight: 600; font-size: 0.9rem; transition: all 0.2s; }
+    .btn-action-admin:hover { background-color: var(--primary-color); color: white !important; transform: translateX(5px); }
+    .btn-action-admin:hover i { color: white !important; }
+
+    .placeholder-white::placeholder { color: rgba(255,255,255,0.5); }
+    .bg-light-custom { background-color: var(--bg-light) !important; }
+    .border-bottom-custom { border-bottom: 1px solid var(--border-color); }
 </style>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+            const textColor = isDark ? '#94a3b8' : '#64748b';
+            const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+
+            // Activity Chart
+            new Chart(document.getElementById('activityChart'), {
+                type: 'line',
+                data: {
+                    labels: @Html.Raw(JsonSerializer.Serialize(activityLabels)),
+                    datasets: [{
+                        label: 'Bids',
+                        data: @Html.Raw(JsonSerializer.Serialize(activityData)),
+                        borderColor: '#4361ee',
+                        backgroundColor: 'rgba(67, 97, 238, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#4361ee'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor } },
+                        x: { grid: { display: false }, ticks: { color: textColor } }
+                    }
+                }
+            });
+
+            // Category Chart
+            new Chart(document.getElementById('categoryChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: @Html.Raw(JsonSerializer.Serialize(categoryLabels)),
+                    datasets: [{
+                        data: @Html.Raw(JsonSerializer.Serialize(categoryData)),
+                        backgroundColor: ['#4361ee', '#2ec4b6', '#f72585', '#ff9e00', '#4cc9f0'],
+                        borderWidth: 0,
+                        hoverOffset: 10
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: textColor, padding: 20, usePointStyle: true } }
+                    },
+                    cutout: '70%'
+                }
+            });
+        });
+    </script>
+}

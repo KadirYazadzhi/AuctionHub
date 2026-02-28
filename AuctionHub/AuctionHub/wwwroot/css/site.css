@@ -638,3 +638,19 @@ html body .card.border-promoted:hover {
     background-color: var(--bg-card) !important;
     border: 1px solid var(--border-color) !important;
 }
+
+/* Semantic Theme Helpers */
+:root {
+    --text-main: #1e293b;
+    --bg-card: #ffffff;
+    --border-color: rgba(0,0,0,0.08);
+}
+
+[data-bs-theme="dark"] {
+    --text-main: #f8fafc;
+    --bg-card: #1e293b;
+    --border-color: rgba(255,255,255,0.1);
+}
+
+.text-main { color: var(--text-main) !important; }
+.bg-card { background-color: var(--bg-card) !important; }
