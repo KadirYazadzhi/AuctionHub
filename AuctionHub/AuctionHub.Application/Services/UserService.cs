@@ -74,6 +74,33 @@ public class UserService : IUserService
 
     private UserDetailsDto MapToUserDetailsDto(ApplicationUser user)
     {
+        var transactions = _context.Transactions.Where(t => t.UserId == user.Id).ToList();
+        
+        var totalSpent = transactions.Where(t => t.TransactionType == "Purchase" || t.TransactionType == "Bid").Sum(t => t.Amount);
+        var refunds = transactions.Where(t => t.TransactionType == "Refund").Sum(t => t.Amount);
+        
+        var totalEarned = transactions.Where(t => t.TransactionType == "Sale").Sum(t => t.Amount);
+        
+        var activeBidsCount = user.MyBids
+            .Where(b => b.Auction.IsActive && b.Auction.EndTime > DateTime.UtcNow)
+            .Select(b => b.AuctionId)
+            .Distinct()
+            .Count();
+
+        // Win Rate Calculation
+        var finishedAuctionsParticipated = user.MyBids
+            .Where(b => !b.Auction.IsActive || b.Auction.EndTime <= DateTime.UtcNow)
+            .Select(b => b.AuctionId)
+            .Distinct()
+            .Count();
+        
+        var wonCount = user.Transactions
+            .Count(t => t.TransactionType == "Purchase" || t.TransactionType == "Escrow");
+
+        double winRate = finishedAuctionsParticipated > 0 
+            ? (double)wonCount / finishedAuctionsParticipated * 100 
+            : 0;
+
         return new UserDetailsDto
         {
             Id = user.Id,
@@ -88,6 +115,12 @@ public class UserService : IUserService
             LockoutEnd = user.LockoutEnd,
             AverageRating = user.AverageRating,
             IsTopSeller = user.IsTopSeller,
+            
+            ActiveBidsCount = activeBidsCount,
+            TotalSpent = totalSpent - refunds,
+            TotalEarned = totalEarned,
+            WinRate = Math.Round(winRate, 1),
+
             Reviews = user.ReceivedReviews.OrderByDescending(r => r.CreatedOn).Select(r => new ReviewDto
             {
                 Id = r.Id,

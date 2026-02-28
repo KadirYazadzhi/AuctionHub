@@ -14,6 +14,12 @@ public class UserDetailsDto
     public string DisplayName { get; set; } = null!;
     public decimal WalletBalance { get; set; }
     public DateTimeOffset? LockoutEnd { get; set; }
+    
+    public int ActiveBidsCount { get; set; }
+    public decimal TotalSpent { get; set; }
+    public decimal TotalEarned { get; set; }
+    public double WinRate { get; set; }
+
     public double AverageRating { get; set; }
     public bool IsTopSeller { get; set; }
     public List<ReviewDto> Reviews { get; set; } = new();

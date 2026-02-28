@@ -19,6 +19,9 @@ public class SignalRBiddingNotificationService : IBiddingNotificationService
     {
         string groupName = $"Auction_{auctionId}";
         await _hubContext.Clients.Group(groupName).SendAsync("ReceiveNewBid", amount, bidderName, bidTime.ToString("o"));
+        
+        // Global update for all connected clients (used for Explore and Home page updates)
+        await _hubContext.Clients.All.SendAsync("ReceivePriceUpdate", auctionId, amount);
     }
 
     public async Task NotifyOutbidAsync(string userId, int auctionId, string auctionTitle, decimal newPrice)

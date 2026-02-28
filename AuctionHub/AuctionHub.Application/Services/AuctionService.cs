@@ -1008,6 +1008,14 @@ public class AuctionService : IAuctionService
             auction.CurrentPrice = amount;
             auction.Bids.Add(bid);
 
+            // ANTI-SNIPE: If bid is placed within last 2 minutes, extend by 2 minutes
+            var timeToEnd = auction.EndTime - DateTime.UtcNow;
+            if (timeToEnd.TotalMinutes < 2)
+            {
+                auction.EndTime = DateTime.UtcNow.AddMinutes(2);
+                _logger.LogInformation($"Auction {auctionId} extended by 2 minutes due to late bid.");
+            }
+
             // Notify SignalR for the MANUAL bid immediately
             await _biddingNotificationService.NotifyNewBidAsync(auctionId, currentUser.DisplayName ?? currentUser.UserName ?? "Unknown", amount, bid.BidTime);
 
@@ -1162,6 +1170,14 @@ public class AuctionService : IAuctionService
 
         auction.CurrentPrice = finalPrice;
         auction.Bids.Add(newBid);
+
+        // ANTI-SNIPE: Also apply to auto-bids
+        var timeToEnd = auction.EndTime - DateTime.UtcNow;
+        if (timeToEnd.TotalMinutes < 2)
+        {
+            auction.EndTime = DateTime.UtcNow.AddMinutes(2);
+            _logger.LogInformation($"Auction {auction.Id} extended by 2 minutes due to auto-bid.");
+        }
 
         // D. Deactivate bots that are now out of the race
         foreach (var bot in allActiveAutoBids.Where(ab => ab.MaxAmount < finalPrice + auction.MinIncrease))

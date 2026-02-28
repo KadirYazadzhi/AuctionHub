@@ -1,8 +1,10 @@
 using System.ComponentModel.DataAnnotations;
 using AuctionHub.Domain.Models;
+using AuctionHub.Application.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 
 namespace AuctionHub.Areas.Identity.Pages.Account.Manage
 {
@@ -11,19 +13,27 @@ namespace AuctionHub.Areas.Identity.Pages.Account.Manage
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly IWebHostEnvironment _webHostEnvironment;
+        private readonly IAuctionHubDbContext _context;
 
         public IndexModel(
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
-            IWebHostEnvironment webHostEnvironment)
+            IWebHostEnvironment webHostEnvironment,
+            IAuctionHubDbContext context)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _webHostEnvironment = webHostEnvironment;
+            _context = context;
         }
 
         public string Username { get; set; } = null!;
         public string? CurrentProfilePictureUrl { get; set; }
+        
+        public int ActiveBidsCount { get; set; }
+        public decimal TotalSpent { get; set; }
+        public decimal TotalEarned { get; set; }
+        public double WinRate { get; set; }
 
         [TempData]
         public string StatusMessage { get; set; } = null!;
@@ -62,6 +72,29 @@ namespace AuctionHub.Areas.Identity.Pages.Account.Manage
 
             Username = userName!;
             CurrentProfilePictureUrl = user.ProfilePictureUrl;
+
+            // Calculate Stats
+            var transactions = await _context.Transactions.Where(t => t.UserId == user.Id).ToListAsync();
+            TotalSpent = transactions.Where(t => t.TransactionType == "Purchase" || t.TransactionType == "Bid").Sum(t => t.Amount) 
+                         - transactions.Where(t => t.TransactionType == "Refund").Sum(t => t.Amount);
+            TotalEarned = transactions.Where(t => t.TransactionType == "Sale").Sum(t => t.Amount);
+            
+            ActiveBidsCount = await _context.Bids
+                .Include(b => b.Auction)
+                .Where(b => b.BidderId == user.Id && b.Auction.IsActive && b.Auction.EndTime > DateTime.UtcNow)
+                .Select(b => b.AuctionId)
+                .Distinct()
+                .CountAsync();
+
+            var participatedCount = await _context.Bids
+                .Include(b => b.Auction)
+                .Where(b => b.BidderId == user.Id && (!b.Auction.IsActive || b.Auction.EndTime <= DateTime.UtcNow))
+                .Select(b => b.AuctionId)
+                .Distinct()
+                .CountAsync();
+
+            var wonCount = transactions.Count(t => t.TransactionType == "Purchase" || t.TransactionType == "Escrow");
+            WinRate = participatedCount > 0 ? Math.Round((double)wonCount / participatedCount * 100, 1) : 0;
 
             Input = new InputModel
             {

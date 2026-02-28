@@ -143,3 +143,34 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+    <script>
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/hubs/bidding")
+            .withAutomaticReconnect()
+            .build();
+
+        connection.on("ReceivePriceUpdate", function (auctionId, newPrice) {
+            const priceElement = document.getElementById(`price-${auctionId}`);
+            if (priceElement) {
+                // Update price text using browser locale
+                const formattedPrice = new Intl.NumberFormat('bg-BG', { style: 'currency', currency: 'EUR' }).format(newPrice);
+                priceElement.innerText = formattedPrice;
+                
+                // Visual feedback (flash green)
+                priceElement.classList.add('text-success');
+                priceElement.style.transition = 'all 0.3s';
+                priceElement.style.transform = 'scale(1.1)';
+                
+                setTimeout(() => {
+                    priceElement.classList.remove('text-success');
+                    priceElement.style.transform = 'scale(1)';
+                }, 1000);
+            }
+        });
+
+        connection.start().catch(err => console.error(err.toString()));
+    </script>
+}
