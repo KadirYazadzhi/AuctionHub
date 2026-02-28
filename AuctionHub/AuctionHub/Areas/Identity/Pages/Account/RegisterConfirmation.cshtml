@@ -1,0 +1,33 @@
+@page
+@model RegisterConfirmationModel
+@{
+    ViewData["Title"] = "Register confirmation";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 text-center">
+            <div class="card border-0 shadow-lg rounded-4 p-5 animate-fade-up">
+                <i class="bi bi-envelope-check display-1 text-primary mb-4"></i>
+                <h1 class="fw-bold">@ViewData["Title"]</h1>
+                <p class="text-muted fs-5 mb-4">
+                    Almost there! We've sent a verification link to your email.
+                </p>
+                
+                @if (Model.DisplayConfirmAccountLink)
+                {
+                    <div class="alert alert-info border-0 rounded-4 shadow-sm py-4">
+                        <p class="mb-3 fw-bold">Development Mode:</p>
+                        <a id="confirm-link" href="@Model.EmailConfirmationUrl" class="btn btn-primary btn-lg rounded-pill px-5">
+                            Click here to confirm your account
+                        </a>
+                    </div>
+                }
+                else
+                {
+                    <p>Please check your inbox (and spam folder) to activate your account.</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>

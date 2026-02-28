@@ -5,49 +5,82 @@
     ViewData["Title"] = "Log in";
 }
 
-<div class="container">
-    <div class="row justify-content-center align-items-center min-vh-75 py-5">
-        <div class="col-md-6 col-lg-5">
-            <div class="card border-0 shadow-lg rounded-xl animate-fade-up">
-                <div class="card-body p-5">
-                    <div class="text-center mb-4">
-                        <div class="icon-box-lg rounded-circle bg-primary-subtle text-primary mb-3 mx-auto d-flex align-items-center justify-content-center">
-                            <i class="bi bi-person-fill"></i>
-                        </div>
-                        <h2 class="fw-bold">Welcome Back</h2>
-                        <p class="text-muted">Please enter your details to sign in</p>
-                    </div>
-                    
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden animate-fade-up">
+                <div class="card-header bg-primary text-white text-center py-4">
+                    <h2 class="fw-bold mb-0">Welcome Back</h2>
+                    <p class="mb-0 opacity-75">Sign in to start bidding</p>
+                </div>
+                <div class="card-body p-4 p-lg-5">
                     <form id="account" method="post">
-                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3" role="alert"></div>
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
                         
                         <div class="form-floating mb-3">
-                            <input asp-for="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="Email or Username" />
-                            <label asp-for="Input.Email">Email / Username</label>
-                            <span asp-validation-for="Input.Email" class="text-danger"></span>
+                            <input asp-for="Input.Email" class="form-control rounded-3" autocomplete="username" aria-required="true" placeholder="name@example.com" />
+                            <label asp-for="Input.Email">Email Address</label>
+                            <span asp-validation-for="Input.Email" class="text-danger small"></span>
                         </div>
+                        
                         <div class="form-floating mb-3">
-                            <input asp-for="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" />
+                            <input asp-for="Input.Password" class="form-control rounded-3" autocomplete="current-password" aria-required="true" placeholder="password" />
                             <label asp-for="Input.Password">Password</label>
-                            <span asp-validation-for="Input.Password" class="text-danger"></span>
+                            <span asp-validation-for="Input.Password" class="text-danger small"></span>
                         </div>
-                        
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <div class="checkbox">
-                                <label asp-for="Input.RememberMe" class="form-check-label text-muted">
-                                    <input class="form-check-input me-2" asp-for="Input.RememberMe" />
-                                    @Html.DisplayNameFor(m => m.Input.RememberMe)
-                                </label>
-                            </div>
-                            <a id="forgot-password" asp-page="./ForgotPassword" class="text-primary text-decoration-none small fw-bold">Forgot Password?</a>
-                        </div>
-                        
-                        <button id="login-submit" type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-bold shadow-sm hover-lift">Sign In</button>
-                    </form>
 
-                    <div class="text-center mt-4 pt-3 border-top">
-                        <p class="text-muted mb-0">Don't have an account? <a asp-page="./Register" asp-route-returnUrl="@Model.ReturnUrl" class="text-primary fw-bold text-decoration-none">Sign up</a></p>
-                    </div>
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input" asp-for="Input.RememberMe" />
+                                <label class="form-check-label text-muted small" asp-for="Input.RememberMe">Remember me</label>
+                            </div>
+                            <a id="forgot-password" asp-page="./ForgotPassword" class="text-primary small text-decoration-none fw-bold">Forgot password?</a>
+                        </div>
+
+                        <button id="login-submit" type="submit" class="btn btn-primary btn-lg w-100 rounded-pill py-3 fw-bold shadow-sm mb-4">
+                            Sign In <i class="bi bi-box-arrow-in-right ms-2"></i>
+                        </button>
+
+                        <div class="text-center position-relative mb-4">
+                            <hr class="text-muted opacity-25">
+                            <span class="position-absolute top-50 start-50 translate-middle bg-white px-3 text-muted small">OR</span>
+                        </div>
+
+                        <section>
+                            @{
+                                if ((Model.ExternalLogins?.Count ?? 0) == 0)
+                                {
+                                    <div>
+                                        <p class="text-muted small">No external authentication services configured.</p>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <form id="external-account" asp-page="./ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" method="post" class="form-horizontal">
+                                        <div class="d-grid gap-2">
+                                            @foreach (var provider in Model.ExternalLogins!)
+                                            {
+                                                <button type="submit" class="btn btn-outline-dark rounded-pill py-2 fw-bold d-flex align-items-center justify-content-center" name="provider" value="@provider.Name" title="Log in using your @provider.DisplayName account">
+                                                    @if (provider.Name == "Google")
+                                                    {
+                                                        <i class="bi bi-google me-2 text-danger"></i>
+                                                    }
+                                                    else if (provider.Name == "GitHub")
+                                                    {
+                                                        <i class="bi bi-github me-2"></i>
+                                                    }
+                                                    Continue with @provider.DisplayName
+                                                </button>
+                                            }
+                                        </div>
+                                    </form>
+                                }
+                            }
+                        </section>
+                    </form>
+                </div>
+                <div class="card-footer bg-light border-0 py-4 text-center">
+                    <p class="mb-0 text-muted">Don't have an account? <a asp-page="./Register" asp-route-returnUrl="@Model.ReturnUrl" class="text-primary fw-bold text-decoration-none">Sign Up</a></p>
                 </div>
             </div>
         </div>
@@ -55,5 +88,5 @@
 </div>
 
 @section Scripts {
-    <partial name="~/Views/Shared/_ValidationScriptsPartial.cshtml" />
+    <partial name="_ValidationScriptsPartial" />
 }

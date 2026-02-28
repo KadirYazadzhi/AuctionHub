@@ -39,6 +39,7 @@ builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IPhotoService, PhotoService>();
 builder.Services.AddTransient<IEmailSender, EmailSender>();
+builder.Services.AddHttpClient();
 builder.Services.AddHostedService<AuctionCleanupService>();
 builder.Services.AddHostedService<EscrowReleaseService>();
 
