@@ -23,6 +23,9 @@ public class AuctionHubDbContext : IdentityDbContext<ApplicationUser>, IAuctionH
     public DbSet<AutoBid> AutoBids { get; set; } = null!;
     public DbSet<AuctionImage> AuctionImages { get; set; } = null!;
     public DbSet<Review> Reviews { get; set; } = null!;
+    public DbSet<AuditLog> AuditLogs { get; set; } = null!;
+    public DbSet<SystemSetting> SystemSettings { get; set; } = null!;
+    public DbSet<UserReport> UserReports { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

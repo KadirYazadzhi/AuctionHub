@@ -38,6 +38,7 @@ builder.Services.AddScoped<IBiddingNotificationService, SignalRBiddingNotificati
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IPhotoService, PhotoService>();
+builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddTransient<IEmailSender, EmailSender>();
 builder.Services.AddHttpClient();
 builder.Services.AddHostedService<AuctionCleanupService>();
@@ -146,6 +147,33 @@ using (var scope = app.Services.CreateScope())
     }
 
     await DbSeeder.SeedAsync(services);
+
+    // Ensure Admin is Confirmed and has Role
+    var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+    
+    string adminEmail = "admin@auctionhub.com";
+    var adminUser = await userManager.FindByEmailAsync(adminEmail);
+    
+    if (adminUser != null)
+    {
+        // 1. Ensure Email is Confirmed
+        if (!adminUser.EmailConfirmed)
+        {
+            adminUser.EmailConfirmed = true;
+            await userManager.UpdateAsync(adminUser);
+        }
+
+        // 2. Ensure Role is Assigned
+        if (!await roleManager.RoleExistsAsync("Administrator"))
+        {
+            await roleManager.CreateAsync(new IdentityRole("Administrator"));
+        }
+        
+        if (!await userManager.IsInRoleAsync(adminUser, "Administrator"))
+        {
+            await userManager.AddToRoleAsync(adminUser, "Administrator");
+        }
+    }
 }
 
 await app.RunAsync();

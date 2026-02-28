@@ -9,4 +9,5 @@ public interface IUserService
     Task<UserDetailsDto?> GetByUsernameAsync(string username);
     Task<(bool Success, string Message)> UpdateBalanceAsync(string userId, decimal amount, string reason);
     Task<(bool Success, string Message)> ToggleLockAsync(string userId);
+    Task<(bool Success, string Message)> ToggleShadowBanAsync(string userId);
 }

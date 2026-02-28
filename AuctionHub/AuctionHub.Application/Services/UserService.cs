@@ -72,6 +72,18 @@ public class UserService : IUserService
         return MapToUserDetailsDto(user);
     }
 
+    public async Task<(bool Success, string Message)> ToggleShadowBanAsync(string userId)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        if (user == null) return (false, "User not found.");
+
+        user.IsShadowBanned = !user.IsShadowBanned;
+        await _context.SaveChangesAsync();
+
+        string action = user.IsShadowBanned ? "Shadow-banned" : "Un-shadow-banned";
+        return (true, $"User {user.UserName} has been {action}.");
+    }
+
     private UserDetailsDto MapToUserDetailsDto(ApplicationUser user)
     {
         var transactions = _context.Transactions.Where(t => t.UserId == user.Id).ToList();
@@ -113,6 +125,7 @@ public class UserService : IUserService
             DisplayName = user.UserName ?? user.Email ?? "Unknown",
             WalletBalance = user.WalletBalance,
             LockoutEnd = user.LockoutEnd,
+            IsShadowBanned = user.IsShadowBanned,
             AverageRating = user.AverageRating,
             IsTopSeller = user.IsTopSeller,
             

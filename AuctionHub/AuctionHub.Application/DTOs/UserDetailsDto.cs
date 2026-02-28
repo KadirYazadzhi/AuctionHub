@@ -14,6 +14,7 @@ public class UserDetailsDto
     public string DisplayName { get; set; } = null!;
     public decimal WalletBalance { get; set; }
     public DateTimeOffset? LockoutEnd { get; set; }
+    public bool IsShadowBanned { get; set; }
     
     public int ActiveBidsCount { get; set; }
     public decimal TotalSpent { get; set; }

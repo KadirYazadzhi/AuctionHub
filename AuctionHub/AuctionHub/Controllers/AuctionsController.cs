@@ -293,6 +293,26 @@ public class AuctionsController : Controller
         return RedirectToAction(nameof(Details), new { id = auctionId });
     }
 
+    [HttpPost]
+    public async Task<IActionResult> Report(int auctionId, string reason, string details)
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (currentUserId == null) return Challenge();
+
+        var result = await _auctionService.ReportAuctionAsync(auctionId, currentUserId, reason, details);
+
+        if (result.Success)
+        {
+            TempData["Success"] = result.Message;
+        }
+        else
+        {
+            TempData["Error"] = result.Message;
+        }
+
+        return RedirectToAction(nameof(Details), new { id = auctionId });
+    }
+
     [HttpGet]
     public async Task<IActionResult> MyAuctions(string? searchTerm, int? categoryId, string? sortOrder, int? pageNumber, decimal? minPrice, decimal? maxPrice, string? status)
     {

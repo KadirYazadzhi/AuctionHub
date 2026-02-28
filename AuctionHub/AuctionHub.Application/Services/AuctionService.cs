@@ -458,7 +458,10 @@ public class AuctionService : IAuctionService
             var user = await _context.Users.FindAsync(userId);
             if (user == null) return (false, "User not found.");
 
-            decimal promotionFee = 5.00m; 
+            // Use Dynamic System Setting for Promotion Fee
+            var feeSetting = await _context.SystemSettings.FirstOrDefaultAsync(s => s.Key == "PromotionFee");
+            decimal promotionFee = feeSetting != null ? decimal.Parse(feeSetting.Value) : 5.00m; 
+            
             if (user.WalletBalance < promotionFee) return (false, $"Insufficient funds. Promotion costs {promotionFee:C}.");
 
             // 1. Charge User
@@ -484,6 +487,34 @@ public class AuctionService : IAuctionService
         {
             await dbTransaction.RollbackAsync();
             return (false, "An error occurred while promoting the auction.");
+        }
+    }
+
+    public async Task<(bool Success, string Message)> ReportAuctionAsync(int auctionId, string userId, string reason, string details)
+    {
+        try
+        {
+            var auction = await _context.Auctions.FindAsync(auctionId);
+            if (auction == null) return (false, "Auction not found.");
+
+            var report = new UserReport
+            {
+                ReporterId = userId,
+                ReportedAuctionId = auctionId,
+                Reason = reason,
+                Details = details,
+                CreatedOn = DateTime.UtcNow,
+                IsResolved = false
+            };
+
+            _context.UserReports.Add(report);
+            await _context.SaveChangesAsync();
+
+            return (true, "Your report has been submitted. Our team will review it shortly.");
+        }
+        catch (Exception)
+        {
+            return (false, "An error occurred while submitting the report.");
         }
     }
 
@@ -933,6 +964,12 @@ public class AuctionService : IAuctionService
             // Validations
             var currentUser = await _context.Users.FindAsync(userId);
             if (currentUser == null) return (false, "User not found.");
+            
+            if (currentUser.IsShadowBanned)
+            {
+                // Silent failure or generic error
+                return (false, "Your account has limited access. Please contact support.");
+            }
 
             var userRoles = await _context.UserRoles.Where(ur => ur.UserId == userId).ToListAsync();
             var adminRoleId = (await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Administrator"))?.Id;

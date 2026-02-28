@@ -1,0 +1,107 @@
+@model IEnumerable<AuctionHub.Domain.Models.SystemSetting>
+@{
+    ViewData["Title"] = "System Settings";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-5 animate-fade-up">
+    <div>
+        <h2 class="fw-bold mb-1">System Configuration</h2>
+        <p class="text-muted mb-0">Fine-tune global platform parameters.</p>
+    </div>
+    <a asp-action="AuditLogs" class="btn btn-outline-primary rounded-pill px-4 shadow-sm">
+        <i class="bi bi-journal-text me-1"></i> View Audit Logs
+    </a>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm rounded-5 bg-white overflow-hidden animate-fade-up delay-100">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-4 border-0 small text-muted">SETTING KEY</th>
+                                <th class="border-0 small text-muted">CURRENT VALUE</th>
+                                <th class="border-0 small text-muted">DESCRIPTION</th>
+                                <th class="border-0 small text-muted text-end pe-4">ACTION</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!Model.Any())
+                            {
+                                <!-- Default Settings Placeholders if none in DB -->
+                                <tr>
+                                    <td class="ps-4 fw-bold text-dark">PromotionFee</td>
+                                    <td><span class="badge bg-light text-dark">5.00</span></td>
+                                    <td class="text-muted small">Cost to promote an auction.</td>
+                                    <td class="text-end pe-4">
+                                        <button class="btn btn-sm btn-primary rounded-pill px-3" onclick="editSetting('PromotionFee', '5.00')">Edit</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4 fw-bold text-dark">MinBidStep</td>
+                                    <td><span class="badge bg-light text-dark">0.10</span></td>
+                                    <td class="text-muted small">Default minimum bid increase.</td>
+                                    <td class="text-end pe-4">
+                                        <button class="btn btn-sm btn-primary rounded-pill px-3" onclick="editSetting('MinBidStep', '0.10')">Edit</button>
+                                    </td>
+                                </tr>
+                            }
+                            @foreach (var setting in Model)
+                            {
+                                <tr>
+                                    <td class="ps-4 fw-bold text-dark">@setting.Key</td>
+                                    <td><span class="badge bg-primary-subtle text-primary">@setting.Value</span></td>
+                                    <td class="text-muted small">@setting.Description</td>
+                                    <td class="text-end pe-4">
+                                        <button class="btn btn-sm btn-primary rounded-pill px-3" onclick="editSetting('@setting.Key', '@setting.Value')">Edit</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm rounded-5 bg-primary text-white p-4 animate-fade-up delay-200 shadow-lg" id="editCard">
+            <h5 class="fw-bold mb-4">Edit Setting</h5>
+            <form asp-action="Update" method="post">
+                <div class="mb-3">
+                    <label class="form-label small opacity-75 fw-bold">KEY</label>
+                    <input type="text" name="key" id="editKey" class="form-control bg-white bg-opacity-10 border-0 text-white rounded-4 px-3" readonly />
+                </div>
+                <div class="mb-4">
+                    <label class="form-label small opacity-75 fw-bold">VALUE</label>
+                    <input type="text" name="value" id="editValue" class="form-control bg-white border-0 rounded-4 px-3 py-2" required />
+                </div>
+                <button type="submit" class="btn btn-white bg-white text-primary w-100 rounded-pill py-3 fw-bold shadow-sm">
+                    Save Changes
+                </button>
+            </form>
+        </div>
+        
+        <div class="card border-0 shadow-sm rounded-5 bg-white p-4 mt-4 animate-fade-up delay-300">
+            <div class="d-flex align-items-center mb-3">
+                <i class="bi bi-shield-lock-fill text-warning fs-3 me-3"></i>
+                <h6 class="fw-bold mb-0">Maintenance Mode</h6>
+            </div>
+            <p class="small text-muted mb-4">Temporarily disable public access to the platform for system updates.</p>
+            <button class="btn btn-outline-danger w-100 rounded-pill fw-bold" onclick="alert('Maintenance mode logic not yet connected to Middleware.')">Activate Lockdown</button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function editSetting(key, value) {
+            document.getElementById('editKey').value = key;
+            document.getElementById('editValue').value = value;
+            document.getElementById('editCard').classList.add('animate-pulse-gold');
+            setTimeout(() => document.getElementById('editCard').classList.remove('animate-pulse-gold'), 1000);
+        }
+    </script>
+}

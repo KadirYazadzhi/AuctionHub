@@ -115,7 +115,10 @@
                         
                         @if (User.Identity?.IsAuthenticated == true && Model.SellerId != User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
                         {
-                            <div class="ms-auto">
+                            <div class="ms-auto d-flex gap-2">
+                                <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#reportModal">
+                                    <i class="bi bi-flag-fill me-1"></i> Report
+                                </button>
                                 <a asp-action="PrivateChat" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm rounded-pill px-3">
                                     <i class="bi bi-chat-dots-fill me-1"></i> Contact Seller
                                 </a>
@@ -472,6 +475,41 @@
         color: #ffc107;
     }
 </style>
+
+<!-- Report Modal -->
+<div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 p-4 pb-0">
+                <h5 class="modal-title fw-bold text-danger"><i class="bi bi-flag-fill me-2"></i>Report Auction</h5>
+                <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form asp-controller="Auctions" asp-action="Report" method="post">
+                    <input type="hidden" name="auctionId" value="@Model.Id" />
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted text-uppercase">Reason</label>
+                        <select name="reason" class="form-select rounded-3 border-light bg-light" required>
+                            <option value="">Choose a reason...</option>
+                            <option value="Fraud">Potential Fraud / Scam</option>
+                            <option value="Offensive">Offensive Content</option>
+                            <option value="Incorrect">Misleading Information</option>
+                            <option value="Prohibited">Prohibited Item</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-muted text-uppercase">Details</label>
+                        <textarea name="details" class="form-control rounded-3 border-light bg-light" rows="4" placeholder="Please describe the issue in detail..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-danger w-100 rounded-pill py-3 fw-bold shadow-sm">
+                        Submit Report
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Image Lightbox Modal -->
 <div class="modal fade" id="imageLightbox" tabindex="-1" aria-hidden="true">

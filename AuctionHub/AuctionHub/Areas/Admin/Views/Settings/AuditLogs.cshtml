@@ -1,0 +1,82 @@
+@model AuctionHub.Domain.Models.PaginatedList<AuctionHub.Domain.Models.AuditLog>
+@{
+    ViewData["Title"] = "System Audit Logs";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-5 animate-fade-up">
+    <div>
+        <h2 class="fw-bold mb-1">Audit Logs</h2>
+        <p class="text-muted mb-0">Transparent history of all administrative actions.</p>
+    </div>
+    <a asp-action="Index" class="btn btn-light rounded-pill px-4 shadow-sm border">
+        <i class="bi bi-arrow-left me-1"></i> Back to Settings
+    </a>
+</div>
+
+<div class="card border-0 shadow-sm rounded-5 bg-white overflow-hidden animate-fade-up delay-100">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-4 border-0 small text-muted">ADMIN</th>
+                        <th class="border-0 small text-muted">ACTION</th>
+                        <th class="border-0 small text-muted">ENTITY</th>
+                        <th class="border-0 small text-muted">DETAILS</th>
+                        <th class="border-0 small text-muted text-end pe-4">TIMESTAMP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var log in Model)
+                    {
+                        <tr>
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-primary text-white rounded-circle p-2 me-2 small d-flex align-items-center justify-content-center" style="width: 24px; height: 24px;">
+                                        @log.Admin.DisplayName[0]
+                                    </div>
+                                    <span class="fw-bold small">@log.Admin.DisplayName</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-primary-subtle text-primary rounded-pill px-2">@log.Action</span>
+                            </td>
+                            <td>
+                                <small class="text-dark fw-medium">@log.EntityName</small>
+                                <div class="text-muted smallest">ID: @log.EntityId</div>
+                            </td>
+                            <td>
+                                <div class="small text-muted" style="max-width: 300px; white-space: normal;">@log.Details</div>
+                            </td>
+                            <td class="text-end pe-4">
+                                <div class="small fw-bold">@log.Timestamp.ToLocalTime().ToString("MMM dd, yyyy")</div>
+                                <div class="smallest text-muted">@log.Timestamp.ToLocalTime().ToString("HH:mm:ss")</div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@if (Model.TotalPages > 1)
+{
+    <nav class="mt-5 d-flex justify-content-center">
+        <ul class="pagination shadow-sm rounded-pill overflow-hidden">
+            <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")">
+                <a class="page-link border-0 px-4" asp-route-pageNumber="@(Model.PageIndex - 1)">Previous</a>
+            </li>
+            <li class="page-item disabled">
+                <span class="page-link border-0 px-4 bg-light text-dark">Page @Model.PageIndex of @Model.TotalPages</span>
+            </li>
+            <li class="page-item @(Model.HasNextPage ? "" : "disabled")">
+                <a class="page-link border-0 px-4" asp-route-pageNumber="@(Model.PageIndex + 1)">Next</a>
+            </li>
+        </ul>
+    </nav>
+}
+
+<style>
+    .smallest { font-size: 0.75rem; }
+</style>

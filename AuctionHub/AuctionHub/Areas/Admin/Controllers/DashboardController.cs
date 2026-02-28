@@ -8,26 +8,30 @@ public class DashboardController : AdminBaseController
 {
     private readonly IAuctionHubDbContext _context;
     private readonly INotificationService _notificationService;
+    private readonly IAdminService _adminService;
 
-    public DashboardController(IAuctionHubDbContext context, INotificationService notificationService)
+    public DashboardController(IAuctionHubDbContext context, INotificationService notificationService, IAdminService adminService)
     {
         _context = context;
         _notificationService = notificationService;
+        _adminService = adminService;
     }
 
     public async Task<IActionResult> Index()
     {
-        var totalUsers = await _context.Users.CountAsync();
-        var totalAuctions = await _context.Auctions.CountAsync();
-        var activeAuctions = await _context.Auctions.CountAsync(a => a.IsActive && a.EndTime > DateTime.UtcNow);
-        var totalBids = await _context.Bids.CountAsync();
-        var totalWalletBalance = await _context.Users.SumAsync(u => u.WalletBalance);
+        var stats = await _adminService.GetDashboardStatsAsync();
+        var suspiciousActivities = await _adminService.GetSuspiciousActivitiesAsync();
+        
+        // Also fetch audit logs for the dashboard preview
+        var recentLogs = await _context.AuditLogs
+            .Include(l => l.Admin)
+            .OrderByDescending(l => l.Timestamp)
+            .Take(5)
+            .ToListAsync();
 
-        ViewBag.TotalUsers = totalUsers;
-        ViewBag.TotalAuctions = totalAuctions;
-        ViewBag.ActiveAuctions = activeAuctions;
-        ViewBag.TotalBids = totalBids;
-        ViewBag.TotalWalletBalance = totalWalletBalance;
+        ViewBag.Stats = stats;
+        ViewBag.RecentLogs = recentLogs;
+        ViewBag.SuspiciousActivities = suspiciousActivities;
 
         return View();
     }

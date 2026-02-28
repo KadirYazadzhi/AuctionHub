@@ -21,6 +21,10 @@ public class ApplicationUser : IdentityUser
     [StringLength(500)]
     public string? AboutMe { get; set; }
 
+    public bool IsShadowBanned { get; set; } = false;
+
+    public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
+
     [NotMapped]
     public string DisplayName 
     {

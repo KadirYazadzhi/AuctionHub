@@ -71,5 +71,6 @@ public interface IAuctionService
     Task<(bool Success, string Message)> SetAutoBidAsync(int auctionId, string userId, decimal maxAmount);
     Task<(bool Success, string Message)> ConfirmDeliveryAsync(int auctionId, string userId);
     Task<(bool Success, string Message)> PromoteAuctionAsync(int auctionId, string userId);
+    Task<(bool Success, string Message)> ReportAuctionAsync(int auctionId, string userId, string reason, string details);
     Task<IEnumerable<AuctionDto>> GetEndingSoonAuctionsAsync(int count, string? currentUserId = null);
 }

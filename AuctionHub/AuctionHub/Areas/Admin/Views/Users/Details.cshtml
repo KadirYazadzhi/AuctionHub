@@ -31,6 +31,21 @@
             <button class="btn btn-primary rounded-pill w-100 mb-2" data-bs-toggle="modal" data-bs-target="#balanceModal">
                 Adjust Balance
             </button>
+
+            <div class="d-flex gap-2">
+                <form asp-action="ToggleLock" method="post" class="flex-grow-1">
+                    <input type="hidden" name="userId" value="@Model.Id" />
+                    <button type="submit" class="btn @(Model.LockoutEnd > DateTimeOffset.UtcNow ? "btn-success" : "btn-outline-danger") rounded-pill w-100 btn-sm">
+                        @(Model.LockoutEnd > DateTimeOffset.UtcNow ? "Unlock User" : "Lock Account")
+                    </button>
+                </form>
+                <form asp-action="ToggleShadowBan" method="post" class="flex-grow-1">
+                    <input type="hidden" name="userId" value="@Model.Id" />
+                    <button type="submit" class="btn @(Model.IsShadowBanned ? "btn-success" : "btn-outline-warning") rounded-pill w-100 btn-sm">
+                        @(Model.IsShadowBanned ? "Un-Shadowban" : "Shadowban")
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 
