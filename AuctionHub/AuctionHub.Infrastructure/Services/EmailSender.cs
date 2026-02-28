@@ -21,13 +21,11 @@ public class EmailSender : IEmailSender
     public async Task SendEmailAsync(string email, string subject, string htmlMessage)
     {
         var apiToken = _config["EmailSettings:ApiToken"];
-        const string inboxId = "4420755"; // Your specific Mailtrap Sandbox Inbox ID
+        const string inboxId = "4420755";
         
         if (string.IsNullOrEmpty(apiToken) || apiToken == "YOUR_MAILTRAP_TOKEN")
         {
             Console.WriteLine("--- MAILTRAP LOG (No Token) ---");
-            Console.WriteLine($"To: {email}");
-            Console.WriteLine($"Subject: {subject}");
             return;
         }
 
@@ -43,22 +41,39 @@ public class EmailSender : IEmailSender
         };
 
         var json = JsonSerializer.Serialize(emailData);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        
+        int maxRetries = 3;
+        int delaySeconds = 2;
 
-        try
+        for (int i = 0; i < maxRetries; i++)
         {
-            // Using the Mailtrap Sandbox API URL with your Inbox ID
-            var response = await client.PostAsync($"https://sandbox.api.mailtrap.io/api/send/{inboxId}", content);
-            
-            if (!response.IsSuccessStatusCode)
+            try
             {
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await client.PostAsync($"https://sandbox.api.mailtrap.io/api/send/{inboxId}", content);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    return; // Success!
+                }
+
+                if (response.StatusCode == (System.Net.HttpStatusCode)429) // Too Many Requests
+                {
+                    Console.WriteLine($"MAILTRAP THROTTLED: Waiting {delaySeconds}s before retry {i+1}...");
+                    await Task.Delay(delaySeconds * 1000);
+                    delaySeconds *= 2; // Exponential backoff
+                    continue;
+                }
+
                 var error = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"MAILTRAP SANDBOX ERROR: {response.StatusCode} - {error}");
+                break; // Stop on other errors
             }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"EMAIL CRITICAL FAILURE: {ex.Message}");
+            catch (Exception ex)
+            {
+                Console.WriteLine($"EMAIL ATTEMPT {i+1} FAILED: {ex.Message}");
+                await Task.Delay(delaySeconds * 1000);
+            }
         }
     }
 }
