@@ -1,79 +1,54 @@
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.Extensions.Configuration;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Text;
-using System.Text.Json;
+using MailKit.Net.Smtp;
+using MimeKit;
+using MailKit.Security;
 
 namespace AuctionHub.Infrastructure.Services;
 
 public class EmailSender : IEmailSender
 {
     private readonly IConfiguration _config;
-    private readonly IHttpClientFactory _httpClientFactory;
 
-    public EmailSender(IConfiguration config, IHttpClientFactory httpClientFactory)
+    public EmailSender(IConfiguration config)
     {
         _config = config;
-        _httpClientFactory = httpClientFactory;
     }
 
     public async Task SendEmailAsync(string email, string subject, string htmlMessage)
     {
-        var apiToken = _config["EmailSettings:ApiToken"];
-        const string inboxId = "4420755";
-        
-        if (string.IsNullOrEmpty(apiToken) || apiToken == "YOUR_MAILTRAP_TOKEN")
+        var host = _config["EmailSettings:Host"];
+        var portStr = _config["EmailSettings:Port"];
+        var username = _config["EmailSettings:Username"];
+        var password = _config["EmailSettings:Password"];
+
+        if (string.IsNullOrEmpty(host) || string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
         {
-            Console.WriteLine("--- MAILTRAP LOG (No Token) ---");
+            Console.WriteLine("--- SMTP LOG: Missing Credentials ---");
+            Console.WriteLine($"To: {email}, Subject: {subject}");
             return;
         }
 
-        var client = _httpClientFactory.CreateClient();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiToken);
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress("AuctionHub", username));
+        message.To.Add(new MailboxAddress("", email));
+        message.Subject = subject;
 
-        var emailData = new
+        var bodyBuilder = new BodyBuilder { HtmlBody = htmlMessage };
+        message.Body = bodyBuilder.ToMessageBody();
+
+        using var client = new SmtpClient();
+        try
         {
-            from = new { email = "hello@auctionhub.com", name = "AuctionHub" },
-            to = new[] { new { email = email } },
-            subject = subject,
-            html = htmlMessage
-        };
-
-        var json = JsonSerializer.Serialize(emailData);
-        
-        int maxRetries = 3;
-        int delaySeconds = 2;
-
-        for (int i = 0; i < maxRetries; i++)
+            // For Gmail or Mailtrap SMTP
+            await client.ConnectAsync(host, int.Parse(portStr ?? "587"), SecureSocketOptions.StartTls);
+            await client.AuthenticateAsync(username, password);
+            await client.SendAsync(message);
+            await client.DisconnectAsync(true);
+        }
+        catch (Exception ex)
         {
-            try
-            {
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-                var response = await client.PostAsync($"https://sandbox.api.mailtrap.io/api/send/{inboxId}", content);
-                
-                if (response.IsSuccessStatusCode)
-                {
-                    return; // Success!
-                }
-
-                if (response.StatusCode == (System.Net.HttpStatusCode)429) // Too Many Requests
-                {
-                    Console.WriteLine($"MAILTRAP THROTTLED: Waiting {delaySeconds}s before retry {i+1}...");
-                    await Task.Delay(delaySeconds * 1000);
-                    delaySeconds *= 2; // Exponential backoff
-                    continue;
-                }
-
-                var error = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"MAILTRAP SANDBOX ERROR: {response.StatusCode} - {error}");
-                break; // Stop on other errors
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"EMAIL ATTEMPT {i+1} FAILED: {ex.Message}");
-                await Task.Delay(delaySeconds * 1000);
-            }
+            Console.WriteLine($"CRITICAL SMTP FAILURE: {ex.Message}");
         }
     }
 }
