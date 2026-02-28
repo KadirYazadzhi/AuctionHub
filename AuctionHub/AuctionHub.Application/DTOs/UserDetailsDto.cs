@@ -20,6 +20,7 @@ public class UserDetailsDto
     public decimal TotalSpent { get; set; }
     public decimal TotalEarned { get; set; }
     public double WinRate { get; set; }
+    public List<DailyActivityDto> PersonalActivity { get; set; } = new();
 
     public double AverageRating { get; set; }
     public bool IsTopSeller { get; set; }

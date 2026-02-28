@@ -113,6 +113,13 @@ public class UserService : IUserService
             ? (double)wonCount / finishedAuctionsParticipated * 100 
             : 0;
 
+        var personalActivity = user.MyBids
+            .Where(b => b.BidTime >= DateTime.UtcNow.Date.AddDays(-7))
+            .GroupBy(b => b.BidTime.Date)
+            .Select(g => new DailyActivityDto { Date = g.Key, BidCount = g.Count() })
+            .OrderBy(d => d.Date)
+            .ToList();
+
         return new UserDetailsDto
         {
             Id = user.Id,
@@ -133,6 +140,7 @@ public class UserService : IUserService
             TotalSpent = totalSpent - refunds,
             TotalEarned = totalEarned,
             WinRate = Math.Round(winRate, 1),
+            PersonalActivity = personalActivity,
 
             Reviews = user.ReceivedReviews.OrderByDescending(r => r.CreatedOn).Select(r => new ReviewDto
             {
