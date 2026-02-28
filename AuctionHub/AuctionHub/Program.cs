@@ -9,6 +9,7 @@ using AuctionHub.Infrastructure.Services;
 using System.Globalization;
 using AuctionHub.Hubs;
 using AuctionHub.Services;
+using Microsoft.AspNetCore.Identity.UI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +26,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<AuctionHubDbContext>(options =>
     options.UseSqlServer(connectionString));
 
+// Dependency Injection
 builder.Services.AddScoped<IAuctionHubDbContext, AuctionHubDbContext>();
 builder.Services.AddScoped<IAuctionService, AuctionService>();
 builder.Services.AddScoped<IWalletService, WalletService>();
@@ -36,7 +38,9 @@ builder.Services.AddScoped<IBiddingNotificationService, SignalRBiddingNotificati
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IPhotoService, PhotoService>();
+builder.Services.AddTransient<IEmailSender, EmailSender>();
 builder.Services.AddHostedService<AuctionCleanupService>();
+builder.Services.AddHostedService<EscrowReleaseService>();
 
 // Redis Configuration (Standard for K8s deployments)
 var redisUrl = builder.Configuration.GetConnectionString("Redis") 
@@ -54,8 +58,9 @@ builder.Services.AddStackExchangeRedisCache(options => {
     options.InstanceName = "AuctionHub_Cache_";
 });
 
+// Identity and External Authentication
 builder.Services.AddDefaultIdentity<ApplicationUser>(options => {
-    options.SignIn.RequireConfirmedAccount = false;
+    options.SignIn.RequireConfirmedAccount = true; // Email confirmation required!
     options.Password.RequireDigit = false;
     options.Password.RequireLowercase = false;
     options.Password.RequireUppercase = false;
@@ -64,6 +69,13 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options => {
 })
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<AuctionHubDbContext>();
+
+builder.Services.AddAuthentication()
+    .AddGoogle(googleOptions =>
+    {
+        googleOptions.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "placeholder";
+        googleOptions.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "placeholder";
+    });
 
 builder.Services.AddControllersWithViews(options => {
     options.ModelBinderProviders.Insert(0, new DecimalModelBinderProvider());
@@ -76,7 +88,6 @@ var app = builder.Build();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
@@ -123,8 +134,6 @@ using (var scope = app.Services.CreateScope())
             if (!string.IsNullOrEmpty(source) && source.Contains("@"))
             {
                 var newUserName = source.Split('@')[0];
-                
-                // Ensure the new username is not already taken
                 if (!await userManager.Users.AnyAsync(u => u.UserName == newUserName))
                 {
                     user.UserName = newUserName;

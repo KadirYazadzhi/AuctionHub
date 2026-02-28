@@ -554,7 +554,7 @@ public class AuctionService : IAuctionService
             EndTime = auction.EndTime,
             Category = auction.Category.Name,
             CategoryId = auction.CategoryId,
-            AdditionalImages = auction.Images.Select(i => i.Url).ToList(),
+            Images = auction.Images.Select(i => new AuctionImageDto { Id = i.Id, Url = i.Url }).ToList(),
             Seller = auction.Seller.DisplayName,
             SellerId = auction.SellerId,
             SellerRating = sellerRating,
@@ -718,6 +718,7 @@ public class AuctionService : IAuctionService
     {
         var auction = await _context.Auctions
             .Include(a => a.Bids)
+            .Include(a => a.Images)
             .FirstOrDefaultAsync(a => a.Id == id);
 
         if (auction == null) return (false, "Auction not found.", null);
@@ -725,15 +726,52 @@ public class AuctionService : IAuctionService
         if (auction.Bids.Any()) return (false, "You cannot edit an auction that has existing bids.", null);
 
         string? oldImageUrl = null;
-        if (!string.IsNullOrEmpty(model.ImageUrl) && model.ImageUrl != auction.ImageUrl)
+
+        // 1. Remove selected images
+        if (model.ImagesToRemoveIds.Any())
         {
-            oldImageUrl = auction.ImageUrl;
+            var imagesToRemove = auction.Images.Where(i => model.ImagesToRemoveIds.Contains(i.Id)).ToList();
+            foreach (var img in imagesToRemove)
+            {
+                if (!string.IsNullOrEmpty(img.PublicId))
+                {
+                    await _photoService.DeletePhotoAsync(img.PublicId);
+                }
+                auction.Images.Remove(img);
+            }
+        }
+
+        // 2. Upload new files to Cloudinary
+        for (int i = 0; i < model.ImageStreams.Count; i++)
+        {
+            var uploadResult = await _photoService.AddPhotoAsync(model.ImageStreams[i], model.ImageFileNames[i]);
+            if (uploadResult.Success)
+            {
+                auction.Images.Add(new AuctionImage { Url = uploadResult.Url, PublicId = uploadResult.PublicId });
+            }
+        }
+
+        // 3. Add new external URLs
+        foreach (var url in model.AdditionalImageUrls)
+        {
+            if (!string.IsNullOrWhiteSpace(url))
+            {
+                auction.Images.Add(new AuctionImage { Url = url });
+            }
+        }
+
+        // 4. Update Main Image
+        if (!string.IsNullOrEmpty(model.ImageUrl))
+        {
             auction.ImageUrl = model.ImageUrl;
+        }
+        else if (auction.Images.Any() && string.IsNullOrEmpty(auction.ImageUrl))
+        {
+            auction.ImageUrl = auction.Images.First().Url;
         }
 
         auction.Title = model.Title;
         auction.Description = model.Description;
-        
         auction.StartPrice = model.StartPrice;
         auction.MinIncrease = model.MinIncrease;
         auction.BuyItNowPrice = model.BuyItNowPrice;
@@ -747,19 +785,31 @@ public class AuctionService : IAuctionService
 
     public async Task<(bool Success, string Message, string? ImageUrl)> DeleteAuctionAsync(int id, string userId)
     {
+        // Use IgnoreQueryFilters to find the auction even if it was already soft-deleted (just in case)
         var auction = await _context.Auctions
             .Include(a => a.Bids)
             .FirstOrDefaultAsync(a => a.Id == id);
 
         if (auction == null) return (false, "Auction not found.", null);
         if (auction.SellerId != userId) return (false, "Forbidden.", null);
+        
+        // Logical check: If it has bids, we shouldn't even archive it if we want to be strict, 
+        // but typically archiving is exactly for items with history.
+        // For now, let's keep the 'no bids' rule for user deletion to prevent abuse.
         if (auction.Bids.Any()) return (false, "Cannot delete an auction that already has bids.", null);
 
         string? imageUrl = auction.ImageUrl;
-        _context.Auctions.Remove(auction);
+
+        // Perform Soft Delete (Archive)
+        auction.IsDeleted = true;
+        auction.IsActive = false;
+        
+        // We don't delete images from Cloudinary during soft delete 
+        // because we might need them for historical audit trails.
+
         await _context.SaveChangesAsync();
 
-        return (true, "Auction deleted successfully.", imageUrl);
+        return (true, "Auction archived successfully.", imageUrl);
     }
 
     public async Task<(bool Success, string Message)> ToggleWatchlistAsync(int auctionId, string userId)

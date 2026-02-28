@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using AuctionHub.Application.DTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
@@ -44,6 +45,8 @@ public class AuctionFormModel
 
     public List<IFormFile> AdditionalImageFiles { get; set; } = new();
     public string? AdditionalImageUrlsJson { get; set; } 
+    public List<AuctionImageDto> ExistingImages { get; set; } = new();
+    public string? ImagesToRemoveIdsJson { get; set; }
     public bool ShouldPromote { get; set; }
 
     public IEnumerable<SelectListItem> Categories { get; set; } = new List<SelectListItem>();

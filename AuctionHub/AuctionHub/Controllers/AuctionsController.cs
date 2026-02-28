@@ -104,7 +104,7 @@ public class AuctionsController : Controller
             BuyItNowPrice = auction.BuyItNowPrice,
             EndTime = auction.EndTime,
             Category = auction.Category,
-            Images = auction.AdditionalImages,
+            Images = auction.Images.Select(i => i.Url).ToList(),
             Seller = auction.Seller,
             SellerId = auction.SellerId,
             SellerRating = auction.SellerRating,
@@ -438,6 +438,7 @@ public class AuctionsController : Controller
     }
 
     [HttpGet]
+    [HttpGet]
     public async Task<IActionResult> Edit(int id)
     {
         var auction = await _auctionService.GetAuctionDetailsAsync(id);
@@ -461,11 +462,10 @@ public class AuctionsController : Controller
             StartPrice = auction.StartPrice,
             MinIncrease = auction.MinIncrease,
             BuyItNowPrice = auction.BuyItNowPrice,
-            // Strip seconds/milliseconds for the view
             EndTime = new DateTime(auction.EndTime.Year, auction.EndTime.Month, auction.EndTime.Day, 
                                  auction.EndTime.Hour, auction.EndTime.Minute, 0, 0, auction.EndTime.Kind),
-            // Category needs to be ID for the dropdown
             CategoryId = auction.CategoryId,
+            ExistingImages = auction.Images
         };
 
         model.Categories = await GetCategoriesAsync();
@@ -473,12 +473,20 @@ public class AuctionsController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(int id, AuctionFormModel model)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (currentUserId == null) return Challenge();
 
         ValidateImage(model.ImageFile);
+        if (model.AdditionalImageFiles != null)
+        {
+            foreach (var file in model.AdditionalImageFiles)
+            {
+                ValidateImage(file);
+            }
+        }
 
         if (!ModelState.IsValid)
         {
@@ -486,18 +494,11 @@ public class AuctionsController : Controller
             return View(model);
         }
 
-        string? imagePath = model.ImageUrl;
-        if (model.ImageFile != null)
-        {
-            // Note: In a true Clean Architecture, Image Service would be injected
-            imagePath = await SaveImageAsync(model.ImageFile);
-        }
-
         var dto = new AuctionFormDto
         {
             Title = model.Title,
             Description = model.Description,
-            ImageUrl = imagePath,
+            ImageUrl = model.ImageUrl,
             StartPrice = model.StartPrice,
             MinIncrease = model.MinIncrease,
             BuyItNowPrice = model.BuyItNowPrice,
@@ -505,22 +506,57 @@ public class AuctionsController : Controller
             CategoryId = model.CategoryId
         };
 
+        // Handle new files
+        if (model.ImageFile != null)
+        {
+            dto.ImageStreams.Add(model.ImageFile.OpenReadStream());
+            dto.ImageFileNames.Add(model.ImageFile.FileName);
+        }
+
+        if (model.AdditionalImageFiles != null)
+        {
+            foreach (var file in model.AdditionalImageFiles)
+            {
+                if (file.Length > 0)
+                {
+                    dto.ImageStreams.Add(file.OpenReadStream());
+                    dto.ImageFileNames.Add(file.FileName);
+                }
+            }
+        }
+
+        // Handle JSON removals
+        if (!string.IsNullOrEmpty(model.ImagesToRemoveIdsJson))
+        {
+            try
+            {
+                dto.ImagesToRemoveIds = System.Text.Json.JsonSerializer.Deserialize<List<int>>(model.ImagesToRemoveIdsJson) ?? new();
+            }
+            catch { }
+        }
+
+        // Handle JSON additional URLs
+        if (!string.IsNullOrEmpty(model.AdditionalImageUrlsJson))
+        {
+            try
+            {
+                var urls = System.Text.Json.JsonSerializer.Deserialize<List<string>>(model.AdditionalImageUrlsJson);
+                if (urls != null) dto.AdditionalImageUrls.AddRange(urls);
+            }
+            catch { }
+        }
+
         var result = await _auctionService.UpdateAuctionAsync(id, dto, currentUserId);
 
         if (result.Success)
         {
-            if (!string.IsNullOrEmpty(result.OldImageUrl))
-            {
-                DeleteImage(result.OldImageUrl);
-            }
+            TempData["Success"] = "Listing updated successfully.";
             return RedirectToAction(nameof(Details), new { id = id });
         }
-        else
-        {
-            if (result.Message == "Forbidden.") return Forbid();
-            TempData["Error"] = result.Message;
-            return RedirectToAction(nameof(Details), new { id = id });
-        }
+        
+        if (result.Message == "Forbidden.") return Forbid();
+        TempData["Error"] = result.Message;
+        return RedirectToAction(nameof(Details), new { id = id });
     }
 
     [HttpPost]

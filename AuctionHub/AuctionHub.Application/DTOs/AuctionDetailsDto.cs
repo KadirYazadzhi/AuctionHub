@@ -13,7 +13,7 @@ public class AuctionDetailsDto
     public DateTime EndTime { get; set; }
     public string Category { get; set; } = null!;
     public int CategoryId { get; set; }
-    public List<string> AdditionalImages { get; set; } = new();
+    public List<AuctionImageDto> Images { get; set; } = new();
     public string Seller { get; set; } = null!;
     public string SellerId { get; set; } = null!;
     public double SellerRating { get; set; }

@@ -41,6 +41,7 @@ public class Auction
         public bool IsActive { get; set; } = true;
         public bool IsPromoted { get; set; } = false;
         public bool IsSuspended { get; set; } = false;
+        public bool IsDeleted { get; set; } = false;
 
     [Timestamp]
     public byte[] RowVersion { get; set; } = null!;

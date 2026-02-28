@@ -108,6 +108,14 @@ public class AuctionHubDbContext : IdentityDbContext<ApplicationUser>, IAuctionH
         builder.Entity<ApplicationUser>().Property(u => u.WalletBalance).HasColumnType("decimal(18,2)");
         builder.Entity<AutoBid>().Property(ab => ab.MaxAmount).HasColumnType("decimal(18,2)");
 
+        // Global Query Filters
+        builder.Entity<Auction>().HasQueryFilter(a => !a.IsDeleted);
+        builder.Entity<AuctionImage>().HasQueryFilter(i => !i.Auction.IsDeleted);
+        builder.Entity<AuctionWatchlist>().HasQueryFilter(w => !w.Auction.IsDeleted);
+        builder.Entity<AutoBid>().HasQueryFilter(ab => !ab.Auction.IsDeleted);
+        builder.Entity<Bid>().HasQueryFilter(b => !b.Auction.IsDeleted);
+        builder.Entity<Review>().HasQueryFilter(r => !r.Auction.IsDeleted);
+
         // Watchlist unique
         builder.Entity<AuctionWatchlist>()
             .HasIndex(w => new { w.UserId, w.AuctionId })

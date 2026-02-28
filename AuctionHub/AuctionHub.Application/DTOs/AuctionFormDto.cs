@@ -14,5 +14,6 @@ public class AuctionFormDto
     public List<Stream> ImageStreams { get; set; } = new();
     public List<string> ImageFileNames { get; set; } = new();
     public List<string> AdditionalImageUrls { get; set; } = new();
+    public List<int> ImagesToRemoveIds { get; set; } = new();
     public bool ShouldPromote { get; set; }
 }
