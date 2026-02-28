@@ -609,3 +609,32 @@ html body .card.border-promoted:hover {
     70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
     100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
 }
+
+/* Admin Panel Professional Styling */
+.admin-nav-link {
+    color: var(--text-muted);
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.admin-nav-link:hover {
+    color: var(--primary-color);
+    background-color: rgba(var(--bs-primary-rgb), 0.05);
+}
+
+.active-admin-link {
+    background-color: rgba(var(--bs-primary-rgb), 0.1) !important;
+    color: var(--primary-color) !important;
+    font-weight: 700 !important;
+    border-left: 4px solid var(--primary-color) !important;
+}
+
+[data-bs-theme="dark"] .active-admin-link {
+    background-color: rgba(var(--bs-primary-rgb), 0.2) !important;
+}
+
+[data-bs-theme="dark"] .admin-content-card, 
+[data-bs-theme="dark"] .admin-sidebar-card {
+    background-color: var(--bg-card) !important;
+    border: 1px solid var(--border-color) !important;
+}

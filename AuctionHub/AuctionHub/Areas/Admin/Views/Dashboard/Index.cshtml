@@ -4,176 +4,121 @@
     ViewData["Title"] = "System Dashboard";
     var stats = ViewBag.Stats as AdminDashboardStatsDto;
     var recentLogs = ViewBag.RecentLogs as List<AuditLog>;
+    var suspiciousActivities = ViewBag.SuspiciousActivities as List<SuspiciousActivityDto>;
 }
 
 <div class="d-flex justify-content-between align-items-center mb-5 animate-fade-up">
     <div>
-        <h2 class="fw-bold mb-1 text-dark">Admin Dashboard</h2>
-        <p class="text-muted mb-0">Platform performance and financial overview.</p>
+        <h2 class="fw-bold mb-1 text-dark">Dashboard</h2>
+        <p class="text-muted mb-0">Overview of platform performance and activity.</p>
     </div>
     <div class="d-flex gap-2">
-        <span class="badge bg-success rounded-pill px-3 py-2 shadow-sm d-flex align-items-center">
+        <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-2 border border-success border-opacity-25 d-flex align-items-center">
             <span class="spinner-grow spinner-grow-sm me-2" role="status"></span>
-            System: Online
+            System Live
         </span>
-        <a asp-controller="Settings" asp-action="Index" class="btn btn-white bg-white border shadow-sm rounded-pill px-3">
-            <i class="bi bi-gear-fill me-1"></i> Settings
-        </a>
     </div>
 </div>
 
-<!-- Key Financial Metrics -->
+<!-- Simple Professional Cards -->
 <div class="row g-4 mb-5">
-    <div class="col-md-3 animate-fade-up delay-100">
-        <div class="card border-0 shadow-sm rounded-5 h-100 bg-white border-start border-primary border-5">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-4 h-100 bg-white border-start border-primary border-5">
             <div class="card-body p-4">
-                <small class="text-muted text-uppercase fw-bold letter-spacing-1 d-block mb-2">Total Revenue</small>
-                <h2 class="fw-bold mb-0 text-primary">@stats?.TotalRevenue.ToString("C0")</h2>
-                <small class="text-success fw-bold"><i class="bi bi-graph-up me-1"></i> Promotion fees</small>
+                <small class="text-muted text-uppercase fw-bold smallest letter-spacing-1 d-block mb-2">Total Revenue</small>
+                <h3 class="fw-bold mb-0 text-dark">@stats?.TotalRevenue.ToString("C0")</h3>
+                <small class="text-success fw-medium">From promotions</small>
             </div>
         </div>
     </div>
-    <div class="col-md-3 animate-fade-up delay-200">
-        <div class="card border-0 shadow-sm rounded-5 h-100 bg-white border-start border-warning border-5">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-4 h-100 bg-white border-start border-warning border-5">
             <div class="card-body p-4">
-                <small class="text-muted text-uppercase fw-bold letter-spacing-1 d-block mb-2">Active Escrow</small>
-                <h2 class="fw-bold mb-0 text-warning">@stats?.ActiveEscrowAmount.ToString("C0")</h2>
-                <small class="text-muted">Funds held by system</small>
+                <small class="text-muted text-uppercase fw-bold smallest letter-spacing-1 d-block mb-2">Escrow Held</small>
+                <h3 class="fw-bold mb-0 text-dark">@stats?.ActiveEscrowAmount.ToString("C0")</h3>
+                <small class="text-muted">Safe-guarded funds</small>
             </div>
         </div>
     </div>
-    <div class="col-md-3 animate-fade-up delay-300">
-        <div class="card border-0 shadow-sm rounded-5 h-100 bg-white border-start border-success border-5">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-4 h-100 bg-white border-start border-success border-5">
             <div class="card-body p-4">
-                <small class="text-muted text-uppercase fw-bold letter-spacing-1 d-block mb-2">Active Users</small>
-                <h2 class="fw-bold mb-0 text-success">@stats?.ActiveUsersCount</h2>
-                <small class="text-muted">Registered members</small>
+                <small class="text-muted text-uppercase fw-bold smallest letter-spacing-1 d-block mb-2">Active Users</small>
+                <h3 class="fw-bold mb-0 text-dark">@stats?.ActiveUsersCount</h3>
+                <small class="text-muted">Member community</small>
             </div>
         </div>
     </div>
-    <div class="col-md-3 animate-fade-up delay-400">
-        <div class="card border-0 shadow-sm rounded-5 h-100 bg-white border-start border-info border-5">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-4 h-100 bg-white border-start border-info border-5">
             <div class="card-body p-4">
-                <small class="text-muted text-uppercase fw-bold letter-spacing-1 d-block mb-2">Total Auctions</small>
-                <h2 class="fw-bold mb-0 text-info">@stats?.TotalAuctionsCount</h2>
-                <small class="text-muted">Items ever listed</small>
+                <small class="text-muted text-uppercase fw-bold smallest letter-spacing-1 d-block mb-2">Auctions</small>
+                <h3 class="fw-bold mb-0 text-dark">@stats?.TotalAuctionsCount</h3>
+                <small class="text-muted">Lifetime listings</small>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row g-4 mb-5">
-    <!-- Activity Chart (Placeholder for real data visualisation) -->
-    <div class="col-lg-8 animate-fade-up delay-500">
-        <div class="card border-0 shadow-sm rounded-5 bg-white h-100">
-            <div class="card-body p-4">
-                <h5 class="fw-bold mb-4">Bidding Activity (Last 7 Days)</h5>
-                <div class="d-flex align-items-end justify-content-between gap-2" style="height: 200px;">
-                    @foreach (var day in stats?.ActivityTrend ?? new())
-                    {
-                        <div class="flex-grow-1 bg-primary bg-opacity-10 rounded-top-3 position-relative group" 
-                             style="height: @(day.BidCount > 0 ? (day.BidCount * 10) : 10)px; min-height: 10px;"
-                             title="@day.Date.ToShortDateString(): @day.BidCount bids">
-                            <div class="position-absolute top-0 start-50 translate-middle-x mt-n4 opacity-0 group-hover-opacity-100 transition-all small fw-bold">@day.BidCount</div>
-                        </div>
-                    }
-                </div>
-                <div class="d-flex justify-content-between mt-3 text-muted small">
-                    @foreach (var day in stats?.ActivityTrend ?? new())
-                    {
-                        <span class="flex-grow-1 text-center">@day.Date.ToString("ddd")</span>
-                    }
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Top Categories -->
-    <div class="col-lg-4 animate-fade-up delay-600">
-        <div class="card border-0 shadow-sm rounded-5 bg-white h-100">
-            <div class="card-body p-4">
-                <h5 class="fw-bold mb-4">Top Categories</h5>
-                <div class="list-group list-group-flush">
-                    @foreach (var cat in stats?.TopCategories ?? new())
-                    {
-                        <div class="list-group-item px-0 border-0 d-flex justify-content-between align-items-center">
-                            <div class="d-flex align-items-center">
-                                <div class="bg-primary-subtle text-primary rounded-circle p-2 me-3" style="width: 32px; height: 32px; font-size: 12px; display: flex; align-items: center; justify-content: center;">
-                                    <i class="bi bi-tag-fill"></i>
-                                </div>
-                                <span class="fw-bold text-dark small">@cat.Name</span>
-                            </div>
-                            <span class="badge bg-light text-dark rounded-pill">@cat.BidCount bids</span>
-                        </div>
-                    }
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row g-4 mb-5">
-    <!-- Recent Audit Logs -->
-    <div class="col-lg-7 animate-fade-up delay-700">
-        <!-- Fraud Detection / Suspicious Activity -->
-        <div class="card border-0 shadow-sm rounded-5 bg-white overflow-hidden mb-4 border-start border-danger border-5">
-            <div class="card-header bg-white border-0 p-4 pb-0 d-flex justify-content-between align-items-center">
-                <h5 class="fw-bold mb-0 text-danger"><i class="bi bi-shield-exclamation me-2"></i>Fraud Detection</h5>
-                <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-2">Beta</span>
+<div class="row g-4">
+    <!-- Main Charts / Stats -->
+    <div class="col-lg-8">
+        <!-- Fraud Detection (Moved here for prominence) -->
+        <div class="card border-0 shadow-sm rounded-4 bg-white mb-4">
+            <div class="card-header bg-white border-0 p-4 pb-0">
+                <h5 class="fw-bold mb-0 text-danger"><i class="bi bi-shield-exclamation me-2"></i>Fraud Monitoring</h5>
             </div>
             <div class="card-body p-4">
-                @if (((List<SuspiciousActivityDto>)ViewBag.SuspiciousActivities).Any())
+                @if (suspiciousActivities != null && suspiciousActivities.Any())
                 {
                     <div class="list-group list-group-flush">
-                        @foreach (var activity in (List<SuspiciousActivityDto>)ViewBag.SuspiciousActivities)
+                        @foreach (var activity in suspiciousActivities)
                         {
-                            <div class="list-group-item px-0 border-0 d-flex justify-content-between align-items-start mb-2">
+                            <div class="list-group-item px-0 border-0 d-flex justify-content-between align-items-center mb-2">
                                 <div>
                                     <div class="fw-bold text-dark small">@activity.Type</div>
                                     <div class="smallest text-muted">@activity.Description</div>
                                 </div>
-                                <span class="badge @(activity.Severity == "High" ? "bg-danger" : activity.Severity == "Medium" ? "bg-warning" : "bg-info") rounded-pill">@activity.Severity</span>
+                                <span class="badge @(activity.Severity == "High" ? "bg-danger" : "bg-warning") rounded-pill">@activity.Severity</span>
                             </div>
                         }
                     </div>
                 }
                 else
                 {
-                    <div class="text-center py-2">
-                        <i class="bi bi-check-circle text-success fs-4 d-block mb-1"></i>
-                        <small class="text-muted">No suspicious activity detected in the last hour.</small>
+                    <div class="py-2 d-flex align-items-center text-success small">
+                        <i class="bi bi-check-circle-fill me-2"></i> No security anomalies detected.
                     </div>
                 }
             </div>
         </div>
 
-        <div class="card border-0 shadow-sm rounded-5 bg-white overflow-hidden">
+        <!-- Audit Log Table -->
+        <div class="card border-0 shadow-sm rounded-4 bg-white">
             <div class="card-header bg-white border-0 p-4 pb-0 d-flex justify-content-between align-items-center">
-                <h5 class="fw-bold mb-0">System Audit Log</h5>
-                <a asp-controller="Settings" asp-action="AuditLogs" class="text-primary small text-decoration-none fw-bold">View All</a>
+                <h5 class="fw-bold mb-0">System Activity</h5>
+                <a asp-controller="Settings" asp-action="AuditLogs" class="btn btn-sm btn-light rounded-pill px-3">View All</a>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="bg-light">
                             <tr>
-                                <th class="ps-4 border-0 small text-muted">ADMIN</th>
-                                <th class="border-0 small text-muted">ACTION</th>
-                                <th class="border-0 small text-muted text-end pe-4">TIME</th>
+                                <th class="ps-4 border-0 smallest text-muted text-uppercase">Admin</th>
+                                <th class="border-0 smallest text-muted text-uppercase">Action</th>
+                                <th class="border-0 smallest text-muted text-uppercase text-end pe-4">Time</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var log in (List<AuditLog>)ViewBag.RecentLogs)
+                            @foreach (var log in recentLogs ?? new())
                             {
                                 <tr>
                                     <td class="ps-4">
-                                        <div class="d-flex align-items-center">
-                                            <span class="fw-bold small text-dark">@log.Admin.DisplayName</span>
-                                        </div>
+                                        <span class="fw-bold small text-dark">@log.Admin.DisplayName</span>
                                     </td>
                                     <td>
-                                        <span class="badge bg-primary-subtle text-primary rounded-pill px-2">@log.Action</span>
-                                        <div class="small text-muted text-truncate" style="max-width: 200px;">@log.Details</div>
+                                        <div class="small text-dark">@log.Action</div>
+                                        <div class="smallest text-muted text-truncate" style="max-width: 250px;">@log.Details</div>
                                     </td>
                                     <td class="text-end pe-4">
                                         <small class="text-muted">@log.Timestamp.ToString("HH:mm")</small>
@@ -187,43 +132,38 @@
         </div>
     </div>
 
-    <!-- Quick Actions Redux -->
-    <div class="col-lg-5 animate-fade-up delay-800">
-        <div class="card border-0 shadow-sm rounded-5 bg-white p-4">
-            <h5 class="fw-bold mb-4">System Alerts</h5>
+    <!-- Right Column: Quick Actions -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-4 mb-4">
+            <h5 class="fw-bold mb-4">Global Announcement</h5>
             <form asp-action="SendAnnouncement" method="post">
                 <div class="mb-3">
-                    <label class="form-label small text-muted fw-bold">BROADCAST MESSAGE</label>
-                    <textarea name="message" class="form-control bg-light border-0 rounded-4 p-3" rows="3" placeholder="Push a notification to every user..."></textarea>
+                    <textarea name="message" class="form-control bg-light border-0 rounded-4 p-3 small" rows="3" placeholder="Push alert to all users..."></textarea>
                 </div>
-                <button type="submit" class="btn btn-primary w-100 rounded-pill py-3 fw-bold shadow-sm">
-                    <i class="bi bi-broadcast me-2"></i> Send Announcement
+                <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-bold shadow-sm">
+                    Send Notification
                 </button>
             </form>
-            
-            <hr class="my-4 opacity-10">
-            
-            <div class="d-grid gap-2">
-                <a asp-controller="Users" asp-action="Index" class="btn btn-light rounded-pill py-2 text-start px-4 d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-people me-2"></i> Manage Users</span>
-                    <i class="bi bi-chevron-right small opacity-50"></i>
-                </a>
-                <a asp-controller="Messages" asp-action="Index" class="btn btn-light rounded-pill py-2 text-start px-4 d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-inbox me-2"></i> Support Inbox</span>
-                    <i class="bi bi-chevron-right small opacity-50"></i>
-                </a>
-                <a asp-controller="Reports" asp-action="Index" class="btn btn-light rounded-pill py-2 text-start px-4 d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-flag me-2"></i> User Reports</span>
-                    <i class="bi bi-chevron-right small opacity-50"></i>
-                </a>
-            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-4">
+            <h5 class="fw-bold mb-4">Top Categories</h5>
+            @foreach (var cat in stats?.TopCategories ?? new())
+            {
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="small fw-bold text-dark">@cat.Name</span>
+                    <span class="badge bg-light text-dark rounded-pill">@cat.BidCount bids</span>
+                </div>
+            }
         </div>
     </div>
 </div>
 
 <style>
-    .transition-all { transition: all 0.3s ease; }
-    .hover-lift:hover { transform: translateY(-5px); }
-    .group:hover .group-hover-opacity-100 { opacity: 1 !important; }
+    .smallest { font-size: 0.7rem; }
     .letter-spacing-1 { letter-spacing: 1px; }
+    /* Dark Mode Overrides for Admin Content */
+    [data-bs-theme="dark"] .bg-white { background-color: var(--bg-card) !important; }
+    [data-bs-theme="dark"] .text-dark { color: var(--text-main) !important; }
+    [data-bs-theme="dark"] .bg-light { background-color: rgba(255,255,255,0.05) !important; }
 </style>
