@@ -35,7 +35,7 @@ public class AuctionDetailsViewModel
 
     public bool IsWatched { get; set; } // Added
 
-    public bool IsWinning { get; set; }
+    public bool? IsWinning { get; set; }
 
     public decimal? CurrentAutoBidLimit { get; set; }
 

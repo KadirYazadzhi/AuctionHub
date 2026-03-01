@@ -292,12 +292,12 @@
                                 
                                 @{
                                     var currentUserIdForChat = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                                    bool canAccessChat = Model.SellerId == currentUserIdForChat || Model.IsWinning;
+                                    bool canAccessChat = Model.SellerId == currentUserIdForChat || Model.IsWinning == true;
                                 }
                                 @if (canAccessChat)
                                 {
                                     <div class="mt-4 d-flex flex-column gap-2">
-                                        @if (Model.IsWinning && !Model.IsDelivered)
+                                        @if (Model.IsWinning == true && !Model.IsDelivered)
                                         {
                                             <form asp-action="ConfirmDelivery" method="post" onsubmit="return showConfirm('Confirm you received the item? This will <strong>release funds</strong> to the seller.', this);">
                                                 <input type="hidden" name="auctionId" value="@Model.Id" />
