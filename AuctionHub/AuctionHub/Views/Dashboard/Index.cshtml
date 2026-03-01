@@ -83,7 +83,7 @@
 
         <!-- Wallet Card -->
         <div class="col-lg-4">
-            <div class="card border-0 shadow-sm rounded-5 bg-white h-100 position-relative overflow-hidden">
+            <div class="card border-0 shadow-sm rounded-5 bg-white h-100 position-relative overflow-hidden border-top border-primary border-5">
                 <div class="card-body p-4 p-xl-5 d-flex flex-column">
                     <div class="mb-4">
                         <div class="d-flex align-items-center justify-content-between mb-2">
@@ -119,10 +119,10 @@
     <div class="row g-4">
         <!-- Current Participation -->
         <div class="col-lg-7">
-            <div class="card border-0 shadow-sm rounded-5 bg-card h-100 overflow-hidden border border-light-subtle">
+            <div class="card border-0 shadow-sm rounded-5 bg-card h-100 overflow-hidden border border-light-subtle shadow-hover">
                 <div class="card-header bg-transparent border-0 p-4 pb-0 d-flex justify-content-between align-items-center">
                     <h5 class="fw-bold mb-0 text-main">Ongoing Bidding</h5>
-                    <a asp-controller="Auctions" asp-action="MyBids" class="text-primary small text-decoration-none fw-bold">View History <i class="bi bi-arrow-right"></i></a>
+                    <a asp-controller="Auctions" asp-action="MyBids" class="text-primary small text-decoration-none fw-bold hover-purple">View History <i class="bi bi-arrow-right"></i></a>
                 </div>
                 <div class="card-body p-4">
                     @if (Model.Auctions.Any(a => a.IsActive))
@@ -146,7 +146,7 @@
                                     </div>
                                     <div class="text-end ms-3">
                                         <div class="fw-bold text-primary fs-5">@auction.CurrentPrice.ToString("C")</div>
-                                        <a asp-controller="Auctions" asp-action="Details" asp-route-id="@auction.Id" class="btn btn-sm btn-outline-primary rounded-pill px-3 mt-1">Details</a>
+                                        <a asp-controller="Auctions" asp-action="Details" asp-route-id="@auction.Id" class="btn btn-sm btn-outline-primary rounded-pill px-3 mt-1 btn-hover-purple">Details</a>
                                     </div>
                                 </div>
                             }
@@ -159,7 +159,7 @@
                                 <i class="bi bi-hammer display-1"></i>
                             </div>
                             <p class="fs-5">You are not participating in any active auctions.</p>
-                            <a asp-controller="Auctions" asp-action="Index" class="btn btn-outline-primary rounded-pill px-4">Start Browsing</a>
+                            <a asp-controller="Auctions" asp-action="Index" class="btn btn-outline-primary rounded-pill px-4 btn-hover-purple">Start Browsing</a>
                         </div>
                     }
                 </div>
@@ -181,7 +181,7 @@
                         var timeRemaining = auction.EndTime - DateTime.UtcNow;
                         var isUrgent = timeRemaining.TotalHours < 2;
 
-                        <div class="d-flex align-items-center p-3 transition-all hover-lift rounded-4 bg-light-custom border border-light-subtle shadow-sm position-relative overflow-hidden">
+                        <div class="d-flex align-items-center p-3 transition-all hover-item rounded-4 bg-light-custom border border-light-subtle shadow-sm position-relative overflow-hidden">
                             @if (auction.IsPromoted)
                             {
                                 <div class="position-absolute top-0 start-0 h-100 bg-warning" style="width: 4px;"></div>
@@ -270,14 +270,40 @@
 <style>
     .letter-spacing-1 { letter-spacing: 1px; }
     .smallest { font-size: 0.75rem; }
-    .hover-lift:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important; }
+    .hover-lift:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.08) !important; }
     .hover-opacity-100:hover { opacity: 1 !important; }
-    .hover-border-light:hover { border-color: var(--border-color) !important; }
-    .hover-light-custom:hover { background-color: rgba(67, 97, 238, 0.05) !important; }
+    .hover-border-light:hover { border-color: rgba(67, 97, 238, 0.15) !important; }
+    .hover-light-custom:hover { background-color: rgba(67, 97, 238, 0.03) !important; }
     .hover-underline:hover { text-decoration: underline !important; }
-    .transition-all { transition: all 0.3s ease; }
-    .bg-light-custom { background-color: var(--bg-light) !important; }
+    .transition-all { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .bg-light-custom { background-color: #f8faff !important; }
     
+    .hover-item { transition: all 0.2s ease; }
+    .hover-item:hover { 
+        background-color: white !important; 
+        transform: translateX(5px); 
+        border-color: #7209b7 !important;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05) !important;
+    }
+
+    .shadow-hover { transition: box-shadow 0.3s ease; }
+    .shadow-hover:hover { box-shadow: 0 12px 24px -8px rgba(0,0,0,0.05) !important; }
+
+    /* Purple Hover Effects */
+    .btn-hover-purple {
+        transition: all 0.3s ease !important;
+    }
+    .btn-hover-purple:hover {
+        background-color: #7209b7 !important;
+        border-color: #7209b7 !important;
+        color: white !important;
+        box-shadow: 0 4px 12px rgba(114, 9, 183, 0.2) !important;
+    }
+    
+    .hover-purple:hover {
+        color: #7209b7 !important;
+    }
+
     @@keyframes pulse-slow {
         0%, 100% { opacity: 1; }
         50% { opacity: 0.7; }
