@@ -8,10 +8,10 @@
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-md-5">
-            <div class="card border-0 shadow-lg rounded-4 overflow-hidden animate-fade-up">
-                <div class="card-header bg-primary text-white text-center py-4">
-                    <h2 class="fw-bold mb-0">Welcome Back</h2>
-                    <p class="mb-0 opacity-75">Sign in to start bidding</p>
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden animate-fade-up login-card">
+                <div class="card-header bg-primary text-white text-center py-4 border-0">
+                    <h2 class="fw-bold mb-0" style="color: white !important;">Welcome Back</h2>
+                    <p class="mb-0 opacity-75" style="color: rgba(255,255,255,0.8) !important;">Sign in to start bidding</p>
                 </div>
                 <div class="card-body p-4 p-lg-5">
                     <form id="account" method="post">
@@ -43,7 +43,7 @@
 
                         <div class="text-center position-relative mb-4">
                             <hr class="text-muted opacity-25">
-                            <span class="position-absolute top-50 start-50 translate-middle bg-white px-3 text-muted small">OR</span>
+                            <span class="position-absolute top-50 start-50 translate-middle px-3 text-muted small separator-text">OR</span>
                         </div>
 
                         <section>
@@ -60,10 +60,11 @@
                                         <div class="d-grid gap-2">
                                             @foreach (var provider in Model.ExternalLogins!)
                                             {
-                                                <button type="submit" class="btn btn-outline-dark rounded-pill py-2 fw-bold d-flex align-items-center justify-content-center" name="provider" value="@provider.Name" title="Log in using your @provider.DisplayName account">
+                                                var btnClass = provider.Name == "Google" ? "btn-google" : "btn-outline-dark";
+                                                <button type="submit" class="btn @btnClass rounded-pill py-2 fw-bold d-flex align-items-center justify-content-center external-btn" name="provider" value="@provider.Name" title="Log in using your @provider.DisplayName account">
                                                     @if (provider.Name == "Google")
                                                     {
-                                                        <i class="bi bi-google me-2 text-danger"></i>
+                                                        <i class="bi bi-google me-2"></i>
                                                     }
                                                     else if (provider.Name == "GitHub")
                                                     {
@@ -79,13 +80,57 @@
                         </section>
                     </form>
                 </div>
-                <div class="card-footer bg-light border-0 py-4 text-center">
+                <div class="card-footer bg-light border-0 py-4 text-center login-footer">
                     <p class="mb-0 text-muted">Don't have an account? <a asp-page="./Register" asp-route-returnUrl="@Model.ReturnUrl" class="text-primary fw-bold text-decoration-none">Sign Up</a></p>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    .separator-text {
+        background-color: white;
+    }
+    [data-bs-theme="dark"] .separator-text {
+        background-color: var(--bg-white);
+    }
+    
+    .btn-google {
+        background-color: white;
+        color: #444;
+        border: 1px solid #ddd;
+        transition: all 0.2s;
+    }
+    .btn-google i { color: #db4437; }
+    .btn-google:hover {
+        background-color: #f8f9fa;
+        border-color: #ccc;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    [data-bs-theme="dark"] .btn-google {
+        background-color: rgba(255,255,255,0.05);
+        color: white;
+        border-color: rgba(255,255,255,0.1);
+    }
+    [data-bs-theme="dark"] .btn-google:hover {
+        background-color: rgba(255,255,255,0.1);
+        border-color: rgba(255,255,255,0.2);
+    }
+
+    [data-bs-theme="dark"] .external-btn.btn-outline-dark {
+        color: white;
+        border-color: rgba(255,255,255,0.2);
+    }
+    [data-bs-theme="dark"] .external-btn.btn-outline-dark:hover {
+        background-color: rgba(255,255,255,0.05);
+    }
+
+    [data-bs-theme="dark"] .login-footer {
+        background-color: rgba(255,255,255,0.02) !important;
+    }
+</style>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
