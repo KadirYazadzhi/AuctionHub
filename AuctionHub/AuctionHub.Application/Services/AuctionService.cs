@@ -1081,7 +1081,6 @@ public class AuctionService : IAuctionService
             });
 
             // 2. Refund Previous Bidder & Notify
-            var previousHighBid = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault();
             if (previousHighBid != null)
             {
                 if (previousHighBid.BidderId == userId)
