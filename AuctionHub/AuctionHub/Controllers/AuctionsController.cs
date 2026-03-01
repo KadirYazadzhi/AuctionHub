@@ -589,9 +589,12 @@ public class AuctionsController : Controller
 
         if (result.Success)
         {
-            if (!string.IsNullOrEmpty(result.ImageUrl))
+            if (result.ImageUrls != null)
             {
-                DeleteImage(result.ImageUrl);
+                foreach (var url in result.ImageUrls)
+                {
+                    DeleteImage(url);
+                }
             }
             TempData["Success"] = result.Message;
             return RedirectToAction(nameof(Index));
@@ -837,6 +840,7 @@ public class AuctionsController : Controller
 
     [HttpPost]
     [Authorize]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Cancel(int id)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -855,6 +859,7 @@ public class AuctionsController : Controller
 
     [HttpPost]
     [Authorize]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeactivateAutoBid(int id)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -869,6 +874,7 @@ public class AuctionsController : Controller
 
     [HttpPost]
     [Authorize]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Dispute(int id)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);

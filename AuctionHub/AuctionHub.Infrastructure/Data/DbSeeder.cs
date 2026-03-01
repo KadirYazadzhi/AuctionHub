@@ -69,5 +69,18 @@ public static class DbSeeder
                 await userManager.AddToRoleAsync(adminUser, adminRole);
             }
         }
+
+        // 4. Seed System Settings
+        if (!await context.SystemSettings.AnyAsync())
+        {
+            var settings = new List<SystemSetting>
+            {
+                new SystemSetting { Key = "CommissionRate", Value = "5", LastUpdated = DateTime.UtcNow },
+                new SystemSetting { Key = "MinWithdrawal", Value = "10", LastUpdated = DateTime.UtcNow },
+                new SystemSetting { Key = "PromotionFee", Value = "1.99", LastUpdated = DateTime.UtcNow }
+            };
+            await context.SystemSettings.AddRangeAsync(settings);
+            await context.SaveChangesAsync();
+        }
     }
 }

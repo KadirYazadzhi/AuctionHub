@@ -414,29 +414,49 @@ public class AuctionService : IAuctionService
                 return (false, "Only the auction winner can confirm delivery.");
             }
 
-            // Release Funds to Seller
-            decimal price = winningBid.Amount;
-            auction.Seller.WalletBalance += price;
+            // Release Funds to Seller (Minus Commission)
+            decimal totalAmount = winningBid.Amount;
+            decimal commissionRate = await GetCommissionRateAsync();
+            decimal commissionAmount = Math.Round(totalAmount * commissionRate, 2);
+            decimal finalSellerAmount = totalAmount - commissionAmount;
+
+            auction.Seller.WalletBalance += finalSellerAmount;
             auction.IsSettled = true;
 
+            // 1. Seller Transaction (Net)
             _context.Transactions.Add(new Transaction
             {
                 UserId = auction.SellerId,
-                Amount = price,
-                Description = $"Sale of item '{auction.Title}' - Escrow released (Auction ID: {auctionId})",
+                Amount = finalSellerAmount,
+                Description = $"Sale of '{auction.Title}' (Gross: {totalAmount:C}, Commission: {commissionAmount:C})",
                 TransactionType = "Sale",
                 TransactionDate = DateTime.UtcNow,
                 AuctionId = auctionId
             });
 
+            // 2. System Commission Log (Linked to Admin or abstract system user if exists, otherwise just log the transaction)
+            var adminUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == "admin@auctionhub.com");
+            if (adminUser != null)
+            {
+                _context.Transactions.Add(new Transaction
+                {
+                    UserId = adminUser.Id,
+                    Amount = commissionAmount,
+                    Description = $"Commission from auction '{auction.Title}' (ID: {auctionId})",
+                    TransactionType = "Commission",
+                    TransactionDate = DateTime.UtcNow,
+                    AuctionId = auctionId
+                });
+            }
+
             await _context.SaveChangesAsync();
             await dbTransaction.CommitAsync();
 
             await _notificationService.NotifyUserAsync(auction.SellerId, 
-                $"💰 Payment for '{auction.Title}' has been released to your wallet! The buyer confirmed delivery.", 
+                $"💰 Payment for '{auction.Title}' released: {finalSellerAmount:C} (Commission: {commissionAmount:C}).", 
                 $"/Auctions/Details/{auctionId}");
 
-            return (true, "Delivery confirmed! Funds have been released to the seller.");
+            return (true, $"Delivery confirmed! {finalSellerAmount:C} released to your wallet.");
         }
         catch (Exception)
         {
@@ -874,33 +894,30 @@ public class AuctionService : IAuctionService
         return (true, "Auction updated successfully.", oldImageUrl);
     }
 
-    public async Task<(bool Success, string Message, string? ImageUrl)> DeleteAuctionAsync(int id, string userId)
+    public async Task<(bool Success, string Message, IEnumerable<string>? ImageUrls)> DeleteAuctionAsync(int id, string userId)
     {
         // Use IgnoreQueryFilters to find the auction even if it was already soft-deleted (just in case)
         var auction = await _context.Auctions
             .Include(a => a.Bids)
+            .Include(a => a.Images)
             .FirstOrDefaultAsync(a => a.Id == id);
 
         if (auction == null) return (false, "Auction not found.", null);
         if (auction.SellerId != userId) return (false, "Forbidden.", null);
         
-        // Logical check: If it has bids, we shouldn't even archive it if we want to be strict, 
-        // but typically archiving is exactly for items with history.
-        // For now, let's keep the 'no bids' rule for user deletion to prevent abuse.
         if (auction.Bids.Any()) return (false, "Cannot delete an auction that already has bids.", null);
 
-        string? imageUrl = auction.ImageUrl;
+        var imageUrls = new List<string>();
+        if (!string.IsNullOrEmpty(auction.ImageUrl)) imageUrls.Add(auction.ImageUrl);
+        if (auction.Images.Any()) imageUrls.AddRange(auction.Images.Select(i => i.Url));
 
         // Perform Soft Delete (Archive)
         auction.IsDeleted = true;
         auction.IsActive = false;
         
-        // We don't delete images from Cloudinary during soft delete 
-        // because we might need them for historical audit trails.
-
         await _context.SaveChangesAsync();
 
-        return (true, "Auction archived successfully.", imageUrl);
+        return (true, "Auction archived successfully.", imageUrls);
     }
 
     public async Task<(bool Success, string Message)> ToggleWatchlistAsync(int auctionId, string userId)
@@ -1040,6 +1057,13 @@ public class AuctionService : IAuctionService
 
             if (auction.SellerId == userId) return (false, "You cannot bid on your own auction.");
             if (!auction.IsActive || auction.EndTime <= DateTime.UtcNow) return (false, "This auction has ended.");
+            
+            var previousHighBid = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault();
+            if (previousHighBid != null && previousHighBid.BidderId == userId)
+            {
+                return (false, "You are already the highest bidder.");
+            }
+
             if (amount < auction.CurrentPrice + auction.MinIncrease) return (false, $"Bid must be at least {auction.CurrentPrice + auction.MinIncrease:C}.");
 
             if (currentUser.WalletBalance < amount) return (false, "Insufficient funds.");
@@ -1227,10 +1251,16 @@ public class AuctionService : IAuctionService
         {
             UserId = autoUser.Id,
             Amount = finalPrice,
-            Description = $"Auto-bid winner on '{auction.Title}'",
+            Description = $"Auto-bid leading on '{auction.Title}'",
             TransactionType = "Auto-Bid",
-            TransactionDate = DateTime.UtcNow
+            TransactionDate = DateTime.UtcNow,
+            AuctionId = auction.Id
         });
+
+        // Notify Winner (Optional but good UX)
+        await _notificationService.NotifyUserAsync(autoUser.Id, 
+            $"🤖 Your auto-bidder placed a leading bid of {finalPrice:C} on '{auction.Title}'!", 
+            $"/Auctions/Details/{auction.Id}");
 
         // B. Refund Previous High Bidder (the one from PlaceBidAsync)
         var prevBid = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault();
@@ -1424,5 +1454,15 @@ public class AuctionService : IAuctionService
             await dbTransaction.RollbackAsync();
             return (false, "An error occurred during purchase.");
         }
+    }
+
+    private async Task<decimal> GetCommissionRateAsync()
+    {
+        var setting = await _context.SystemSettings.FirstOrDefaultAsync(s => s.Key == "CommissionRate");
+        if (setting != null && decimal.TryParse(setting.Value, out decimal rate))
+        {
+            return rate / 100m;
+        }
+        return 0.05m; // Default 5%
     }
 }

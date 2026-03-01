@@ -29,13 +29,17 @@ public class CategoryService : ICategoryService
 
     public async Task<CategoryDto?> GetByIdAsync(int id)
     {
-        var category = await _context.Categories.FindAsync(id);
+        var category = await _context.Categories
+            .Include(c => c.Auctions)
+            .FirstOrDefaultAsync(c => c.Id == id);
+
         if (category == null) return null;
 
         return new CategoryDto
         {
             Id = category.Id,
-            Name = category.Name
+            Name = category.Name,
+            AuctionsCount = category.Auctions.Count
         };
     }
 

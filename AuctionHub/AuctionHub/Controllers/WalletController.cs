@@ -33,6 +33,7 @@ public class WalletController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddFunds(decimal amount)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -53,6 +54,7 @@ public class WalletController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Withdraw(decimal amount)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
