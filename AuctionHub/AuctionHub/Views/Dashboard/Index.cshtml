@@ -83,39 +83,43 @@
 
         <!-- Wallet Card -->
         <div class="col-lg-4">
-            <div class="card border-0 shadow-lg rounded-5 bg-primary bg-gradient text-white h-100 p-4 position-relative overflow-hidden" style="background: linear-gradient(135deg, #4361ee 0%, #3f37c9 100%) !important;">
-                <!-- Decorative element -->
-                <div class="position-absolute top-0 end-0 m-n4 opacity-10" style="font-size: 10rem; line-height: 1; transform: rotate(15deg);">
-                    <i class="bi bi-wallet2"></i>
-                </div>
+            <div class="card border-0 shadow-lg rounded-5 text-white h-100 position-relative overflow-hidden wallet-card-premium">
+                <!-- Abstract background shapes -->
+                <div class="wallet-shape shape-1"></div>
+                <div class="wallet-shape shape-2"></div>
                 
-                <div class="position-relative z-1 d-flex flex-column h-100">
-                    <div class="mb-4">
-                        <h6 class="text-white-50 text-uppercase fw-bold letter-spacing-1 mb-2">Available Balance</h6>
-                        <h1 class="display-4 fw-bold mb-0">@Model.WalletBalance.ToString("C")</h1>
-                        <div class="d-inline-flex align-items-center mt-2 px-2 py-1 bg-white bg-opacity-10 rounded-pill small">
-                            <i class="bi bi-shield-check me-1"></i> Securely held in escrow
+                <div class="card-body p-4 p-xl-5 position-relative z-1 d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-start mb-4">
+                        <div>
+                            <h6 class="text-white text-opacity-75 text-uppercase fw-bold smallest letter-spacing-2 mb-1">Main Wallet</h6>
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-white bg-opacity-20 rounded-pill smallest py-1 px-2">
+                                    <i class="bi bi-shield-lock-fill me-1"></i> Encrypted
+                                </span>
+                            </div>
+                        </div>
+                        <div class="wallet-chip">
+                            <i class="bi bi-cpu-fill fs-3 text-white text-opacity-50"></i>
                         </div>
                     </div>
                     
-                    <div class="mt-auto">
-                        <div class="d-grid gap-3">
-                            <button type="button" class="btn btn-white bg-white text-primary rounded-pill py-3 fw-bold shadow-sm hover-lift" data-bs-toggle="modal" data-bs-target="#addFundsModal">
-                                <i class="bi bi-plus-circle-fill me-2"></i>Add Funds
+                    <div class="my-auto py-3">
+                        <small class="text-white text-opacity-50 d-block mb-1">Available Balance</small>
+                        <h1 class="display-3 fw-bold mb-0 balance-text">@Model.WalletBalance.ToString("C")</h1>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <div class="d-flex gap-2 mb-3">
+                            <button type="button" class="btn btn-glass-white flex-grow-1 rounded-pill py-3 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#addFundsModal">
+                                <i class="bi bi-plus-lg me-1"></i> Add
                             </button>
-                            <div class="row g-2">
-                                <div class="col-6">
-                                    <button type="button" class="btn btn-outline-white border-white text-white rounded-pill w-100 py-2 fw-bold opacity-90 hover-opacity-100" data-bs-toggle="modal" data-bs-target="#withdrawModal">
-                                        <i class="bi bi-arrow-down-circle me-1"></i> Withdraw
-                                    </button>
-                                </div>
-                                <div class="col-6">
-                                    <a asp-controller="Wallet" asp-action="Index" class="btn btn-link text-white text-decoration-none py-2 fw-bold opacity-75 hover-opacity-100 w-100 text-center">
-                                        <i class="bi bi-clock-history me-1"></i> History
-                                    </a>
-                                </div>
-                            </div>
+                            <button type="button" class="btn btn-glass-outline flex-grow-1 rounded-pill py-3 fw-bold" data-bs-toggle="modal" data-bs-target="#withdrawModal">
+                                <i class="bi bi-arrow-down me-1"></i> Withdraw
+                            </button>
                         </div>
+                        <a asp-controller="Wallet" asp-action="Index" class="btn btn-link text-white text-decoration-none w-100 text-center smallest fw-bold text-uppercase letter-spacing-1 opacity-75 hover-opacity-100">
+                            <i class="bi bi-clock-history me-1"></i> View Transaction History
+                        </a>
                     </div>
                 </div>
             </div>
@@ -298,8 +302,70 @@
     
     .btn-white { background-color: white; color: #4361ee; border: none; }
     .btn-white:hover { background-color: #f8f9fa; color: #3f37c9; }
+
+    /* Premium Wallet Styles */
+    .wallet-card-premium {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .wallet-shape {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(80px);
+        opacity: 0.4;
+        z-index: 0;
+    }
+    
+    .shape-1 {
+        width: 300px;
+        height: 300px;
+        background: #4361ee;
+        top: -100px;
+        right: -100px;
+    }
+    
+    .shape-2 {
+        width: 200px;
+        height: 200px;
+        background: #7209b7;
+        bottom: -50px;
+        left: -50px;
+    }
+
+    .balance-text {
+        letter-spacing: -2px;
+        text-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .letter-spacing-2 { letter-spacing: 2px; }
+
+    .btn-glass-white {
+        background: rgba(255, 255, 255, 0.95);
+        color: #0f172a;
+        border: none;
+        transition: all 0.3s ease;
+    }
+    .btn-glass-white:hover {
+        background: #ffffff;
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-glass-outline {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+    }
+    .btn-glass-outline:hover {
+        background: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 255, 255, 0.4);
+        transform: translateY(-3px);
+    }
 </style>
-</div>
 
 <style>
     .letter-spacing-1 { letter-spacing: 1px; }
