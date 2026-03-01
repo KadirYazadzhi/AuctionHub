@@ -66,9 +66,14 @@
     <div class="row g-4 mb-5">
         <!-- Activity Chart -->
         <div class="col-lg-8">
-            <div class="card border-0 shadow-sm rounded-5 bg-card h-100 p-2 border border-light-subtle">
+            <div class="card border-0 shadow-sm rounded-5 bg-card h-100 p-2 border border-light-subtle overflow-hidden">
                 <div class="card-body p-4">
-                    <h5 class="fw-bold mb-4 text-main">Your Bidding Activity <small class="text-muted fw-normal fs-6 ms-2">(Last 7 days)</small></h5>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="fw-bold m-0 text-main">Your Bidding Activity <small class="text-muted fw-normal fs-6 ms-2">(Last 7 days)</small></h5>
+                        <div class="badge bg-primary-subtle text-primary rounded-pill px-3 py-2">
+                             <i class="bi bi-graph-up-arrow me-1"></i> Trends
+                        </div>
+                    </div>
                     <div style="height: 300px;">
                         <canvas id="userActivityChart"></canvas>
                     </div>
@@ -78,27 +83,38 @@
 
         <!-- Wallet Card -->
         <div class="col-lg-4">
-            <div class="card border-0 shadow-lg rounded-5 bg-primary bg-gradient text-white h-100 p-4 position-relative overflow-hidden">
-                <!-- Decorative element - Reduced size and better positioning -->
-                <div class="position-absolute bottom-0 end-0 m-n3 opacity-10" style="font-size: 7rem; line-height: 1; transform: rotate(-15deg);">
+            <div class="card border-0 shadow-lg rounded-5 bg-primary bg-gradient text-white h-100 p-4 position-relative overflow-hidden" style="background: linear-gradient(135deg, #4361ee 0%, #3f37c9 100%) !important;">
+                <!-- Decorative element -->
+                <div class="position-absolute top-0 end-0 m-n4 opacity-10" style="font-size: 10rem; line-height: 1; transform: rotate(15deg);">
                     <i class="bi bi-wallet2"></i>
                 </div>
                 
                 <div class="position-relative z-1 d-flex flex-column h-100">
-                    <div class="mb-auto">
+                    <div class="mb-4">
                         <h6 class="text-white-50 text-uppercase fw-bold letter-spacing-1 mb-2">Available Balance</h6>
                         <h1 class="display-4 fw-bold mb-0">@Model.WalletBalance.ToString("C")</h1>
-                        <p class="text-white-50 small mt-2">Ready for your next bid</p>
+                        <div class="d-inline-flex align-items-center mt-2 px-2 py-1 bg-white bg-opacity-10 rounded-pill small">
+                            <i class="bi bi-shield-check me-1"></i> Securely held in escrow
+                        </div>
                     </div>
                     
-                    <div class="mt-4">
-                        <div class="d-grid gap-2">
-                            <a asp-controller="Wallet" asp-action="AddFunds" class="btn btn-white bg-white text-primary rounded-pill py-3 fw-bold shadow-sm hover-lift">
-                                <i class="bi bi-plus-circle-fill me-2"></i>Top Up Wallet
-                            </a>
-                            <a asp-controller="Wallet" asp-action="History" class="btn btn-link text-white text-decoration-none small text-center opacity-75 hover-opacity-100">
-                                <i class="bi bi-clock-history me-1"></i> View Transaction History
-                            </a>
+                    <div class="mt-auto">
+                        <div class="d-grid gap-3">
+                            <button type="button" class="btn btn-white bg-white text-primary rounded-pill py-3 fw-bold shadow-sm hover-lift" data-bs-toggle="modal" data-bs-target="#addFundsModal">
+                                <i class="bi bi-plus-circle-fill me-2"></i>Add Funds
+                            </button>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-outline-white border-white text-white rounded-pill w-100 py-2 fw-bold opacity-90 hover-opacity-100" data-bs-toggle="modal" data-bs-target="#withdrawModal">
+                                        <i class="bi bi-arrow-down-circle me-1"></i> Withdraw
+                                    </button>
+                                </div>
+                                <div class="col-6">
+                                    <a asp-controller="Wallet" asp-action="Index" class="btn btn-link text-white text-decoration-none py-2 fw-bold opacity-75 hover-opacity-100 w-100 text-center">
+                                        <i class="bi bi-clock-history me-1"></i> History
+                                    </a>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -111,8 +127,8 @@
         <div class="col-lg-7">
             <div class="card border-0 shadow-sm rounded-5 bg-card h-100 overflow-hidden border border-light-subtle">
                 <div class="card-header bg-transparent border-0 p-4 pb-0 d-flex justify-content-between align-items-center">
-                    <h5 class="fw-bold mb-0 text-main">Ongoing Participations</h5>
-                    <a asp-controller="Auctions" asp-action="MyBids" class="text-primary small text-decoration-none fw-bold">View All <i class="bi bi-arrow-right"></i></a>
+                    <h5 class="fw-bold mb-0 text-main">Ongoing Bidding</h5>
+                    <a asp-controller="Auctions" asp-action="MyBids" class="text-primary small text-decoration-none fw-bold">View History <i class="bi bi-arrow-right"></i></a>
                 </div>
                 <div class="card-body p-4">
                     @if (Model.Auctions.Any(a => a.IsActive))
@@ -120,17 +136,23 @@
                         <div class="list-group list-group-flush">
                             @foreach (var auction in Model.Auctions.Where(a => a.IsActive).Take(5))
                             {
-                                <div class="list-group-item px-0 border-0 d-flex align-items-center mb-3 bg-transparent">
-                                    <div class="rounded-4 overflow-hidden me-3 shadow-sm" style="width: 64px; height: 64px;">
+                                <div class="list-group-item px-0 border-0 d-flex align-items-center mb-3 bg-transparent p-3 rounded-4 transition-all hover-light-custom border border-transparent hover-border-light">
+                                    <div class="rounded-4 overflow-hidden me-3 shadow-sm" style="width: 70px; height: 70px;">
                                         <img src="@(string.IsNullOrEmpty(auction.ImageUrl) ? "https://via.placeholder.com/100" : auction.ImageUrl)" class="w-100 h-100 object-fit-cover" alt="@auction.Title">
                                     </div>
                                     <div class="flex-grow-1 overflow-hidden">
                                         <h6 class="fw-bold text-main mb-1 text-truncate">@auction.Title</h6>
-                                        <span class="badge bg-light-custom text-muted rounded-pill px-2 small">@auction.Category</span>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="badge bg-light text-muted border rounded-pill px-2 py-1 smallest">@auction.Category</span>
+                                            @if (auction.IsWinning == true)
+                                            {
+                                                <span class="badge bg-success-subtle text-success rounded-pill smallest"><i class="bi bi-trophy-fill"></i> Winning</span>
+                                            }
+                                        </div>
                                     </div>
                                     <div class="text-end ms-3">
-                                        <div class="fw-bold text-primary">@auction.CurrentPrice.ToString("C")</div>
-                                        <a asp-controller="Auctions" asp-action="Details" asp-route-id="@auction.Id" class="smallest text-muted text-decoration-none hover-primary">Details</a>
+                                        <div class="fw-bold text-primary fs-5">@auction.CurrentPrice.ToString("C")</div>
+                                        <a asp-controller="Auctions" asp-action="Details" asp-route-id="@auction.Id" class="btn btn-sm btn-outline-primary rounded-pill px-3 mt-1">Details</a>
                                     </div>
                                 </div>
                             }
@@ -153,24 +175,50 @@
         <!-- Ending Soon (Personalized) -->
         <div class="col-lg-5">
             <div class="card border-0 shadow-sm rounded-5 bg-card p-4 h-100 border border-light-subtle">
-                <h5 class="fw-bold mb-4 text-main">Ending Soon <small class="text-muted fw-normal ms-1">(Handpicked for you)</small></h5>
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold m-0 text-main">Ending Soon</h5>
+                    <span class="badge bg-danger-subtle text-danger rounded-pill px-3 py-2 animate-pulse-slow">
+                        <i class="bi bi-lightning-fill me-1"></i> Hot Items
+                    </span>
+                </div>
                 <div class="d-flex flex-column gap-3">
                     @foreach (var auction in (IEnumerable<AuctionHub.Application.DTOs.AuctionDto>)ViewBag.EndingSoon)
                     {
-                        <div class="d-flex align-items-center p-3 transition-all hover-lift rounded-4 bg-light-custom border border-light-subtle shadow-sm">
-                            <div class="rounded-3 overflow-hidden me-3 shadow-sm" style="width: 56px; height: 56px;">
+                        var timeRemaining = auction.EndTime - DateTime.UtcNow;
+                        var isUrgent = timeRemaining.TotalHours < 2;
+
+                        <div class="d-flex align-items-center p-3 transition-all hover-lift rounded-4 bg-light-custom border border-light-subtle shadow-sm position-relative overflow-hidden">
+                            @if (auction.IsPromoted)
+                            {
+                                <div class="position-absolute top-0 start-0 h-100 bg-warning" style="width: 4px;"></div>
+                            }
+                            
+                            <div class="rounded-3 overflow-hidden me-3 shadow-sm border border-light" style="width: 64px; height: 64px;">
                                 <img src="@(string.IsNullOrEmpty(auction.ImageUrl) ? "https://via.placeholder.com/100" : auction.ImageUrl)" class="w-100 h-100 object-fit-cover" />
                             </div>
                             <div class="flex-grow-1 overflow-hidden">
-                                <h6 class="fw-bold text-main mb-0 text-truncate">@auction.Title</h6>
-                                <div class="d-flex align-items-center gap-2 mt-1">
-                                    <span class="text-danger fw-bold smallest"><i class="bi bi-clock-fill me-1"></i>@((auction.EndTime - DateTime.UtcNow).Hours)h @((auction.EndTime - DateTime.UtcNow).Minutes)m</span>
-                                    <span class="text-muted smallest">|</span>
-                                    <span class="text-primary fw-bold smallest">@auction.CurrentPrice.ToString("C")</span>
+                                <h6 class="fw-bold text-main mb-1 text-truncate">@auction.Title</h6>
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="@(isUrgent ? "text-danger" : "text-muted") smallest fw-bold d-flex align-items-center">
+                                        <i class="bi bi-clock-fill me-1"></i>
+                                        @if (timeRemaining.TotalHours >= 1)
+                                        {
+                                            <text>@( (int)timeRemaining.TotalHours )h @(timeRemaining.Minutes)m</text>
+                                        }
+                                        else if (timeRemaining.TotalMinutes >= 1)
+                                        {
+                                            <text>@( (int)timeRemaining.TotalMinutes )m @(timeRemaining.Seconds)s</text>
+                                        }
+                                        else
+                                        {
+                                            <text>Closing Now</text>
+                                        }
+                                    </div>
+                                    <span class="text-primary fw-bold">@auction.CurrentPrice.ToString("C")</span>
                                 </div>
                             </div>
-                            <a asp-controller="Auctions" asp-action="Details" asp-route-id="@auction.Id" class="btn btn-primary btn-sm rounded-circle shadow-sm ms-2" style="width: 36px; height: 36px; padding: 0; display: flex; align-items: center; justify-content: center;">
-                                <i class="bi bi-arrow-right"></i>
+                            <a asp-controller="Auctions" asp-action="Details" asp-route-id="@auction.Id" class="btn btn-white shadow-sm rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; border: 1px solid var(--border-color);">
+                                <i class="bi bi-chevron-right text-primary"></i>
                             </a>
                         </div>
                     }
@@ -178,6 +226,79 @@
             </div>
         </div>
     </div>
+</div>
+
+<!-- Add Funds Modal -->
+<div class="modal fade" id="addFundsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-5">
+            <div class="modal-header border-0 p-4 pb-0">
+                <h5 class="fw-bold mb-0">Add Funds</h5>
+                <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form asp-controller="Wallet" asp-action="AddFunds" method="post">
+                    <label class="form-label small fw-bold text-muted text-uppercase">Amount to Deposit</label>
+                    <div class="input-group input-group-lg mb-4">
+                        <span class="input-group-text bg-light border-0 ps-4">€</span>
+                        <input type="number" name="amount" class="form-control bg-light border-0" placeholder="0.00" step="0.01" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 rounded-pill py-3 fw-bold shadow-sm">Confirm Deposit</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Withdraw Modal -->
+<div class="modal fade" id="withdrawModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-5">
+            <div class="modal-header border-0 p-4 pb-0">
+                <h5 class="fw-bold mb-0">Withdraw Funds</h5>
+                <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form asp-controller="Wallet" asp-action="Withdraw" method="post">
+                    <label class="form-label small fw-bold text-muted text-uppercase">Amount to Withdraw</label>
+                    <div class="input-group input-group-lg mb-4">
+                        <span class="input-group-text bg-light border-0 ps-4">€</span>
+                        <input type="number" name="amount" class="form-control bg-light border-0" placeholder="0.00" step="0.01" max="@Model.WalletBalance" required>
+                    </div>
+                    <p class="text-muted small mb-4">Available for withdrawal: <span class="fw-bold text-dark">@Model.WalletBalance.ToString("C")</span></p>
+                    <button type="submit" class="btn btn-outline-primary w-100 rounded-pill py-3 fw-bold shadow-sm">Process Withdrawal</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .letter-spacing-1 { letter-spacing: 1px; }
+    .smallest { font-size: 0.75rem; }
+    .hover-lift:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important; }
+    .hover-opacity-100:hover { opacity: 1 !important; }
+    .hover-border-light:hover { border-color: var(--border-color) !important; }
+    .hover-light-custom:hover { background-color: rgba(67, 97, 238, 0.05) !important; }
+    .transition-all { transition: all 0.3s ease; }
+    .bg-light-custom { background-color: var(--bg-light) !important; }
+    .btn-outline-white { border: 2px solid white; color: white; background: transparent; }
+    .btn-outline-white:hover { background: white; color: #4361ee; }
+    
+    @@keyframes pulse-slow {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+    .animate-pulse-slow { animation: pulse-slow 3s infinite; }
+    
+    [data-bs-theme="dark"] .bg-card { background-color: var(--bg-card) !important; }
+    [data-bs-theme="dark"] .text-main { color: var(--text-main) !important; }
+    [data-bs-theme="dark"] .bg-light-custom { background-color: rgba(255,255,255,0.03) !important; }
+    [data-bs-theme="dark"] .border-light-subtle { border-color: rgba(255,255,255,0.05) !important; }
+    
+    .btn-white { background-color: white; color: #4361ee; border: none; }
+    .btn-white:hover { background-color: #f8f9fa; color: #3f37c9; }
+</style>
 </div>
 
 <style>
