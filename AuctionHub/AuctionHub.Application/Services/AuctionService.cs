@@ -112,7 +112,9 @@ public class AuctionService : IAuctionService
                 SellerId = a.SellerId,
                 SellerName = a.Seller.UserName ?? a.Seller.Email ?? "Unknown",
                 IsTopSeller = a.Seller.ReceivedReviews.Count >= 5 && (a.Seller.ReceivedReviews.Any() ? a.Seller.ReceivedReviews.Average(r => r.Rating) : 0) >= 4.8,
-                IsWinning = currentUserId != null && a.Bids.Any() && a.Bids.OrderByDescending(b => b.Amount).First().BidderId == currentUserId
+                IsWinning = currentUserId != null && a.Bids.Any(b => b.BidderId == currentUserId) 
+                    ? a.Bids.OrderByDescending(b => b.Amount).First().BidderId == currentUserId 
+                    : (bool?)null
             });
 
         return await PaginatedList<AuctionDto>.CreateAsync(projectedQuery, pageNumber, pageSize);
@@ -162,7 +164,7 @@ public class AuctionService : IAuctionService
             SellerId = a.SellerId,
             SellerName = a.Seller.UserName ?? a.Seller.Email ?? "Unknown",
             IsTopSeller = a.Seller.ReceivedReviews.Count >= 5 && (a.Seller.ReceivedReviews.Any() ? a.Seller.ReceivedReviews.Average(r => r.Rating) : 0) >= 4.8,
-            IsWinning = a.Bids.Any() && a.Bids.OrderByDescending(b => b.Amount).First().BidderId == userId
+            IsWinning = (bool?)null
         });
 
         return await PaginatedList<AuctionDto>.CreateAsync(projectedQuery, pageNumber, pageSize);
@@ -214,7 +216,9 @@ public class AuctionService : IAuctionService
             SellerId = a.SellerId,
             SellerName = a.Seller.UserName ?? a.Seller.Email ?? "Unknown",
             IsTopSeller = a.Seller.ReceivedReviews.Count >= 5 && (a.Seller.ReceivedReviews.Any() ? a.Seller.ReceivedReviews.Average(r => r.Rating) : 0) >= 4.8,
-            IsWinning = a.Bids.Any() && a.Bids.OrderByDescending(b => b.Amount).First().BidderId == userId
+            IsWinning = a.Bids.Any(b => b.BidderId == userId) 
+                ? a.Bids.OrderByDescending(b => b.Amount).First().BidderId == userId 
+                : (bool?)null
         });
 
         return await PaginatedList<AuctionDto>.CreateAsync(projectedQuery, pageNumber, pageSize);
@@ -265,7 +269,7 @@ public class AuctionService : IAuctionService
             SellerId = a.SellerId,
             SellerName = a.Seller.UserName ?? a.Seller.Email ?? "Unknown",
             IsTopSeller = a.Seller.ReceivedReviews.Count >= 5 && (a.Seller.ReceivedReviews.Any() ? a.Seller.ReceivedReviews.Average(r => r.Rating) : 0) >= 4.8,
-            IsWinning = false // Not relevant in this view usually
+            IsWinning = (bool?)null
         });
 
         return await PaginatedList<AuctionDto>.CreateAsync(projectedQuery, pageNumber, pageSize);
@@ -321,7 +325,9 @@ public class AuctionService : IAuctionService
             SellerId = a.SellerId,
             SellerName = a.Seller.UserName ?? a.Seller.Email ?? "Unknown",
             IsTopSeller = a.Seller.ReceivedReviews.Count >= 5 && (a.Seller.ReceivedReviews.Any() ? a.Seller.ReceivedReviews.Average(r => r.Rating) : 0) >= 4.8,
-            IsWinning = a.Bids.Any() && a.Bids.OrderByDescending(b => b.Amount).First().BidderId == userId
+            IsWinning = a.Bids.Any(b => b.BidderId == userId) 
+                ? a.Bids.OrderByDescending(b => b.Amount).First().BidderId == userId 
+                : (bool?)null
         });
 
         return await PaginatedList<AuctionDto>.CreateAsync(projectedQuery, pageNumber, pageSize);
@@ -372,7 +378,9 @@ public class AuctionService : IAuctionService
                 SellerId = a.SellerId,
                 SellerName = a.Seller.UserName ?? a.Seller.Email ?? "Unknown",
                 IsTopSeller = a.Seller.ReceivedReviews.Count >= 5 && (a.Seller.ReceivedReviews.Any() ? a.Seller.ReceivedReviews.Average(r => r.Rating) : 0) >= 4.8,
-                IsWinning = currentUserId != null && a.Bids.Any() && a.Bids.OrderByDescending(b => b.Amount).First().BidderId == currentUserId
+                IsWinning = currentUserId != null && a.Bids.Any(b => b.BidderId == currentUserId) 
+                    ? a.Bids.OrderByDescending(b => b.Amount).First().BidderId == currentUserId 
+                    : (bool?)null
             })
             .ToListAsync();
 
@@ -594,7 +602,9 @@ public class AuctionService : IAuctionService
             IsDelivered = await _context.Transactions.AnyAsync(t => t.UserId == auction.SellerId && t.TransactionType == "Sale" && t.Description.Contains($"(Auction ID: {id})")),
             IsSuspended = auction.IsSuspended,
             IsWatched = isWatched,
-            IsWinning = currentUserId != null && auction.Bids.Any() && auction.Bids.OrderByDescending(b => b.Amount).First().BidderId == currentUserId,
+            IsWinning = currentUserId != null && auction.Bids.Any(b => b.BidderId == currentUserId) 
+                ? auction.Bids.OrderByDescending(b => b.Amount).First().BidderId == currentUserId 
+                : (bool?)null,
             CurrentAutoBidLimit = currentAutoBidLimit,
             WinnerId = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault()?.BidderId,
             Bids = auction.Bids
