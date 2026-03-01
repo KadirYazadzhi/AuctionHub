@@ -98,7 +98,7 @@
                             <button type="button" class="btn btn-primary rounded-pill py-3 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#addFundsModal">
                                 <i class="bi bi-plus-lg me-1"></i> Add Funds
                             </button>
-                            <button type="button" class="btn btn-outline-primary border-opacity-25 rounded-pill py-2 fw-bold smallest text-uppercase letter-spacing-1" data-bs-toggle="modal" data-bs-target="#withdrawModal">
+                            <button type="button" class="btn btn-outline-primary border-2 rounded-pill py-2 fw-bolder smallest text-uppercase letter-spacing-1 btn-withdraw-custom" data-bs-toggle="modal" data-bs-target="#withdrawModal">
                                 <i class="bi bi-arrow-down me-1"></i> Withdraw
                             </button>
                         </div>
@@ -231,8 +231,8 @@
                 <form asp-controller="Wallet" asp-action="AddFunds" method="post">
                     <label class="form-label small fw-bold text-muted text-uppercase">Amount to Deposit</label>
                     <div class="input-group input-group-lg mb-4">
-                        <span class="input-group-text bg-light border-0 ps-4">€</span>
-                        <input type="number" name="amount" class="form-control bg-light border-0" placeholder="0.00" step="0.01" required>
+                        <span class="input-group-text bg-light-custom border-0 ps-4 text-main">€</span>
+                        <input type="number" name="amount" class="form-control bg-light-custom border-0" placeholder="0.00" step="0.01" required>
                     </div>
                     <button type="submit" class="btn btn-primary w-100 rounded-pill py-3 fw-bold shadow-sm">Confirm Deposit</button>
                 </form>
@@ -253,11 +253,11 @@
                 <form asp-controller="Wallet" asp-action="Withdraw" method="post">
                     <label class="form-label small fw-bold text-muted text-uppercase">Amount to Withdraw</label>
                     <div class="input-group input-group-lg mb-4">
-                        <span class="input-group-text bg-light border-0 ps-4">€</span>
-                        <input type="number" name="amount" class="form-control bg-light border-0" placeholder="0.00" step="0.01" max="@Model.WalletBalance" required>
+                        <span class="input-group-text bg-light-custom border-0 ps-4 text-main">€</span>
+                        <input type="number" name="amount" class="form-control bg-light-custom border-0" placeholder="0.00" step="0.01" max="@Model.WalletBalance" required>
                     </div>
-                    <p class="text-muted small mb-4">Available for withdrawal: <span class="fw-bold text-dark">@Model.WalletBalance.ToString("C")</span></p>
-                    <button type="submit" class="btn btn-outline-primary w-100 rounded-pill py-3 fw-bold shadow-sm">Process Withdrawal</button>
+                    <p class="text-muted small mb-4">Available for withdrawal: <span class="fw-bold text-main">@Model.WalletBalance.ToString("C")</span></p>
+                    <button type="submit" class="btn btn-outline-primary border-2 w-100 rounded-pill py-3 fw-bold shadow-sm btn-withdraw-custom">Process Withdrawal</button>
                 </form>
             </div>
         </div>
@@ -277,7 +277,7 @@
     .shadow-hover:hover { box-shadow: 0 12px 24px -8px rgba(0,0,0,0.05) !important; }
 
     /* Theme Consistency */
-    .btn-hover-purple:hover {
+    .btn-hover-purple:hover, .btn-withdraw-custom:hover {
         background-color: var(--primary-hover) !important;
         border-color: var(--primary-hover) !important;
         color: white !important;
