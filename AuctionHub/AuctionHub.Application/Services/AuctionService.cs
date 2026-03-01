@@ -896,7 +896,7 @@ public class AuctionService : IAuctionService
 
     public async Task<(bool Success, string Message, IEnumerable<string>? ImageUrls)> DeleteAuctionAsync(int id, string userId)
     {
-        // Use IgnoreQueryFilters to find the auction even if it was already soft-deleted (just in case)
+        // Use IgnoreQueryFilters to find the auction even if it was already soft-deleted
         var auction = await _context.Auctions
             .Include(a => a.Bids)
             .Include(a => a.Images)
@@ -905,19 +905,33 @@ public class AuctionService : IAuctionService
         if (auction == null) return (false, "Auction not found.", null);
         if (auction.SellerId != userId) return (false, "Forbidden.", null);
         
-        if (auction.Bids.Any()) return (false, "Cannot delete an auction that already has bids.", null);
+        // Rule 1: Never delete an auction that has bidding history (even if it ended)
+        if (auction.Bids.Any()) 
+        {
+            return (false, "Cannot delete an auction that has bidding history. You can only archive it.", null);
+        }
 
-        var imageUrls = new List<string>();
-        if (!string.IsNullOrEmpty(auction.ImageUrl)) imageUrls.Add(auction.ImageUrl);
-        if (auction.Images.Any()) imageUrls.AddRange(auction.Images.Select(i => i.Url));
+        // Rule 2: Decide whether to physically delete images from storage
+        // We ONLY physically delete images if the auction was ACTIVE and had NO bids (i.e., a mistake or unwanted listing)
+        // If it ended naturally without bids, we keep the images for the user's history/audit.
+        List<string>? imagesToDelete = null;
+        
+        bool isNeverActiveOrNoValue = auction.IsActive && auction.EndTime > DateTime.UtcNow;
+        if (isNeverActiveOrNoValue)
+        {
+            imagesToDelete = new List<string>();
+            if (!string.IsNullOrEmpty(auction.ImageUrl)) imagesToDelete.Add(auction.ImageUrl);
+            if (auction.Images.Any()) imagesToDelete.AddRange(auction.Images.Select(i => i.Url));
+        }
 
-        // Perform Soft Delete (Archive)
+        // Perform Soft Delete
         auction.IsDeleted = true;
         auction.IsActive = false;
         
         await _context.SaveChangesAsync();
 
-        return (true, "Auction archived successfully.", imageUrls);
+        string message = imagesToDelete != null ? "Auction and images deleted successfully." : "Auction archived successfully. Images preserved in history.";
+        return (true, message, imagesToDelete);
     }
 
     public async Task<(bool Success, string Message)> ToggleWatchlistAsync(int auctionId, string userId)
