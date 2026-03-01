@@ -190,4 +190,97 @@ public class AdminService : IAdminService
 
         return activities;
     }
+
+    public async Task<IEnumerable<AuctionDto>> GetDisputedAuctionsAsync()
+    {
+        return await _context.Auctions
+            .Include(a => a.Category)
+            .Include(a => a.Seller)
+            .Include(a => a.Bids)
+            .Where(a => a.IsDisputed && !a.IsSettled)
+            .Select(a => new AuctionDto
+            {
+                Id = a.Id,
+                Title = a.Title,
+                ImageUrl = a.ImageUrl,
+                CurrentPrice = a.CurrentPrice,
+                EndTime = a.EndTime,
+                Category = a.Category.Name,
+                IsActive = a.IsActive,
+                IsPromoted = a.IsPromoted,
+                IsSuspended = a.IsSuspended,
+                SellerId = a.SellerId,
+                SellerName = a.Seller.UserName ?? a.Seller.Email ?? "Unknown",
+                IsWinning = false // Not used in this context
+            })
+            .ToListAsync();
+    }
+
+    public async Task<bool> ResolveDisputeAsync(int auctionId, string resolution, string adminId)
+    {
+        var auction = await _context.Auctions
+            .Include(a => a.Seller)
+            .Include(a => a.Bids)
+            .FirstOrDefaultAsync(a => a.Id == auctionId);
+
+        if (auction == null || !auction.IsDisputed || auction.IsSettled) return false;
+
+        var winningBid = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault();
+        if (winningBid == null) return false;
+
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            if (resolution == "Refund")
+            {
+                // Refund the Buyer (Winner)
+                var winner = await _context.Users.FindAsync(winningBid.BidderId);
+                if (winner != null)
+                {
+                    winner.WalletBalance += winningBid.Amount;
+                    _context.Transactions.Add(new Transaction
+                    {
+                        UserId = winner.Id,
+                        Amount = winningBid.Amount,
+                        Description = $"Admin Refund for disputed auction '{auction.Title}'",
+                        TransactionType = "AdminRefund",
+                        TransactionDate = DateTime.UtcNow,
+                        AuctionId = auctionId
+                    });
+                }
+            }
+            else if (resolution == "Release")
+            {
+                // Release Funds to Seller
+                auction.Seller.WalletBalance += winningBid.Amount;
+                _context.Transactions.Add(new Transaction
+                {
+                    UserId = auction.SellerId,
+                    Amount = winningBid.Amount,
+                    Description = $"Admin Release for disputed auction '{auction.Title}'",
+                    TransactionType = "Sale",
+                    TransactionDate = DateTime.UtcNow,
+                    AuctionId = auctionId
+                });
+            }
+            else
+            {
+                return false;
+            }
+
+            auction.IsSettled = true;
+            auction.IsDisputed = false;
+
+            await LogActionAsync(adminId, "Resolve Auction Dispute", "Auction", auctionId.ToString(), $"Resolution: {resolution}");
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return true;
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            return false;
+        }
+    }
 }

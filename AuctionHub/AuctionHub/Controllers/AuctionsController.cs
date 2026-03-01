@@ -835,6 +835,52 @@ public class AuctionsController : Controller
         }
     }
 
+    [HttpPost]
+    [Authorize]
+    public async Task<IActionResult> Cancel(int id)
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (currentUserId == null) return Challenge();
+
+        var result = await _auctionService.CancelAuctionAsync(id, currentUserId);
+        if (result.Success)
+        {
+            TempData["Success"] = result.Message;
+            return RedirectToAction(nameof(Index));
+        }
+
+        TempData["Error"] = result.Message;
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpPost]
+    [Authorize]
+    public async Task<IActionResult> DeactivateAutoBid(int id)
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (currentUserId == null) return Challenge();
+
+        var result = await _auctionService.DeactivateAutoBidAsync(id, currentUserId);
+        if (result.Success) TempData["Success"] = result.Message;
+        else TempData["Error"] = result.Message;
+
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpPost]
+    [Authorize]
+    public async Task<IActionResult> Dispute(int id)
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (currentUserId == null) return Challenge();
+
+        var result = await _auctionService.DisputeAuctionAsync(id, currentUserId);
+        if (result.Success) TempData["Success"] = result.Message;
+        else TempData["Error"] = result.Message;
+
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
     private async Task<IEnumerable<SelectListItem>> GetCategoriesAsync()
     {
         var categories = await _auctionService.GetCategoriesAsync();

@@ -21,14 +21,31 @@ public class ReviewService : IReviewService
             return false;
         }
 
-        var auction = await _context.Auctions.FindAsync(model.AuctionId);
+        var auction = await _context.Auctions
+            .Include(a => a.Bids)
+            .FirstOrDefaultAsync(a => a.Id == model.AuctionId);
+
         if (auction == null) return false;
+
+        string targetUserId;
+        if (model.ReviewerId == auction.SellerId)
+        {
+            // Seller is reviewing the buyer
+            var winnerId = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault()?.BidderId;
+            if (winnerId == null) return false;
+            targetUserId = winnerId;
+        }
+        else
+        {
+            // Buyer is reviewing the seller
+            targetUserId = auction.SellerId;
+        }
 
         var review = new Review
         {
             AuctionId = model.AuctionId,
             ReviewerId = model.ReviewerId,
-            TargetUserId = auction.SellerId,
+            TargetUserId = targetUserId,
             Rating = model.Rating,
             Comment = model.Comment.Trim(),
             CreatedOn = DateTime.UtcNow
@@ -70,11 +87,16 @@ public class ReviewService : IReviewService
         // Auction must be closed
         if (auction.IsActive && auction.EndTime > DateTime.UtcNow) return false;
 
-        // User must be the winner (highest bidder)
         var highestBid = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault();
-        if (highestBid == null || highestBid.BidderId != userId) return false;
+        if (highestBid == null) return false;
 
-        // Check if review already exists
+        // Either user is the winner reviewing the seller OR user is the seller reviewing the winner
+        bool isWinner = highestBid.BidderId == userId;
+        bool isSeller = auction.SellerId == userId;
+
+        if (!isWinner && !isSeller) return false;
+
+        // Check if THIS specific reviewer already reviewed THIS specific auction
         var existingReview = await _context.Reviews
             .AnyAsync(r => r.AuctionId == auctionId && r.ReviewerId == userId);
 

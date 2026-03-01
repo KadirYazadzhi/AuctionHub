@@ -25,5 +25,10 @@ public class Transaction
     public DateTime TransactionDate { get; set; } = DateTime.UtcNow;
 
     // Helps categorize: "Deposit", "Bid", "Refund", "Purchase"
-    public string TransactionType { get; set; } = "General"; 
+    public string TransactionType { get; set; } = "General";
+
+    public int? AuctionId { get; set; }
+
+    [ForeignKey(nameof(AuctionId))]
+    public virtual Auction? Auction { get; set; }
 }

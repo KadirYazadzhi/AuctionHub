@@ -586,7 +586,7 @@ body:not([data-bs-theme="dark"]) .card.border-promoted {
     background-color: #fffcf0 !important;
     border: 2px solid #ffc107 !important;
     box-shadow: 0 10px 30px rgba(255, 193, 7, 0.15) !important;
-    border-radius: 1.25rem !important;
+    border-radius: 0.75rem !important;
 }
 
 html[data-bs-theme="dark"] body .card.border-promoted {

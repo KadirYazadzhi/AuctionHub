@@ -48,10 +48,10 @@ public class AuctionCleanupService : BackgroundService
 
             if (expiredAuctions.Any())
             {
-                using var transaction = await context.Database.BeginTransactionAsync();
-                try
+                foreach (var auction in expiredAuctions)
                 {
-                    foreach (var auction in expiredAuctions)
+                    using var transaction = await context.Database.BeginTransactionAsync();
+                    try
                     {
                         auction.IsActive = false;
                         _logger.LogInformation($"Closing auction {auction.Id}: {auction.Title}");
@@ -61,14 +61,14 @@ public class AuctionCleanupService : BackgroundService
                         if (winningBid != null)
                         {
                             // 1. Log Escrow (Funds are held)
-                            // We don't credit the seller's WalletBalance yet.
                             context.Transactions.Add(new Transaction
                             {
                                 UserId = auction.SellerId,
                                 Amount = winningBid.Amount,
                                 Description = $"Escrow: Payment for '{auction.Title}' held until delivery confirmation (Auction ID: {auction.Id}).",
                                 TransactionType = "Escrow",
-                                TransactionDate = DateTime.UtcNow
+                                TransactionDate = DateTime.UtcNow,
+                                AuctionId = auction.Id
                             });
 
                             // 2. Notify Winner
@@ -81,7 +81,7 @@ public class AuctionCleanupService : BackgroundService
                                 $"💰 Your item '{auction.Title}' was sold to {winningBid.Bidder.DisplayName} for {winningBid.Amount:C}!", 
                                 $"/Auctions/Details/{auction.Id}");
 
-                            // Notify Losers (Everyone who bid but didn't win)
+                            // Notify Losers
                             var losingBidders = auction.Bids
                                 .Where(b => b.BidderId != winningBid.BidderId)
                                 .Select(b => b.BidderId)
@@ -90,9 +90,16 @@ public class AuctionCleanupService : BackgroundService
 
                             foreach (var loserId in losingBidders)
                             {
-                                await notificationService.NotifyUserAsync(loserId, 
-                                    $"🔔 The auction for '{auction.Title}' has ended. Unfortunately, you did not win this time.", 
-                                    $"/Auctions/Details/{auction.Id}");
+                                try 
+                                {
+                                    await notificationService.NotifyUserAsync(loserId, 
+                                        $"🔔 The auction for '{auction.Title}' has ended. Unfortunately, you did not win this time.", 
+                                        $"/Auctions/Details/{auction.Id}");
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.LogWarning($"Failed to notify loser {loserId}: {ex.Message}");
+                                }
                             }
                         }
                         else
@@ -102,15 +109,15 @@ public class AuctionCleanupService : BackgroundService
                                 $"📉 Your auction for '{auction.Title}' has ended with no bids.", 
                                 $"/Auctions/Details/{auction.Id}");
                         }
-                    }
 
-                    await context.SaveChangesAsync();
-                    await transaction.CommitAsync();
-                }
-                catch (Exception ex)
-                {
-                    await transaction.RollbackAsync();
-                    _logger.LogError(ex, "Error occurred while closing expired auctions.");
+                        await context.SaveChangesAsync();
+                        await transaction.CommitAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        await transaction.RollbackAsync();
+                        _logger.LogError(ex, $"Error occurred while closing auction {auction.Id}.");
+                    }
                 }
             }
         }

@@ -7,4 +7,5 @@ public interface IWalletService
     Task<IEnumerable<TransactionDto>> GetTransactionsAsync(string userId);
     Task<IEnumerable<TransactionDto>> GetAllTransactionsAsync(int limit);
     Task<(bool Success, string Message)> AddFundsAsync(string userId, decimal amount);
+    Task<(bool Success, string Message)> WithdrawAsync(string userId, decimal amount);
 }

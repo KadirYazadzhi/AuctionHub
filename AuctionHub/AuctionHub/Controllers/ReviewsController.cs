@@ -26,10 +26,13 @@ public class ReviewsController : Controller
         var auction = await _auctionService.GetAuctionDetailsAsync(auctionId, currentUserId);
         if (auction == null) return NotFound();
 
-        // Check if user is the winner
-        if (auction.WinnerId != currentUserId)
+        // Either user is the winner OR the seller
+        bool isWinner = auction.WinnerId == currentUserId;
+        bool isSeller = auction.SellerId == currentUserId;
+
+        if (!isWinner && !isSeller)
         {
-            TempData["Error"] = "Only the auction winner can leave a review.";
+            TempData["Error"] = "Only the auction winner or the seller can leave a review.";
             return RedirectToAction("Details", "Auctions", new { id = auctionId });
         }
 
@@ -70,7 +73,7 @@ public class ReviewsController : Controller
             return RedirectToAction("Details", "Auctions", new { id = model.AuctionId });
         }
 
-        TempData["Error"] = "Could not submit review. Please ensure you are the winner and the auction is closed.";
+        TempData["Error"] = "Could not submit review. Please ensure the auction is closed and you are either the seller or the winner.";
         return View(model);
     }
 }

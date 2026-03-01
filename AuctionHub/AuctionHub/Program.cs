@@ -77,6 +77,11 @@ builder.Services.AddAuthentication()
     {
         googleOptions.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "placeholder";
         googleOptions.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "placeholder";
+    })
+    .AddGitHub(githubOptions =>
+    {
+        githubOptions.ClientId = builder.Configuration["Authentication:GitHub:ClientId"] ?? "placeholder";
+        githubOptions.ClientSecret = builder.Configuration["Authentication:GitHub:ClientSecret"] ?? "placeholder";
     });
 
 builder.Services.AddControllersWithViews(options => {

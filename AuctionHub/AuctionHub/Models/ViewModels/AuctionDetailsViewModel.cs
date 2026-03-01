@@ -31,6 +31,8 @@ public class AuctionDetailsViewModel
         public int SellerReviewCount { get; set; }
             public bool IsActive { get; set; }
             public bool IsDelivered { get; set; }
+            public bool IsSettled { get; set; }
+            public bool IsDisputed { get; set; }
             public bool IsSuspended { get; set; }
 
     public bool IsWatched { get; set; } // Added

@@ -129,6 +129,12 @@
                         {
                             <div class="ms-auto d-flex gap-2">
                                 <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-warning rounded-pill">Edit</a>
+                                @if (!Model.Bids.Any() && Model.IsActive)
+                                {
+                                    <form asp-action="Cancel" asp-route-id="@Model.Id" method="post" onsubmit="return confirm('Are you sure you want to cancel this auction?');">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">Cancel</button>
+                                    </form>
+                                }
                                 <form asp-action="Delete" asp-route-id="@Model.Id" method="post" onsubmit="return confirm('Are you sure?');">
                                     <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">Delete</button>
                                 </form>
@@ -256,8 +262,15 @@
                                                     <small class="text-muted d-block">Your active limit:</small>
                                                     <span class="h5 fw-bold text-info mb-0">@Model.CurrentAutoBidLimit.Value.ToString("C")</span>
                                                 </div>
-                                                <div class="badge bg-info text-white rounded-pill px-3 py-2">
-                                                    <i class="bi bi-check-lg me-1"></i> Active
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <div class="badge bg-info text-white rounded-pill px-3 py-2">
+                                                        <i class="bi bi-check-lg me-1"></i> Active
+                                                    </div>
+                                                    <form asp-action="DeactivateAutoBid" asp-route-id="@Model.Id" method="post" style="display:inline;">
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-circle border-0 p-0" title="Deactivate Auto-Bid" style="width: 24px; height: 24px;">
+                                                            <i class="bi bi-x-circle-fill"></i>
+                                                        </button>
+                                                    </form>
                                                 </div>
                                             </div>
                                             <p class="small text-muted mb-3">You can update your limit by entering a new amount below.</p>
@@ -297,18 +310,33 @@
                                 @if (canAccessChat)
                                 {
                                     <div class="mt-4 d-flex flex-column gap-2">
-                                        @if (Model.IsWinning == true && !Model.IsDelivered)
+                                        @if (Model.IsWinning == true && !Model.IsDelivered && !Model.IsDisputed)
                                         {
-                                            <form asp-action="ConfirmDelivery" method="post" onsubmit="return showConfirm('Confirm you received the item? This will <strong>release funds</strong> to the seller.', this);">
-                                                <input type="hidden" name="auctionId" value="@Model.Id" />
-                                                <button type="submit" class="btn btn-success rounded-pill px-4 py-2 shadow-sm fw-bold w-100">
-                                                    <i class="bi bi-box-seam-fill me-2"></i> Confirm Delivery
-                                                </button>
-                                            </form>
+                                            <div class="d-flex gap-2">
+                                                <form asp-action="ConfirmDelivery" method="post" class="flex-grow-1" onsubmit="return showConfirm('Confirm you received the item? This will <strong>release funds</strong> to the seller.', this);">
+                                                    <input type="hidden" name="auctionId" value="@Model.Id" />
+                                                    <button type="submit" class="btn btn-success rounded-pill px-4 py-2 shadow-sm fw-bold w-100">
+                                                        <i class="bi bi-box-seam-fill me-2"></i> Confirm Delivery
+                                                    </button>
+                                                </form>
+                                                <form asp-action="Dispute" method="post" onsubmit="return confirm('Are you sure you want to open a dispute? This will freeze the funds until an administrator reviews the case.');">
+                                                    <input type="hidden" name="id" value="@Model.Id" />
+                                                    <button type="submit" class="btn btn-outline-danger rounded-pill px-3 py-2 shadow-sm fw-bold">
+                                                        <i class="bi bi-shield-exclamation"></i> Dispute
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        }
+                                        else if (Model.IsDisputed)
+                                        {
+                                            <div class="badge bg-danger rounded-pill p-3 mb-2 w-100">
+                                                <i class="bi bi-shield-fill-exclamation me-2"></i> Under Dispute
+                                            </div>
+                                            <p class="small text-muted text-center">Our team is reviewing this transaction.</p>
                                         }
                                         else if (Model.IsDelivered)
                                         {
-                                            <div class="badge bg-success-subtle text-success rounded-pill p-3 mb-2">
+                                            <div class="badge bg-success-subtle text-success rounded-pill p-3 mb-2 w-100">
                                                 <i class="bi bi-check-all me-2"></i> Transaction Completed & Delivered
                                             </div>
                                         }
@@ -323,7 +351,11 @@
                                 @if (ViewBag.CanLeaveReview == true)
                                 {
                                     <div class="mt-5 border-top pt-4 text-start">
-                                        <h5 class="fw-bold mb-3"><i class="bi bi-star-fill text-warning me-2"></i>Rate the Seller</h5>
+                                        @{
+                                            var currentUserIdReview = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                                            var reviewTargetRole = Model.SellerId == currentUserIdReview ? "Buyer" : "Seller";
+                                        }
+                                        <h5 class="fw-bold mb-3"><i class="bi bi-star-fill text-warning me-2"></i>Rate the @reviewTargetRole</h5>
                                         <form asp-action="LeaveReview" method="post" class="bg-light p-4 rounded-4 shadow-sm">
                                             <input type="hidden" name="auctionId" value="@Model.Id" />
                                             

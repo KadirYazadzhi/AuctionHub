@@ -51,4 +51,18 @@ public class WalletController : Controller
 
         return RedirectToAction(nameof(Index));
     }
+
+    [HttpPost]
+    public async Task<IActionResult> Withdraw(decimal amount)
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (currentUserId == null) return Challenge();
+
+        var result = await _walletService.WithdrawAsync(currentUserId, amount);
+
+        if (result.Success) TempData["Success"] = result.Message;
+        else TempData["Error"] = result.Message;
+
+        return RedirectToAction(nameof(Index));
+    }
 }

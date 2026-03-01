@@ -22,6 +22,10 @@ public interface IAdminService
     
     // Fraud Detection
     Task<List<SuspiciousActivityDto>> GetSuspiciousActivitiesAsync();
+
+    // Disputes
+    Task<IEnumerable<AuctionDto>> GetDisputedAuctionsAsync();
+    Task<bool> ResolveDisputeAsync(int auctionId, string resolution, string adminId);
 }
 
 public class SuspiciousActivityDto

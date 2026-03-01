@@ -56,25 +56,81 @@ public class WalletService : IWalletService
     {
         if (amount <= 0) return (false, "Please enter a valid amount greater than 0.");
 
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user == null) return (false, "User not found.");
-
-        user.WalletBalance += amount;
-        
-        var transaction = new Transaction
+        using var dbTransaction = await _context.Database.BeginTransactionAsync();
+        try
         {
-            UserId = user.Id,
-            Amount = amount,
-            Description = "Deposit funds",
-            TransactionType = "Deposit",
-            TransactionDate = DateTime.UtcNow
-        };
-        _context.Transactions.Add(transaction);
-        
-        var result = await _userManager.UpdateAsync(user);
-        if (!result.Succeeded) return (false, "Failed to update user wallet.");
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null) return (false, "User not found.");
 
-        await _context.SaveChangesAsync();
-        return (true, $"Successfully added {amount:C} to your wallet!");
+            user.WalletBalance += amount;
+            
+            var transaction = new Transaction
+            {
+                UserId = user.Id,
+                Amount = amount,
+                Description = "Deposit funds",
+                TransactionType = "Deposit",
+                TransactionDate = DateTime.UtcNow
+            };
+            _context.Transactions.Add(transaction);
+            
+            var result = await _userManager.UpdateAsync(user);
+            if (!result.Succeeded) 
+            {
+                await dbTransaction.RollbackAsync();
+                return (false, "Failed to update user wallet.");
+            }
+
+            await _context.SaveChangesAsync();
+            await dbTransaction.CommitAsync();
+            return (true, $"Successfully added {amount:C} to your wallet!");
+        }
+        catch (Exception)
+        {
+            await dbTransaction.RollbackAsync();
+            return (false, "An error occurred while adding funds.");
+        }
+    }
+
+    public async Task<(bool Success, string Message)> WithdrawAsync(string userId, decimal amount)
+    {
+        if (amount <= 0) return (false, "Please enter a valid amount greater than 0.");
+
+        using var dbTransaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null) return (false, "User not found.");
+
+            if (user.WalletBalance < amount) return (false, "Insufficient funds.");
+
+            user.WalletBalance -= amount;
+            
+            var transaction = new Transaction
+            {
+                UserId = user.Id,
+                Amount = -amount,
+                Description = "Withdraw funds",
+                TransactionType = "Withdrawal",
+                TransactionDate = DateTime.UtcNow
+            };
+            _context.Transactions.Add(transaction);
+            
+            var result = await _userManager.UpdateAsync(user);
+            if (!result.Succeeded) 
+            {
+                await dbTransaction.RollbackAsync();
+                return (false, "Failed to update user wallet.");
+            }
+
+            await _context.SaveChangesAsync();
+            await dbTransaction.CommitAsync();
+            return (true, $"Successfully withdrawn {amount:C} from your wallet!");
+        }
+        catch (Exception)
+        {
+            await dbTransaction.RollbackAsync();
+            return (false, "An error occurred while withdrawing funds.");
+        }
     }
 }

@@ -405,6 +405,8 @@ public class AuctionService : IAuctionService
 
             if (auction == null) return (false, "Auction not found.");
             if (auction.IsActive && auction.EndTime > DateTime.UtcNow) return (false, "Auction is still active.");
+            if (auction.IsSettled) return (false, "Funds have already been released.");
+            if (auction.IsDisputed) return (false, "This auction is currently under dispute.");
 
             var winningBid = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault();
             if (winningBid == null || winningBid.BidderId != userId)
@@ -412,20 +414,10 @@ public class AuctionService : IAuctionService
                 return (false, "Only the auction winner can confirm delivery.");
             }
 
-            // Check if already confirmed (if a 'Sale' transaction already exists for this auction)
-            var alreadyConfirmed = await _context.Transactions
-                .AnyAsync(t => t.UserId == auction.SellerId && 
-                               t.TransactionType == "Sale" && 
-                               t.Description.Contains($"(Auction ID: {auctionId})"));
-
-            if (alreadyConfirmed)
-            {
-                return (false, "Delivery has already been confirmed for this auction.");
-            }
-
             // Release Funds to Seller
             decimal price = winningBid.Amount;
             auction.Seller.WalletBalance += price;
+            auction.IsSettled = true;
 
             _context.Transactions.Add(new Transaction
             {
@@ -433,7 +425,8 @@ public class AuctionService : IAuctionService
                 Amount = price,
                 Description = $"Sale of item '{auction.Title}' - Escrow released (Auction ID: {auctionId})",
                 TransactionType = "Sale",
-                TransactionDate = DateTime.UtcNow
+                TransactionDate = DateTime.UtcNow,
+                AuctionId = auctionId
             });
 
             await _context.SaveChangesAsync();
@@ -448,8 +441,61 @@ public class AuctionService : IAuctionService
         catch (Exception)
         {
             await dbTransaction.RollbackAsync();
-            return (false, "An error occurred while confirming delivery.");
+            return (false, "An error occurred during delivery confirmation.");
         }
+    }
+
+    public async Task<(bool Success, string Message)> CancelAuctionAsync(int auctionId, string userId)
+    {
+        var auction = await _context.Auctions
+            .Include(a => a.Bids)
+            .FirstOrDefaultAsync(a => a.Id == auctionId);
+
+        if (auction == null) return (false, "Auction not found.");
+        if (auction.SellerId != userId) return (false, "You can only cancel your own auctions.");
+        if (auction.Bids.Any()) return (false, "You cannot cancel an auction that has bids.");
+        if (!auction.IsActive) return (false, "Auction is already closed.");
+
+        auction.IsActive = false;
+        auction.IsDeleted = true;
+
+        await _context.SaveChangesAsync();
+        return (true, "Auction cancelled successfully.");
+    }
+
+    public async Task<(bool Success, string Message)> DeactivateAutoBidAsync(int auctionId, string userId)
+    {
+        var autoBid = await _context.AutoBids
+            .FirstOrDefaultAsync(ab => ab.AuctionId == auctionId && ab.UserId == userId && ab.IsActive);
+
+        if (autoBid == null) return (false, "No active auto-bid found.");
+
+        autoBid.IsActive = false;
+        await _context.SaveChangesAsync();
+        return (true, "Auto-bid deactivated.");
+    }
+
+    public async Task<(bool Success, string Message)> DisputeAuctionAsync(int auctionId, string userId)
+    {
+        var auction = await _context.Auctions
+            .Include(a => a.Bids)
+            .FirstOrDefaultAsync(a => a.Id == auctionId);
+
+        if (auction == null) return (false, "Auction not found.");
+        if (auction.IsSettled) return (false, "Cannot dispute an auction after funds have been released.");
+        
+        var winningBid = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault();
+        if (winningBid == null || winningBid.BidderId != userId) 
+            return (false, "Only the winner can open a dispute.");
+
+        auction.IsDisputed = true;
+        
+        await _notificationService.NotifyUserAsync(auction.SellerId, 
+            $"⚠️ A dispute has been opened for '{auction.Title}'. Escrow funds are frozen until resolved by an administrator.", 
+            $"/Auctions/Details/{auctionId}");
+
+        await _context.SaveChangesAsync();
+        return (true, "Dispute opened. Our team will review the transaction.");
     }
 
     public async Task<(bool Success, string Message)> PromoteAuctionAsync(int auctionId, string userId)
@@ -480,7 +526,8 @@ public class AuctionService : IAuctionService
                 Amount = promotionFee,
                 Description = $"Promoted auction: '{auction.Title}'",
                 TransactionType = "Promotion",
-                TransactionDate = DateTime.UtcNow
+                TransactionDate = DateTime.UtcNow,
+                AuctionId = auctionId
             });
 
             // 2. Mark Auction as Promoted
@@ -599,7 +646,9 @@ public class AuctionService : IAuctionService
             SellerRating = sellerRating,
             SellerReviewCount = reviewCount,
             IsActive = auction.IsActive && auction.EndTime > DateTime.UtcNow,
-            IsDelivered = await _context.Transactions.AnyAsync(t => t.UserId == auction.SellerId && t.TransactionType == "Sale" && t.Description.Contains($"(Auction ID: {id})")),
+            IsDelivered = await _context.Transactions.AnyAsync(t => t.UserId == auction.SellerId && t.TransactionType == "Sale" && t.AuctionId == id),
+            IsSettled = auction.IsSettled,
+            IsDisputed = auction.IsDisputed,
             IsSuspended = auction.IsSuspended,
             IsWatched = isWatched,
             IsWinning = currentUserId != null && auction.Bids.Any(b => b.BidderId == currentUserId) 
@@ -732,7 +781,8 @@ public class AuctionService : IAuctionService
                         Amount = promoFee,
                         Description = $"Promotion for new auction: '{auction.Title}'",
                         TransactionType = "Promotion",
-                        TransactionDate = DateTime.UtcNow
+                        TransactionDate = DateTime.UtcNow,
+                        AuctionId = auction.Id
                     });
                 }
                 else
@@ -1002,7 +1052,8 @@ public class AuctionService : IAuctionService
                 Amount = amount,
                 Description = $"Bid on '{auction.Title}'",
                 TransactionType = "Bid",
-                TransactionDate = DateTime.UtcNow
+                TransactionDate = DateTime.UtcNow,
+                AuctionId = auctionId
             });
 
             // 2. Refund Previous Bidder & Notify
@@ -1018,7 +1069,8 @@ public class AuctionService : IAuctionService
                         Amount = previousHighBid.Amount,
                         Description = $"Refund outbid on '{auction.Title}'",
                         TransactionType = "Refund",
-                        TransactionDate = DateTime.UtcNow
+                        TransactionDate = DateTime.UtcNow,
+                        AuctionId = auctionId
                     });
                 }
                 else
@@ -1031,7 +1083,8 @@ public class AuctionService : IAuctionService
                         Amount = previousHighBid.Amount,
                         Description = $"Refund outbid on '{auction.Title}'",
                         TransactionType = "Refund",
-                        TransactionDate = DateTime.UtcNow
+                        TransactionDate = DateTime.UtcNow,
+                        AuctionId = auctionId
                     });
 
                     // NOTIFY PREVIOUS BIDDER
@@ -1276,7 +1329,8 @@ public class AuctionService : IAuctionService
                 Amount = price,
                 Description = $"Purchased '{auction.Title}' (Buy It Now)",
                 TransactionType = "Purchase",
-                TransactionDate = DateTime.UtcNow
+                TransactionDate = DateTime.UtcNow,
+                AuctionId = auctionId
             });
 
             // 2. Log Escrow (Funds are held)
@@ -1286,7 +1340,8 @@ public class AuctionService : IAuctionService
                 Amount = price,
                 Description = $"Escrow: Payment for '{auction.Title}' (Buy It Now) held until delivery confirmation (Auction ID: {auctionId}).",
                 TransactionType = "Escrow",
-                TransactionDate = DateTime.UtcNow
+                TransactionDate = DateTime.UtcNow,
+                AuctionId = auctionId
             });
 
             // 3. Refund Previous Bidder
@@ -1302,7 +1357,8 @@ public class AuctionService : IAuctionService
                         Amount = previousHighBid.Amount,
                         Description = $"Refund (BIN upgrade) on '{auction.Title}'",
                         TransactionType = "Refund",
-                        TransactionDate = DateTime.UtcNow
+                        TransactionDate = DateTime.UtcNow,
+                        AuctionId = auctionId
                     });
                 }
                 else
@@ -1315,7 +1371,8 @@ public class AuctionService : IAuctionService
                         Amount = previousHighBid.Amount,
                         Description = $"Refund (Item Sold) on '{auction.Title}'",
                         TransactionType = "Refund",
-                        TransactionDate = DateTime.UtcNow
+                        TransactionDate = DateTime.UtcNow,
+                        AuctionId = auctionId
                     });
 
                      // NOTIFY PREVIOUS BIDDER

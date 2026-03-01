@@ -48,47 +48,60 @@ public class EscrowReleaseService : BackgroundService
             var sevenDaysAgo = DateTime.UtcNow.AddDays(-7);
 
             // Find auctions that ended more than 7 days ago and are still in Escrow
-            // (We identify Escrow by checking if a 'Sale' transaction doesn't exist yet for that auction)
+            // Optimization: Filter by IsSettled and IsDisputed
             var expiredAuctions = await context.Auctions
                 .Include(a => a.Seller)
                 .Include(a => a.Bids)
-                .Where(a => !a.IsActive && a.EndTime <= sevenDaysAgo)
+                .Where(a => !a.IsActive && 
+                            a.EndTime <= sevenDaysAgo && 
+                            !a.IsSettled && 
+                            !a.IsDisputed)
                 .ToListAsync();
 
             foreach (var auction in expiredAuctions)
             {
-                var winningBid = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault();
-                if (winningBid == null) continue;
-
-                // Check if already released (Sale transaction exists)
-                var alreadyReleased = await context.Transactions
-                    .AnyAsync(t => t.UserId == auction.SellerId && 
-                                   t.TransactionType == "Sale" && 
-                                   t.Description.Contains($"(Auction ID: {auction.Id})"));
-
-                if (alreadyReleased) continue;
-
-                _logger.LogInformation($"Auto-releasing escrow for auction {auction.Id}: {auction.Title}");
-
-                // 1. Release Funds to Seller
-                auction.Seller.WalletBalance += winningBid.Amount;
-
-                context.Transactions.Add(new Transaction
+                using var transaction = await context.Database.BeginTransactionAsync();
+                try 
                 {
-                    UserId = auction.SellerId,
-                    Amount = winningBid.Amount,
-                    Description = $"Sale of item '{auction.Title}' - Auto-released by system after 7 days (Auction ID: {auction.Id})",
-                    TransactionType = "Sale",
-                    TransactionDate = DateTime.UtcNow
-                });
+                    var winningBid = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault();
+                    if (winningBid == null) 
+                    {
+                        auction.IsSettled = true;
+                        await context.SaveChangesAsync();
+                        await transaction.CommitAsync();
+                        continue;
+                    }
 
-                // 2. Notify Seller
-                await notificationService.NotifyUserAsync(auction.SellerId, 
-                    $"💰 Payment for '{auction.Title}' has been automatically released to your wallet. The 7-day confirmation period has passed.", 
-                    $"/Auctions/Details/{auction.Id}");
+                    _logger.LogInformation($"Auto-releasing escrow for auction {auction.Id}: {auction.Title}");
+
+                    // 1. Release Funds to Seller
+                    auction.Seller.WalletBalance += winningBid.Amount;
+                    auction.IsSettled = true;
+
+                    context.Transactions.Add(new Transaction
+                    {
+                        UserId = auction.SellerId,
+                        Amount = winningBid.Amount,
+                        Description = $"Sale of item '{auction.Title}' - Auto-released by system after 7 days (Auction ID: {auction.Id})",
+                        TransactionType = "Sale",
+                        TransactionDate = DateTime.UtcNow,
+                        AuctionId = auction.Id
+                    });
+
+                    // 2. Notify Seller
+                    await notificationService.NotifyUserAsync(auction.SellerId, 
+                        $"💰 Payment for '{auction.Title}' has been automatically released to your wallet. The 7-day confirmation period has passed.", 
+                        $"/Auctions/Details/{auction.Id}");
+
+                    await context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    _logger.LogError(ex, $"Error releasing escrow for auction {auction.Id}");
+                }
             }
-
-            await context.SaveChangesAsync();
         }
     }
 }
