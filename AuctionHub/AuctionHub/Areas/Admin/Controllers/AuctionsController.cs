@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using AuctionHub.Application.Interfaces;
 using AuctionHub.Domain.Models;
 using AuctionHub.Models.ViewModels;
@@ -10,11 +11,13 @@ public class AuctionsController : AdminBaseController
 {
     private readonly IAuctionHubDbContext _context;
     private readonly INotificationService _notificationService;
+    private readonly IAdminService _adminService;
 
-    public AuctionsController(IAuctionHubDbContext context, INotificationService notificationService)
+    public AuctionsController(IAuctionHubDbContext context, INotificationService notificationService, IAdminService adminService)
     {
         _context = context;
         _notificationService = notificationService;
+        _adminService = adminService;
     }
 
     public async Task<IActionResult> Index()
@@ -71,7 +74,8 @@ public class AuctionsController : AdminBaseController
                         Amount = highestBid.Amount,
                         TransactionType = "AdminRefund",
                         Description = $"Refund for suspended auction: {auction.Title}",
-                        TransactionDate = DateTime.UtcNow
+                        TransactionDate = DateTime.UtcNow,
+                        AuctionId = id
                     });
 
                     // Notify Bidder
@@ -85,6 +89,13 @@ public class AuctionsController : AdminBaseController
             await _notificationService.NotifyUserAsync(auction.SellerId, 
                 $"⛔ Your auction '{auction.Title}' has been suspended due to a policy violation.", 
                 "#");
+
+            // 4. Audit Log
+            var adminId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (adminId != null)
+            {
+                await _adminService.LogActionAsync(adminId, "Suspend Auction", "Auction", id.ToString(), "Policy violation suspension");
+            }
 
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();

@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using AuctionHub.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -48,5 +49,24 @@ public class DashboardController : AdminBaseController
         await _notificationService.NotifyAllUsersAsync($"📢 SYSTEM: {message}");
         TempData["Success"] = "Announcement sent to all users.";
         return RedirectToAction(nameof(Index));
+    }
+
+    public async Task<IActionResult> Disputes()
+    {
+        var disputes = await _adminService.GetDisputedAuctionsAsync();
+        return View(disputes);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> ResolveDispute(int auctionId, string resolution)
+    {
+        var adminId = User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (adminId == null) return Challenge();
+
+        var success = await _adminService.ResolveDisputeAsync(auctionId, resolution, adminId);
+        if (success) TempData["Success"] = $"Dispute resolved with: {resolution}";
+        else TempData["Error"] = "Failed to resolve dispute.";
+
+        return RedirectToAction(nameof(Disputes));
     }
 }
