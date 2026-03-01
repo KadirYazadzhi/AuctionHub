@@ -83,29 +83,26 @@
 
         <!-- Wallet Card -->
         <div class="col-lg-4">
-            <div class="card border-0 shadow-sm rounded-5 bg-white h-100 position-relative overflow-hidden border-top border-primary border-5">
-                <div class="card-body p-4 p-xl-5 d-flex flex-column">
-                    <div class="mb-4">
-                        <div class="d-flex align-items-center justify-content-between mb-2">
-                            <h6 class="text-muted text-uppercase fw-bold smallest letter-spacing-1 mb-0">Total Balance</h6>
-                            <i class="bi bi-wallet2 text-primary fs-4 opacity-50"></i>
+            <div class="card border-0 shadow-sm rounded-5 h-100 position-relative overflow-hidden wallet-card-refined">
+                <div class="card-body p-4 p-xl-5 d-flex flex-column align-items-center text-center">
+                    <div class="mb-3">
+                        <div class="icon-circle bg-primary bg-opacity-10 text-primary mb-3 mx-auto" style="width: 60px; height: 60px;">
+                            <i class="bi bi-wallet2 fs-3"></i>
                         </div>
-                        <h1 class="display-4 fw-bold mb-0 text-main">@Model.WalletBalance.ToString("C")</h1>
-                        <p class="text-muted small mt-2">
-                            <i class="bi bi-shield-check text-success me-1"></i> Funds are safe in escrow
-                        </p>
+                        <h6 class="text-muted text-uppercase fw-bold smallest letter-spacing-2 mb-2">Total Balance</h6>
+                        <h1 class="display-4 fw-bold mb-0 text-main balance-value">@Model.WalletBalance.ToString("C")</h1>
                     </div>
                     
-                    <div class="mt-auto">
+                    <div class="mt-auto w-100">
                         <div class="d-grid gap-2">
                             <button type="button" class="btn btn-primary rounded-pill py-3 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#addFundsModal">
                                 <i class="bi bi-plus-lg me-1"></i> Add Funds
                             </button>
-                            <button type="button" class="btn btn-outline-light text-dark border-light-subtle rounded-pill py-2 fw-bold smallest text-uppercase letter-spacing-1" data-bs-toggle="modal" data-bs-target="#withdrawModal">
+                            <button type="button" class="btn btn-outline-primary border-opacity-25 rounded-pill py-2 fw-bold smallest text-uppercase letter-spacing-1" data-bs-toggle="modal" data-bs-target="#withdrawModal">
                                 <i class="bi bi-arrow-down me-1"></i> Withdraw
                             </button>
                         </div>
-                        <div class="text-center mt-3">
+                        <div class="mt-3">
                             <a asp-controller="Wallet" asp-action="Index" class="text-primary text-decoration-none smallest fw-bold hover-underline">
                                 <i class="bi bi-clock-history me-1"></i> Full History
                             </a>
@@ -269,39 +266,44 @@
 
 <style>
     .letter-spacing-1 { letter-spacing: 1px; }
+    .letter-spacing-2 { letter-spacing: 2px; }
     .smallest { font-size: 0.75rem; }
     .hover-lift:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.08) !important; }
     .hover-opacity-100:hover { opacity: 1 !important; }
-    .hover-border-light:hover { border-color: rgba(67, 97, 238, 0.15) !important; }
-    .hover-light-custom:hover { background-color: rgba(67, 97, 238, 0.03) !important; }
     .hover-underline:hover { text-decoration: underline !important; }
     .transition-all { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-    .bg-light-custom { background-color: #f8faff !important; }
     
+    .shadow-hover { transition: all 0.3s ease; }
+    .shadow-hover:hover { box-shadow: 0 12px 24px -8px rgba(0,0,0,0.05) !important; }
+
+    /* Theme Consistency */
+    .btn-hover-purple:hover {
+        background-color: var(--primary-hover) !important;
+        border-color: var(--primary-hover) !important;
+        color: white !important;
+    }
+    
+    .hover-purple:hover {
+        color: var(--primary-hover) !important;
+    }
+
     .hover-item { transition: all 0.2s ease; }
     .hover-item:hover { 
         background-color: white !important; 
         transform: translateX(5px); 
-        border-color: #7209b7 !important;
+        border-color: var(--primary-color) !important;
         box-shadow: 0 5px 15px rgba(0,0,0,0.05) !important;
     }
 
-    .shadow-hover { transition: box-shadow 0.3s ease; }
-    .shadow-hover:hover { box-shadow: 0 12px 24px -8px rgba(0,0,0,0.05) !important; }
-
-    /* Purple Hover Effects */
-    .btn-hover-purple {
-        transition: all 0.3s ease !important;
-    }
-    .btn-hover-purple:hover {
-        background-color: #7209b7 !important;
-        border-color: #7209b7 !important;
-        color: white !important;
-        box-shadow: 0 4px 12px rgba(114, 9, 183, 0.2) !important;
+    /* Minimal Wallet Card */
+    .wallet-card-refined {
+        background-color: white !important;
+        border: 1px solid rgba(0,0,0,0.05) !important;
     }
     
-    .hover-purple:hover {
-        color: #7209b7 !important;
+    [data-bs-theme="dark"] .wallet-card-refined {
+        background-color: var(--bg-card) !important;
+        border-color: rgba(255,255,255,0.05) !important;
     }
 
     @@keyframes pulse-slow {
@@ -310,7 +312,7 @@
     }
     .animate-pulse-slow { animation: pulse-slow 3s infinite; }
     
-    [data-bs-theme="dark"] .bg-card { background-color: var(--bg-card) !important; }
+    .bg-light-custom { background-color: #f8faff !important; }
     [data-bs-theme="dark"] .text-main { color: var(--text-main) !important; }
     [data-bs-theme="dark"] .bg-light-custom { background-color: rgba(255,255,255,0.03) !important; }
     [data-bs-theme="dark"] .border-light-subtle { border-color: rgba(255,255,255,0.05) !important; }
