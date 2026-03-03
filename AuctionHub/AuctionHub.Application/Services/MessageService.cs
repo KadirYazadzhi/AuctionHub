@@ -2,7 +2,6 @@ using AuctionHub.Application.DTOs;
 using AuctionHub.Application.Interfaces;
 using AuctionHub.Domain.Models;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace AuctionHub.Application.Services;
@@ -10,13 +9,13 @@ namespace AuctionHub.Application.Services;
 public class MessageService : IMessageService
 {
     private readonly IAuctionHubDbContext _context;
-    private readonly IEmailSender _emailSender;
+    private readonly IEmailService _emailSender;
     private readonly INotificationService _notificationService;
     private readonly UserManager<ApplicationUser> _userManager;
 
     public MessageService(
         IAuctionHubDbContext context, 
-        IEmailSender emailSender, 
+        IEmailService emailSender, 
         INotificationService notificationService,
         UserManager<ApplicationUser> userManager)
     {

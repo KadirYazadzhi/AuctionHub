@@ -7,10 +7,11 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using AuctionHub.Application.Interfaces;
 
 namespace AuctionHub.Infrastructure.Services;
 
-public class EmailSender : IEmailSender
+public class EmailSender : IEmailSender, IEmailService
 {
     private readonly IConfiguration _config;
     private readonly IHttpClientFactory _httpClientFactory;
