@@ -27,11 +27,12 @@ public class ChatController : Controller
         if (currentUserId == null) return Challenge();
 
         var sessions = await _chatService.GetUserChatSessionsAsync(currentUserId);
-        ViewBag.Sessions = sessions;
+        var sessionsList = sessions.ToList();
 
         // Determine active chat
-        if (global || (auctionId == null && targetUserId == null && !sessions.Any()))
+        if (global || (auctionId == null && targetUserId == null && !sessionsList.Any()))
         {
+            ViewBag.Sessions = sessionsList;
             ViewBag.ActiveChatType = "Global";
             var messages = await _chatService.GetGlobalMessagesAsync();
             return View(messages);
@@ -66,6 +67,24 @@ public class ChatController : Controller
                 return RedirectToAction(nameof(Index), new { global = true });
             }
 
+            // Ensure this session is in the sidebar even if it has no messages
+            if (!sessionsList.Any(s => s.AuctionId == auctionId && s.OtherUserId == otherUserId))
+            {
+                var otherUserObj = await _userManager.FindByIdAsync(otherUserId);
+                sessionsList.Add(new AuctionHub.Application.DTOs.ChatSessionDto
+                {
+                    AuctionId = auctionId,
+                    AuctionTitle = auction.Title,
+                    OtherUserId = otherUserId,
+                    OtherUserName = otherUserObj?.DisplayName ?? "User",
+                    OtherUserAvatar = otherUserObj?.ProfilePictureUrl,
+                    LastMessage = "Starting conversation...",
+                    LastMessageTime = DateTime.UtcNow
+                });
+            }
+
+            ViewBag.Sessions = sessionsList.OrderByDescending(s => s.LastMessageTime).ToList();
+
             var messages = await _chatService.GetPrivateMessagesAsync(auctionId.Value, currentUserId, otherUserId);
             var otherUser = await _userManager.FindByIdAsync(otherUserId);
             
@@ -78,6 +97,8 @@ public class ChatController : Controller
 
             return View(messages);
         }
+
+        ViewBag.Sessions = sessionsList;
 
         // If no specific chat selected but sessions exist, pick the most recent one
         if (sessions.Any())
