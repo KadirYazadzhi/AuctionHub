@@ -2,21 +2,34 @@ using AuctionHub.Application.DTOs;
 using AuctionHub.Application.Interfaces;
 using AuctionHub.Domain.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
+using System.Text.Json;
 
 namespace AuctionHub.Application.Services;
 
 public class CategoryService : ICategoryService
 {
     private readonly IAuctionHubDbContext _context;
+    private readonly IDistributedCache _cache;
+    private const string CategoriesCacheKey = "Categories_List";
 
-    public CategoryService(IAuctionHubDbContext context)
+    public CategoryService(IAuctionHubDbContext context, IDistributedCache cache)
     {
         _context = context;
+        _cache = cache;
     }
 
     public async Task<IEnumerable<CategoryDto>> GetAllAsync()
     {
-        return await _context.Categories
+        // 1. Try to get from Cache
+        var cachedCategories = await _cache.GetStringAsync(CategoriesCacheKey);
+        if (!string.IsNullOrEmpty(cachedCategories))
+        {
+            return JsonSerializer.Deserialize<IEnumerable<CategoryDto>>(cachedCategories)!;
+        }
+
+        // 2. If not in cache, get from DB
+        var categories = await _context.Categories
             .OrderBy(c => c.Name)
             .Select(c => new CategoryDto
             {
@@ -25,6 +38,15 @@ public class CategoryService : ICategoryService
                 AuctionsCount = c.Auctions.Count
             })
             .ToListAsync();
+
+        // 3. Save to Cache for 30 minutes
+        var options = new DistributedCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30)
+        };
+        await _cache.SetStringAsync(CategoriesCacheKey, JsonSerializer.Serialize(categories), options);
+
+        return categories;
     }
 
     public async Task<CategoryDto?> GetByIdAsync(int id)
@@ -51,6 +73,7 @@ public class CategoryService : ICategoryService
         };
         _context.Categories.Add(category);
         await _context.SaveChangesAsync();
+        await _cache.RemoveAsync(CategoriesCacheKey); // Invalidate cache
     }
 
     public async Task UpdateAsync(CategoryDto model)
@@ -61,6 +84,7 @@ public class CategoryService : ICategoryService
             category.Name = model.Name;
             _context.Categories.Update(category);
             await _context.SaveChangesAsync();
+            await _cache.RemoveAsync(CategoriesCacheKey); // Invalidate cache
         }
     }
 
@@ -71,6 +95,7 @@ public class CategoryService : ICategoryService
         {
             _context.Categories.Remove(category);
             await _context.SaveChangesAsync();
+            await _cache.RemoveAsync(CategoriesCacheKey); // Invalidate cache
         }
     }
 }

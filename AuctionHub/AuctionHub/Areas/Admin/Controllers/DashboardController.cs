@@ -69,4 +69,12 @@ public class DashboardController : AdminBaseController
 
         return RedirectToAction(nameof(Disputes));
     }
+
+    [HttpGet]
+    public async Task<IActionResult> ExportTransactions()
+    {
+        var csvBytes = await _adminService.ExportTransactionsToCsvAsync();
+        var fileName = $"Transactions_Export_{DateTime.Now:yyyyMMdd}.csv";
+        return File(csvBytes, "text/csv", fileName);
+    }
 }

@@ -291,4 +291,28 @@ public class AdminService : IAdminService
             return false;
         }
     }
+
+    public async Task<byte[]> ExportTransactionsToCsvAsync()
+    {
+        var transactions = await _context.Transactions
+            .Include(t => t.User)
+            .OrderByDescending(t => t.TransactionDate)
+            .ToListAsync();
+
+        var builder = new System.Text.StringBuilder();
+        // CSV Header
+        builder.AppendLine("Date,User,Type,Amount,AuctionId,Description");
+
+        foreach (var t in transactions)
+        {
+            builder.AppendLine($"{t.TransactionDate:yyyy-MM-dd HH:mm:ss}," +
+                               $"\"{t.User?.UserName ?? "Deleted User"}\"," +
+                               $"\"{t.TransactionType}\"," +
+                               $"{t.Amount.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)}," +
+                               $"{t.AuctionId?.ToString() ?? "N/A"}," +
+                               $"\"{t.Description.Replace("\"", "'")}\"");
+        }
+
+        return System.Text.Encoding.UTF8.GetPreamble().Concat(System.Text.Encoding.UTF8.GetBytes(builder.ToString())).ToArray();
+    }
 }

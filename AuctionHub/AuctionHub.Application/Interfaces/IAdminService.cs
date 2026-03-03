@@ -26,6 +26,9 @@ public interface IAdminService
     // Disputes
     Task<IEnumerable<AuctionDto>> GetDisputedAuctionsAsync();
     Task<bool> ResolveDisputeAsync(int auctionId, string resolution, string adminId);
+
+    // Export
+    Task<byte[]> ExportTransactionsToCsvAsync();
 }
 
 public class SuspiciousActivityDto
