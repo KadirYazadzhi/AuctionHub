@@ -13,7 +13,6 @@
 
     ViewData["Title"] = activeChatType == "Global" ? "Global Chat" : $"Chat with {otherUserName}";
     
-    // Use the current user's ID from Claims if not explicitly passed
     currentUserId ??= User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 }
 
@@ -22,60 +21,69 @@
         <div class="row g-0 h-100">
             <!-- Sidebar / Conversations List -->
             <div class="col-lg-4 col-xl-3 d-none d-lg-flex flex-column border-end bg-card chat-sidebar">
-                <div class="p-3 border-bottom">
-                    <h5 class="fw-bold mb-0 text-main"><i class="bi bi-chat-dots-fill text-primary me-2"></i>Messages</h5>
+                <div class="p-4 border-bottom d-flex align-items-center justify-content-between bg-card">
+                    <h5 class="fw-bold mb-0 text-main"><i class="bi bi-chat-square-text-fill text-primary me-2"></i>Messages</h5>
+                    <div class="badge bg-primary bg-opacity-10 text-primary rounded-pill smallest px-2">@sessions.Count Active</div>
                 </div>
-                <div class="flex-grow-1 overflow-auto custom-scrollbar p-2">
+                <div class="flex-grow-1 overflow-auto custom-scrollbar p-2" id="conversation-list">
                     <!-- Global Chat Session -->
-                    <a asp-controller="Chat" asp-action="Index" asp-route-global="true" class="text-decoration-none">
-                        <div class="p-3 rounded-4 mb-2 transition-all hover-light-custom @(activeChatType == "Global" ? "bg-primary-subtle border-primary" : "border-transparent") border">
+                    <a asp-controller="Chat" asp-action="Index" asp-route-global="true" class="text-decoration-none conversation-link" data-global="true">
+                        <div class="p-3 rounded-4 mb-2 transition-all hover-light-custom @(activeChatType == "Global" ? "bg-primary-subtle border-primary shadow-sm active-session" : "border-transparent") border conversation-item">
                             <div class="d-flex align-items-center gap-3">
-                                <div class="avatar-md bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 48px; height: 48px;">
+                                <div class="avatar-md bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 52px; height: 52px; min-width: 52px;">
                                     <i class="bi bi-globe-americas fs-4"></i>
                                 </div>
                                 <div class="overflow-hidden flex-grow-1">
                                     <div class="d-flex justify-content-between align-items-center mb-1">
-                                        <h6 class="fw-bold text-main mb-0 text-truncate">Global Chat</h6>
+                                        <h6 class="fw-bold text-main mb-0 text-truncate">Global Community</h6>
                                     </div>
-                                    <div class="smallest text-muted text-truncate">Join the community discussion</div>
+                                    <div class="smallest text-muted text-truncate last-msg">Real-time public discussion</div>
                                 </div>
                             </div>
                         </div>
                     </a>
 
-                    @if (sessions.Any(s => !s.IsGlobal))
-                    {
-                        <h6 class="text-uppercase text-muted smallest fw-bold letter-spacing-1 mt-4 mb-3 px-2">Private Conversations</h6>
-                        @foreach (var session in sessions.Where(s => !s.IsGlobal))
+                    <div id="private-conversations-container">
+                        @if (sessions.Any(s => !s.IsGlobal))
                         {
-                            bool isActive = activeChatType == "Private" && auctionId == session.AuctionId && otherUserId == session.OtherUserId;
-                            <a asp-controller="Chat" asp-action="Index" asp-route-auctionId="@session.AuctionId" asp-route-targetUserId="@session.OtherUserId" class="text-decoration-none">
-                                <div class="p-3 rounded-4 mb-2 transition-all hover-light-custom @(isActive ? "bg-primary-subtle border-primary" : "border-transparent") border">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="avatar-md bg-light-custom text-primary rounded-circle d-flex align-items-center justify-content-center border shadow-sm" style="width: 48px; height: 48px; overflow: hidden;">
-                                            @if (!string.IsNullOrEmpty(session.OtherUserAvatar))
-                                            {
-                                                <img src="@session.OtherUserAvatar" class="w-100 h-100 object-fit-cover" alt="Avatar" />
-                                            }
-                                            else
-                                            {
-                                                <i class="bi bi-person-fill fs-4"></i>
-                                            }
-                                        </div>
-                                        <div class="overflow-hidden flex-grow-1">
-                                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                                <h6 class="fw-bold text-main mb-0 text-truncate">@session.OtherUserName</h6>
-                                                <small class="text-muted" style="font-size: 0.65rem;">@(session.LastMessageTime > DateTime.MinValue ? session.LastMessageTime.ToLocalTime().ToString("MMM dd") : "")</small>
+                            <h6 class="text-uppercase text-muted smallest fw-bold letter-spacing-2 mt-4 mb-3 px-3 session-header">Private Chats</h6>
+                            @foreach (var session in sessions.Where(s => !s.IsGlobal))
+                            {
+                                bool isActive = activeChatType == "Private" && auctionId == session.AuctionId && otherUserId == session.OtherUserId;
+                                <a asp-controller="Chat" asp-action="Index" asp-route-auctionId="@session.AuctionId" asp-route-targetUserId="@session.OtherUserId" 
+                                   class="text-decoration-none conversation-link" 
+                                   data-auction-id="@session.AuctionId" 
+                                   data-other-user-id="@session.OtherUserId"
+                                   data-other-user-name="@session.OtherUserName"
+                                   data-auction-title="@session.AuctionTitle"
+                                   data-avatar="@session.OtherUserAvatar">
+                                    <div class="p-3 rounded-4 mb-2 transition-all hover-light-custom @(isActive ? "bg-primary-subtle border-primary shadow-sm active-session" : "border-transparent") border conversation-item">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="avatar-md bg-white text-primary rounded-circle d-flex align-items-center justify-content-center border shadow-sm" style="width: 52px; height: 52px; min-width: 52px; overflow: hidden;">
+                                                @if (!string.IsNullOrEmpty(session.OtherUserAvatar))
+                                                {
+                                                    <img src="@session.OtherUserAvatar" class="w-100 h-100 object-fit-cover" alt="Avatar" />
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-person-fill fs-4"></i>
+                                                }
                                             </div>
-                                            <div class="smallest text-muted text-truncate">
-                                                <i class="bi bi-hammer text-primary me-1"></i> @session.AuctionTitle
+                                            <div class="overflow-hidden flex-grow-1">
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <h6 class="fw-bold text-main mb-0 text-truncate">@session.OtherUserName</h6>
+                                                    <small class="text-muted last-msg-time" style="font-size: 0.65rem;">@(session.LastMessageTime > DateTime.MinValue ? session.LastMessageTime.ToLocalTime().ToString("MMM dd") : "")</small>
+                                                </div>
+                                                <div class="smallest text-muted text-truncate last-msg">
+                                                    @session.LastMessage
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            </a>
+                                </a>
+                            }
                         }
-                    }
+                    </div>
                 </div>
             </div>
 
@@ -84,34 +92,42 @@
                 @if (activeChatType != null)
                 {
                     <!-- Chat Header -->
-                    <div class="bg-card border-bottom p-3 px-4 d-flex align-items-center justify-content-between shadow-sm z-1">
+                    <div class="bg-card border-bottom p-3 px-4 d-flex align-items-center justify-content-between shadow-sm z-1 messenger-header">
                         <div class="d-flex align-items-center gap-3">
                             <div class="d-lg-none">
-                                <button class="btn btn-light rounded-circle p-0 d-flex align-items-center justify-content-center me-2" style="width: 36px; height: 36px;" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">
+                                <button class="btn btn-light rounded-circle p-0 d-flex align-items-center justify-content-center me-2 shadow-sm" style="width: 40px; height: 40px;" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">
                                     <i class="bi bi-list"></i>
                                 </button>
                             </div>
                             @if (activeChatType == "Global")
                             {
-                                <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 44px; height: 44px;">
                                     <i class="bi bi-globe-americas"></i>
                                 </div>
                                 <div>
-                                    <h5 class="fw-bold text-main mb-0">Global Chat</h5>
-                                    <span class="smallest text-success"><i class="bi bi-circle-fill me-1" style="font-size: 0.4rem;"></i>Online</span>
+                                    <h5 class="fw-bold text-main mb-0">Global Discussion</h5>
+                                    <span class="smallest text-success"><i class="bi bi-circle-fill me-1" style="font-size: 0.4rem;"></i>Live Community</span>
                                 </div>
                             }
                             else
                             {
-                                <div class="avatar-sm bg-light-custom text-primary rounded-circle d-flex align-items-center justify-content-center border" style="width: 40px; height: 40px;">
+                                <div class="avatar-sm bg-light-custom text-primary rounded-circle d-flex align-items-center justify-content-center border shadow-sm" style="width: 44px; height: 44px;">
                                     <i class="bi bi-person-fill"></i>
                                 </div>
                                 <div>
                                     <h5 class="fw-bold text-main mb-0">@otherUserName</h5>
-                                    <a asp-controller="Auctions" asp-action="Details" asp-route-id="@auctionId" class="smallest text-primary text-decoration-none hover-underline">
-                                        <i class="bi bi-link-45deg"></i> @auctionTitle
+                                    <a asp-controller="Auctions" asp-action="Details" asp-route-id="@auctionId" class="smallest text-primary text-decoration-none hover-underline fw-bold">
+                                        <i class="bi bi-hammer me-1"></i> @auctionTitle
                                     </a>
                                 </div>
+                            }
+                        </div>
+                        <div class="d-flex gap-2">
+                            @if (activeChatType == "Private")
+                            {
+                                <a asp-controller="Auctions" asp-action="Details" asp-route-id="@auctionId" class="btn btn-light rounded-pill px-3 py-2 smallest fw-bold shadow-sm d-none d-sm-inline-block">
+                                    View Item
+                                </a>
                             }
                         </div>
                     </div>
@@ -121,8 +137,8 @@
                         @if (activeChatType == "Private")
                         {
                             <div class="text-center mb-5 mt-2 animate-fade-in">
-                                <div class="badge bg-light text-muted rounded-pill px-3 py-2 border">
-                                    <i class="bi bi-shield-check-fill text-success me-1"></i> Secure End-to-End Chat
+                                <div class="badge bg-white bg-opacity-50 text-muted rounded-pill px-3 py-2 border shadow-sm">
+                                    <i class="bi bi-shield-lock-fill text-success me-1"></i> End-to-End Encrypted Conversation
                                 </div>
                             </div>
                         }
@@ -149,23 +165,23 @@
                         else
                         {
                             <div id="no-messages" class="h-100 d-flex flex-column align-items-center justify-content-center text-muted animate-fade-in">
-                                <div class="bg-card shadow-sm rounded-circle d-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                                    <i class="bi bi-chat-dots text-primary opacity-50 fs-2"></i>
+                                <div class="bg-card shadow-sm rounded-circle d-flex align-items-center justify-content-center mb-3" style="width: 100px; height: 100px;">
+                                    <i class="bi bi-chat-dots text-primary opacity-25 display-4"></i>
                                 </div>
-                                <h6 class="fw-bold text-main">No messages yet</h6>
-                                <p class="smallest text-center px-4">Start the conversation!</p>
+                                <h5 class="fw-bold text-main">Start the conversation</h5>
+                                <p class="smallest text-center px-4">Discussion is protected by our secure escrow system.</p>
                             </div>
                         }
                     </div>
 
                     <!-- Input Area -->
-                    <div class="p-3 bg-card border-top shadow-lg-top">
-                        <form id="chat-form" class="max-width-1000 mx-auto">
-                            <div class="input-group input-group-lg bg-light-custom rounded-pill p-1 border border-light-subtle">
-                                <input type="text" id="chat-input" class="form-control border-0 bg-transparent px-4 py-2 shadow-none text-main fs-6" 
+                    <div class="p-4 bg-card border-top shadow-lg-top messenger-input-area">
+                        <form id="chat-form" class="max-width-900 mx-auto">
+                            <div class="input-group input-group-lg bg-light-custom rounded-pill p-1 border border-light-subtle shadow-sm transition-all focus-within-primary">
+                                <input type="text" id="chat-input" class="form-control border-0 bg-transparent px-4 py-3 shadow-none text-main fs-6" 
                                        placeholder="Type a message..." required autocomplete="off" />
                                 <button type="submit" class="btn btn-primary rounded-circle d-flex align-items-center justify-content-center shadow-sm hover-lift" 
-                                        style="width: 44px; height: 44px; margin-left: 5px;">
+                                        style="width: 52px; height: 52px; margin-left: 5px;">
                                     <i class="bi bi-send-fill"></i>
                                 </button>
                             </div>
@@ -174,10 +190,12 @@
                 }
                 else
                 {
-                    <div class="h-100 d-flex flex-column align-items-center justify-content-center text-muted">
-                        <i class="bi bi-chat-square-text text-primary opacity-25 display-1 mb-3"></i>
-                        <h4 class="fw-bold">Select a conversation</h4>
-                        <p>Choose a chat from the sidebar to start messaging.</p>
+                    <div class="h-100 d-flex flex-column align-items-center justify-content-center text-muted p-5">
+                        <div class="bg-card shadow-lg rounded-circle d-flex align-items-center justify-content-center mb-4" style="width: 150px; height: 150px;">
+                            <i class="bi bi-chat-left-dots text-primary opacity-25 display-1"></i>
+                        </div>
+                        <h3 class="fw-bold text-main">Your Inbox</h3>
+                        <p class="max-width-400 text-center">Select a conversation from the left to start messaging with sellers or buyers.</p>
                     </div>
                 }
             </div>
@@ -186,53 +204,13 @@
 </div>
 
 <!-- Mobile Sidebar Offcanvas -->
-<div class="offcanvas offcanvas-start bg-card border-0" tabindex="-1" id="mobileSidebar" style="width: 300px;">
-    <div class="offcanvas-header border-bottom">
-        <h5 class="offcanvas-title fw-bold text-main"><i class="bi bi-chat-dots-fill text-primary me-2"></i>Messages</h5>
+<div class="offcanvas offcanvas-start bg-card border-0" tabindex="-1" id="mobileSidebar" style="width: 320px;">
+    <div class="offcanvas-header border-bottom p-4">
+        <h5 class="offcanvas-title fw-bold text-main mb-0"><i class="bi bi-chat-dots-fill text-primary me-2"></i>Messages</h5>
         <button type="button" class="btn-close shadow-none" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
-    <div class="offcanvas-body p-2 custom-scrollbar">
-        <!-- Exact copy of sidebar content, normally you'd use a Partial View -->
-        <a asp-controller="Chat" asp-action="Index" asp-route-global="true" class="text-decoration-none">
-            <div class="p-3 rounded-4 mb-2 transition-all @(activeChatType == "Global" ? "bg-primary-subtle border-primary" : "border-transparent") border">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="avatar-md bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 48px; height: 48px;">
-                        <i class="bi bi-globe-americas fs-4"></i>
-                    </div>
-                    <div class="overflow-hidden flex-grow-1">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <h6 class="fw-bold text-main mb-0 text-truncate">Global Chat</h6>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </a>
-
-        @if (sessions.Any(s => !s.IsGlobal))
-        {
-            <h6 class="text-uppercase text-muted smallest fw-bold letter-spacing-1 mt-4 mb-3 px-2">Private Conversations</h6>
-            @foreach (var session in sessions.Where(s => !s.IsGlobal))
-            {
-                bool isActive = activeChatType == "Private" && auctionId == session.AuctionId && otherUserId == session.OtherUserId;
-                <a asp-controller="Chat" asp-action="Index" asp-route-auctionId="@session.AuctionId" asp-route-targetUserId="@session.OtherUserId" class="text-decoration-none">
-                    <div class="p-3 rounded-4 mb-2 transition-all @(isActive ? "bg-primary-subtle border-primary" : "border-transparent") border">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="avatar-md bg-light-custom text-primary rounded-circle d-flex align-items-center justify-content-center border shadow-sm" style="width: 48px; height: 48px;">
-                                <i class="bi bi-person-fill fs-4"></i>
-                            </div>
-                            <div class="overflow-hidden flex-grow-1">
-                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <h6 class="fw-bold text-main mb-0 text-truncate">@session.OtherUserName</h6>
-                                </div>
-                                <div class="smallest text-muted text-truncate">
-                                    @session.AuctionTitle
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </a>
-            }
-        }
+    <div class="offcanvas-body p-2 custom-scrollbar" id="mobile-conversation-list">
+        <!-- Sidebar content will be mirrored here or handled via JS -->
     </div>
 </div>
 
@@ -245,15 +223,17 @@
 
     .chat-sidebar {
         z-index: 5;
+        background-color: var(--bg-card) !important;
     }
 
     .bg-messages-wrapper {
-        background-color: #f0f2f5;
-        background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%234361ee' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        background-color: #f8f9fa;
+        background-image: radial-gradient(rgba(var(--bs-primary-rgb), 0.05) 1px, transparent 1px);
+        background-size: 20px 24px;
     }
     [data-bs-theme="dark"] .bg-messages-wrapper {
         background-color: #0f172a;
-        background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        background-image: radial-gradient(rgba(255,255,255,0.02) 1px, transparent 1px);
     }
 
     .message-row {
@@ -273,30 +253,36 @@
 
     .sender-name {
         font-size: 0.75rem;
-        font-weight: 700;
+        font-weight: 800;
         color: var(--primary-color);
         margin-bottom: 4px;
-        margin-left: 12px;
+        margin-left: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 
     .chat-bubble {
-        padding: 10px 16px;
-        font-size: 0.95rem;
+        padding: 12px 20px;
+        font-size: 1rem;
         line-height: 1.5;
-        border-radius: 20px;
+        border-radius: 24px;
         word-wrap: break-word;
+        transition: transform 0.2s ease;
     }
+    .chat-bubble:hover { transform: scale(1.01); }
 
     .message-row.me .chat-bubble {
         background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
         color: white;
         border-bottom-right-radius: 4px;
+        box-shadow: 0 4px 15px rgba(var(--bs-primary-rgb), 0.2) !important;
     }
 
     .message-row.other .chat-bubble {
         background: white;
         color: #1e293b;
         border-bottom-left-radius: 4px;
+        border: 1px solid rgba(0,0,0,0.05);
     }
     [data-bs-theme="dark"] .message-row.other .chat-bubble {
         background: #1e293b;
@@ -307,18 +293,38 @@
     .message-time {
         font-size: 0.65rem;
         color: #94a3b8;
-        margin-top: 4px;
-        margin-left: 12px;
-        margin-right: 12px;
+        margin-top: 6px;
+        margin-left: 14px;
+        margin-right: 14px;
+        font-weight: 600;
+    }
+
+    .conversation-item {
+        border-width: 2px !important;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .conversation-item:hover {
+        background-color: var(--bg-light) !important;
+        transform: translateY(-2px);
+    }
+    .active-session {
+        background-color: rgba(var(--bs-primary-rgb), 0.08) !important;
     }
 
     .hover-light-custom:hover { background-color: rgba(var(--bs-primary-rgb), 0.05) !important; }
     .bg-primary-subtle { background-color: rgba(var(--bs-primary-rgb), 0.1) !important; }
     
-    .max-width-1000 { max-width: 1000px; }
-    .shadow-lg-top { box-shadow: 0 -5px 15px rgba(0,0,0,0.03); }
-    [data-bs-theme="dark"] .shadow-lg-top { box-shadow: 0 -5px 15px rgba(0,0,0,0.2); }
+    .max-width-900 { max-width: 900px; }
+    .max-width-400 { max-width: 400px; }
     
+    .shadow-lg-top { box-shadow: 0 -10px 30px -5px rgba(0,0,0,0.04); }
+    [data-bs-theme="dark"] .shadow-lg-top { box-shadow: 0 -10px 30px -5px rgba(0,0,0,0.3); }
+    
+    .focus-within-primary:focus-within {
+        border-color: var(--primary-color) !important;
+        box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.1) !important;
+    }
+
     .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
     @@keyframes fadeIn {
         from { opacity: 0; transform: translateY(10px); }
@@ -327,15 +333,18 @@
 
     .custom-scrollbar::-webkit-scrollbar { width: 6px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
-    [data-bs-theme="dark"] .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.05); border-radius: 10px; }
+    [data-bs-theme="dark"] .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); }
 
-    /* Fix navbar overlap */
     header .navbar { z-index: 1030 !important; }
     
     [data-bs-theme="dark"] .bg-card { background-color: #1e293b !important; border-color: rgba(255,255,255,0.05) !important;}
     [data-bs-theme="dark"] .border-bottom, [data-bs-theme="dark"] .border-end { border-color: rgba(255,255,255,0.05) !important; }
-    [data-bs-theme="dark"] .bg-light-custom { background-color: rgba(255,255,255,0.02) !important; }
+    [data-bs-theme="dark"] .bg-light-custom { background-color: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.05) !important; }
+    [data-bs-theme="dark"] .conversation-item:hover { background-color: rgba(255,255,255,0.05) !important; }
+    
+    .messenger-header { height: 80px; }
+    .messenger-input-area { background-color: var(--bg-card); }
 </style>
 
 @section Scripts {
@@ -346,10 +355,10 @@
             const chatForm = document.getElementById('chat-form');
             const chatInput = document.getElementById('chat-input');
             const noMessagesBox = document.getElementById('no-messages');
+            const conversationList = document.getElementById('conversation-list');
+            const privateContainer = document.getElementById('private-conversations-container');
 
             const activeChatType = '@activeChatType';
-            if (!activeChatType) return;
-
             const currentUserId = '@currentUserId';
             
             // For Private Chat
@@ -363,6 +372,12 @@
             };
             scrollToBottom();
 
+            // Sync Mobile Sidebar
+            const mobileSidebarBody = document.getElementById('mobile-conversation-list');
+            if(mobileSidebarBody && conversationList) {
+                mobileSidebarBody.innerHTML = conversationList.innerHTML;
+            }
+
             const connection = new signalR.HubConnectionBuilder()
                 .withUrl("/hubs/chat")
                 .withAutomaticReconnect()
@@ -370,7 +385,9 @@
 
             // Handle Private Messages
             connection.on("ReceivePrivateMessage", function (msg) {
-                if (activeChatType !== "Private" || msg.auctionId !== auctionId) return; // Ignore if not in this chat
+                updateSidebar(msg);
+
+                if (activeChatType !== "Private" || msg.auctionId !== auctionId) return; 
                 
                 if(noMessagesBox) noMessagesBox.remove();
                 appendMessage(msg);
@@ -378,16 +395,74 @@
 
             // Handle Global Messages
             connection.on("ReceiveGlobalMessage", function (msg) {
-                if (activeChatType !== "Global") return; // Ignore if not in global chat
+                updateSidebar(msg);
+
+                if (activeChatType !== "Global") return; 
                 
                 if(noMessagesBox) noMessagesBox.remove();
                 appendMessage(msg);
             });
 
+            function updateSidebar(msg) {
+                if (msg.isGlobal) {
+                    const globalLink = document.querySelector('.conversation-link[data-global="true"]');
+                    if (globalLink) {
+                        globalLink.querySelector('.last-msg').innerText = msg.content;
+                        conversationList.prepend(globalLink);
+                    }
+                    return;
+                }
+
+                const otherPartyId = msg.senderId === currentUserId ? msg.receiverId : msg.senderId;
+                const existingLink = document.querySelector(`.conversation-link[data-auction-id="${msg.auctionId}"][data-other-user-id="${otherPartyId}"]`);
+
+                if (existingLink) {
+                    existingLink.querySelector('.last-msg').innerText = msg.content;
+                    existingLink.querySelector('.last-msg-time').innerText = "Just now";
+                    privateContainer.prepend(existingLink);
+                } else {
+                    // Create new sidebar entry dynamically
+                    const otherName = msg.senderId === currentUserId ? 'User' : msg.senderName;
+                    const avatarHtml = msg.senderAvatar 
+                        ? `<img src="${msg.senderAvatar}" class="w-100 h-100 object-fit-cover" />` 
+                        : `<i class="bi bi-person-fill fs-4"></i>`;
+
+                    const newEntry = `
+                        <a href="/Chat/Index?auctionId=${msg.auctionId}&targetUserId=${otherPartyId}" 
+                           class="text-decoration-none conversation-link" 
+                           data-auction-id="${msg.auctionId}" 
+                           data-other-user-id="${otherPartyId}">
+                            <div class="p-3 rounded-4 mb-2 transition-all hover-light-custom border-transparent border conversation-item">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="avatar-md bg-light-custom text-primary rounded-circle d-flex align-items-center justify-content-center border shadow-sm" style="width: 52px; height: 52px; min-width: 52px; overflow: hidden;">
+                                        ${avatarHtml}
+                                    </div>
+                                    <div class="overflow-hidden flex-grow-1">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <h6 class="fw-bold text-main mb-0 text-truncate">${otherName}</h6>
+                                            <small class="text-muted last-msg-time" style="font-size: 0.65rem;">Just now</small>
+                                        </div>
+                                        <div class="smallest text-muted text-truncate last-msg">
+                                            ${msg.content}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    `;
+                    
+                    if (!privateContainer.querySelector('.session-header')) {
+                        privateContainer.insertAdjacentHTML('afterbegin', '<h6 class="text-uppercase text-muted smallest fw-bold letter-spacing-2 mt-4 mb-3 px-3 session-header">Private Chats</h6>');
+                    }
+                    
+                    privateContainer.querySelector('.session-header').insertAdjacentHTML('afterend', newEntry);
+                }
+            }
+
             function appendMessage(msg) {
                 const isMe = msg.senderId === currentUserId;
                 const d = new Date(msg.sentOn);
-                const timeStr = d.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute:'2-digit' });
+                const timeStr = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
                 const rowClass = isMe ? 'me' : 'other';
                 
                 const html = `

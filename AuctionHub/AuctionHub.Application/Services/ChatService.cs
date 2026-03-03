@@ -25,6 +25,7 @@ public class ChatService : IChatService
                 Id = m.Id,
                 SenderId = m.SenderId,
                 SenderName = m.Sender.DisplayName ?? m.Sender.UserName ?? "Unknown",
+                SenderAvatar = m.Sender.ProfilePictureUrl,
                 Content = m.Content,
                 SentOn = m.SentOn,
                 IsGlobal = true
@@ -113,6 +114,7 @@ public class ChatService : IChatService
                 Id = m.Id,
                 SenderId = m.SenderId,
                 SenderName = m.Sender.DisplayName ?? m.Sender.UserName ?? "Unknown",
+                SenderAvatar = m.Sender.ProfilePictureUrl,
                 ReceiverId = m.ReceiverId,
                 ReceiverName = m.Receiver!.DisplayName ?? m.Receiver.UserName ?? "Unknown",
                 AuctionId = m.AuctionId,
@@ -162,6 +164,7 @@ public class ChatService : IChatService
             Id = msg.Id,
             SenderId = msg.SenderId,
             SenderName = sender?.DisplayName ?? sender?.UserName ?? "Unknown",
+            SenderAvatar = sender?.ProfilePictureUrl,
             ReceiverId = msg.ReceiverId,
             ReceiverName = receiver?.DisplayName ?? receiver?.UserName,
             AuctionId = msg.AuctionId,

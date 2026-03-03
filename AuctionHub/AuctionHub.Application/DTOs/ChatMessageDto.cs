@@ -8,6 +8,7 @@ public class ChatMessageDto
     
     public string SenderId { get; set; } = null!;
     public string SenderName { get; set; } = null!;
+    public string? SenderAvatar { get; set; }
     
     public string? ReceiverId { get; set; }
     public string? ReceiverName { get; set; }

@@ -70,12 +70,15 @@ public class ChatHub : Hub
         // Save to Database
         var savedMessage = await _chatService.SaveMessageAsync(senderId, message, isGlobal: false, receiverId, auctionId);
 
-        // Send to the specific private group
-        await Clients.Group($"PrivateChat_Auction_{auctionId}").SendAsync("ReceivePrivateMessage", savedMessage);
-
         // Notify the receiver
         var sender = await _userManager.FindByIdAsync(senderId);
         var senderName = sender?.DisplayName ?? "Someone";
+        
+        // Add avatar to the DTO for the receiver
+        savedMessage.SenderAvatar = sender?.ProfilePictureUrl;
+
+        // Send to the specific private group
+        await Clients.Group($"PrivateChat_Auction_{auctionId}").SendAsync("ReceivePrivateMessage", savedMessage);
         
         await _notificationService.NotifyUserAsync(receiverId, 
             $"✉️ New message from {senderName}: \"{(message.Length > 50 ? message.Substring(0, 47) + "..." : message)}\"", 
