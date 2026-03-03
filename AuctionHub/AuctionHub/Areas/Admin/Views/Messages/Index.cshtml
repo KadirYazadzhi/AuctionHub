@@ -36,10 +36,18 @@
                             <td class="text-muted small">@m.SentOn.ToLocalTime().ToString("g")</td>
                             <td class="text-end pe-4">
                                 <div class="d-flex justify-content-end gap-2">
+                                    <button type="button" class="btn btn-sm btn-primary rounded-pill px-3" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#replyModal" 
+                                            data-message-id="@m.Id" 
+                                            data-user-name="@m.Name"
+                                            data-original-msg="@m.Message">
+                                        <i class="bi bi-reply-fill me-1"></i>Reply
+                                    </button>
                                     @if (!m.IsRead)
                                     {
                                         <form asp-action="MarkRead" asp-route-id="@m.Id" method="post">
-                                            <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill px-3">Mark Read</button>
+                                            <button type="submit" class="btn btn-sm btn-outline-secondary rounded-pill px-3">Read</button>
                                         </form>
                                     }
                                     <form asp-action="Delete" asp-route-id="@m.Id" method="post" onsubmit="return confirm('Delete message?');">
@@ -60,3 +68,54 @@
         </div>
     </div>
 </div>
+
+<!-- Reply Modal -->
+<div class="modal fade" id="replyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 p-4 pb-0">
+                <h5 class="fw-bold mb-0">Reply to <span id="replyToName" class="text-primary"></span></h5>
+                <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form asp-action="Reply" method="post">
+                <div class="modal-body p-4">
+                    <input type="hidden" name="id" id="replyMessageId" />
+                    
+                    <div class="bg-light p-3 rounded-3 mb-3 small border-start border-4 border-primary">
+                        <div class="fw-bold mb-1">User Message:</div>
+                        <div id="originalMessageDisplay" class="text-muted italic"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label small fw-bold text-uppercase text-muted">Your Response</label>
+                        <textarea name="replyContent" class="form-control rounded-3 border-light shadow-none" rows="5" placeholder="Write your answer here..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-4 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4 fw-bold" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
+                        Send Reply <i class="bi bi-send-fill ms-2"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const replyModal = document.getElementById('replyModal');
+        if (replyModal) {
+            replyModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const messageId = button.getAttribute('data-message-id');
+                const userName = button.getAttribute('data-user-name');
+                const originalMsg = button.getAttribute('data-original-msg');
+
+                document.getElementById('replyMessageId').value = messageId;
+                document.getElementById('replyToName').textContent = userName;
+                document.getElementById('originalMessageDisplay').textContent = '"' + originalMsg + '"';
+            });
+        }
+    </script>
+}

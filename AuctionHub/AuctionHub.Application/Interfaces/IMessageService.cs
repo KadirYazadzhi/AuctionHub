@@ -8,4 +8,5 @@ public interface IMessageService
     Task CreateAsync(ContactMessageDto model);
     Task MarkReadAsync(int id);
     Task DeleteAsync(int id);
+    Task<(bool Success, string Message)> ReplyAsync(int id, string replyContent);
 }

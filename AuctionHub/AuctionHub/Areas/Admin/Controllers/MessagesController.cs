@@ -34,4 +34,26 @@ public class MessagesController : AdminBaseController
         TempData["Success"] = "Message deleted.";
         return RedirectToAction(nameof(Index));
     }
+
+    [HttpPost]
+    public async Task<IActionResult> Reply(int id, string replyContent)
+    {
+        if (string.IsNullOrWhiteSpace(replyContent))
+        {
+            TempData["Error"] = "Reply content cannot be empty.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var result = await _messageService.ReplyAsync(id, replyContent);
+        if (result.Success)
+        {
+            TempData["Success"] = result.Message;
+        }
+        else
+        {
+            TempData["Error"] = result.Message;
+        }
+
+        return RedirectToAction(nameof(Index));
+    }
 }
