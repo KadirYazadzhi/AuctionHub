@@ -35,7 +35,11 @@ public class AuctionsController : AdminBaseController
                 EndTime = a.EndTime,
                 Category = a.Category.Name,
                 IsActive = a.IsActive,
-                IsSuspended = a.IsSuspended
+                IsPromoted = a.IsPromoted,
+                IsSuspended = a.IsSuspended,
+                SellerName = a.Seller.UserName ?? a.Seller.Email ?? "Unknown",
+                SellerId = a.SellerId,
+                WinnerId = a.Bids.OrderByDescending(b => b.Amount).Select(b => b.BidderId).FirstOrDefault()
             })
             .ToListAsync();
 

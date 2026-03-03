@@ -67,6 +67,7 @@ public class AuctionsController : Controller
             IsPromoted = a.IsPromoted,
             IsSuspended = a.IsSuspended,
             IsWinning = a.IsWinning,
+            WinnerId = a.WinnerId,
             SellerName = a.SellerName,
             SellerId = a.SellerId,
             IsTopSeller = a.IsTopSeller
@@ -111,9 +112,12 @@ public class AuctionsController : Controller
             SellerReviewCount = auction.SellerReviewCount,
             IsActive = auction.IsActive,
             IsDelivered = auction.IsDelivered,
+            IsSettled = auction.IsSettled,
+            IsDisputed = auction.IsDisputed,
             IsSuspended = auction.IsSuspended,
             IsWatched = auction.IsWatched,
             IsWinning = auction.IsWinning,
+            WinnerId = auction.WinnerId,
             CurrentAutoBidLimit = auction.CurrentAutoBidLimit,
             Bids = auction.Bids
                 .Select(b => new BidViewModel
@@ -362,7 +366,8 @@ public class AuctionsController : Controller
             SellerName = a.SellerName,
             SellerId = a.SellerId,
             IsTopSeller = a.IsTopSeller,
-            IsWinning = a.IsWinning
+            IsWinning = a.IsWinning,
+            WinnerId = a.WinnerId
         }).ToList();
 
         var paginatedViewModel = new PaginatedList<AuctionListViewModel>(
@@ -463,7 +468,8 @@ public class AuctionsController : Controller
             SellerName = a.SellerName,
             SellerId = a.SellerId,
             IsTopSeller = a.IsTopSeller,
-            IsWinning = a.IsWinning
+            IsWinning = a.IsWinning,
+            WinnerId = a.WinnerId
         }).ToList();
 
         var paginatedViewModel = new PaginatedList<AuctionListViewModel>(
@@ -785,7 +791,8 @@ public class AuctionsController : Controller
             SellerName = a.SellerName,
             SellerId = a.SellerId,
             IsTopSeller = a.IsTopSeller,
-            IsWinning = a.IsWinning
+            IsWinning = a.IsWinning,
+            WinnerId = a.WinnerId
         }).ToList();
 
         var paginatedViewModel = new PaginatedList<AuctionListViewModel>(
