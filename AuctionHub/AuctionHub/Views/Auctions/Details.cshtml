@@ -201,14 +201,14 @@
 
                             if (Model.SellerId == currentUserId)
                             {
-                                <div class="alert alert-primary bg-primary-subtle border-0 rounded-4 p-4 text-center">
+                                <div class="alert alert-primary alert-permanent bg-primary-subtle border-0 rounded-4 p-4 text-center">
                                     <i class="bi bi-info-circle-fill display-6 mb-2 d-block"></i>
                                     <p class="mb-0 fw-semibold">You are the seller of this item.</p>
                                 </div>
                             }
                             else if (isAdmin)
                             {
-                                <div class="alert alert-warning bg-warning-subtle border-0 rounded-4 p-4 text-center shadow-sm">
+                                <div class="alert alert-warning alert-permanent bg-warning-subtle border-0 rounded-4 p-4 text-center shadow-sm">
                                     <i class="bi bi-shield-lock-fill display-6 mb-2 d-block text-warning"></i>
                                     <p class="mb-0 fw-bold">Administrative Access</p>
                                     <small class="text-muted">Bidding is disabled for administrators to ensure marketplace fairness.</small>
@@ -301,7 +301,7 @@
                         }
                         else
                         {
-                            <div class="alert alert-secondary border-0 rounded-4 p-4 text-center">
+                            <div class="alert alert-secondary alert-permanent border-0 rounded-4 p-4 text-center">
                                 <i class="bi bi-lock-fill fs-3 mb-2 d-block"></i>
                                 <p class="mb-0 fw-bold">This auction has concluded.</p>
                                 
