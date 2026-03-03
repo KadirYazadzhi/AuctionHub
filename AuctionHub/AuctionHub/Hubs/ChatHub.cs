@@ -1,5 +1,7 @@
 using AuctionHub.Application.Interfaces;
+using AuctionHub.Domain.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
 
@@ -9,10 +11,14 @@ namespace AuctionHub.Hubs;
 public class ChatHub : Hub
 {
     private readonly IChatService _chatService;
+    private readonly INotificationService _notificationService;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public ChatHub(IChatService chatService)
+    public ChatHub(IChatService chatService, INotificationService notificationService, UserManager<ApplicationUser> userManager)
     {
         _chatService = chatService;
+        _notificationService = notificationService;
+        _userManager = userManager;
     }
 
     // --- Global Chat ---
@@ -66,5 +72,13 @@ public class ChatHub : Hub
 
         // Send to the specific private group
         await Clients.Group($"PrivateChat_Auction_{auctionId}").SendAsync("ReceivePrivateMessage", savedMessage);
+
+        // Notify the receiver
+        var sender = await _userManager.FindByIdAsync(senderId);
+        var senderName = sender?.DisplayName ?? "Someone";
+        
+        await _notificationService.NotifyUserAsync(receiverId, 
+            $"✉️ New message from {senderName}: \"{(message.Length > 50 ? message.Substring(0, 47) + "..." : message)}\"", 
+            $"/Auctions/PrivateChat/{auctionId}?targetUserId={senderId}");
     }
 }

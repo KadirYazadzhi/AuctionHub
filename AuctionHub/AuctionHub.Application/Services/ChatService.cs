@@ -106,6 +106,13 @@ public class ChatService : IChatService
 
     public async Task<bool> CanAccessPrivateChatAsync(int auctionId, string userId)
     {
+        // 1. Check if user is Administrator (Admins have "Master Key" access)
+        var isAdmin = await _context.UserRoles
+            .Join(_context.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new { ur, r })
+            .AnyAsync(x => x.ur.UserId == userId && x.r.Name == "Administrator");
+
+        if (isAdmin) return true;
+
         var auction = await _context.Auctions
             .Include(a => a.Bids)
             .FirstOrDefaultAsync(a => a.Id == auctionId);

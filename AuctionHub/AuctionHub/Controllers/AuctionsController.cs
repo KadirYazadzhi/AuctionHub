@@ -164,7 +164,7 @@ public class AuctionsController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> PrivateChat(int id)
+    public async Task<IActionResult> PrivateChat(int id, string? targetUserId = null)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(currentUserId)) return Challenge();
@@ -181,10 +181,27 @@ public class AuctionsController : Controller
         if (auction == null) return NotFound();
 
         // Determine the other party
-        string otherUserId = currentUserId == auction.SellerId ? (auction.WinnerId ?? "") : auction.SellerId;
+        string otherUserId;
+        if (!string.IsNullOrEmpty(targetUserId))
+        {
+            otherUserId = targetUserId;
+        }
+        else
+        {
+            otherUserId = currentUserId == auction.SellerId ? (auction.WinnerId ?? "") : auction.SellerId;
+        }
+        
+        if (string.IsNullOrEmpty(otherUserId))
+        {
+            TempData["Error"] = "The other party is not available for chat yet.";
+            return RedirectToAction(nameof(Details), new { id = id });
+        }
         
         var messages = await _chatService.GetPrivateMessagesAsync(id, currentUserId, otherUserId);
 
+        var otherUser = await _userManager.FindByIdAsync(otherUserId);
+        ViewBag.OtherUserName = otherUser?.DisplayName ?? otherUser?.UserName ?? "User";
+        
         ViewBag.AuctionId = id;
         ViewBag.AuctionTitle = auction.Title;
         ViewBag.OtherUserId = otherUserId;

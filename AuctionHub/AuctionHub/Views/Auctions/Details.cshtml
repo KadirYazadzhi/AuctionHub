@@ -119,15 +119,37 @@
                                 <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#reportModal">
                                     <i class="bi bi-flag-fill me-1"></i> Report
                                 </button>
-                                <a asp-action="PrivateChat" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm rounded-pill px-3">
-                                    <i class="bi bi-chat-dots-fill me-1"></i> Contact Seller
-                                </a>
+                                
+                                @if (User.IsInRole("Administrator"))
+                                {
+                                    <a asp-action="PrivateChat" asp-route-id="@Model.Id" asp-route-targetUserId="@Model.SellerId" class="btn btn-outline-info btn-sm rounded-pill px-3">
+                                        <i class="bi bi-person-badge me-1"></i> Contact Seller (Admin)
+                                    </a>
+                                    @if (!string.IsNullOrEmpty(Model.WinnerId))
+                                    {
+                                        <a asp-action="PrivateChat" asp-route-id="@Model.Id" asp-route-targetUserId="@Model.WinnerId" class="btn btn-outline-info btn-sm rounded-pill px-3">
+                                            <i class="bi bi-trophy me-1"></i> Contact Winner (Admin)
+                                        </a>
+                                    }
+                                }
+                                else
+                                {
+                                    <a asp-action="PrivateChat" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                                        <i class="bi bi-chat-dots-fill me-1"></i> Contact Seller
+                                    </a>
+                                }
                             </div>
                         }
 
                         @if (User.Identity?.IsAuthenticated == true && Model.SellerId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
                         {
                             <div class="ms-auto d-flex gap-2">
+                                @if (!Model.IsActive && !string.IsNullOrEmpty(Model.WinnerId))
+                                {
+                                    <a asp-action="PrivateChat" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                                        <i class="bi bi-chat-dots-fill me-1"></i> Contact Winner
+                                    </a>
+                                }
                                 <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-warning rounded-pill">Edit</a>
                                 @if (!Model.Bids.Any() && Model.IsActive)
                                 {
