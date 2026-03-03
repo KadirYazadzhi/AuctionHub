@@ -16,4 +16,5 @@ public class AuctionDto
     public string SellerName { get; set; } = null!;
     public bool IsTopSeller { get; set; }
     public bool? IsWinning { get; set; }
+    public string? WinnerId { get; set; }
 }
