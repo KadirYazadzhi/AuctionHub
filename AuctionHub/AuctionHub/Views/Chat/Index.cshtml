@@ -311,13 +311,17 @@
         box-shadow: 0 20px 45px rgba(0,0,0,0.12) !important;
         border-color: var(--primary-color) !important;
     }
-    .input-pill-wrapper .form-control {
+    .input-pill-wrapper .form-control,
+    .input-pill-wrapper .form-control:focus,
+    .input-pill-wrapper .form-control:active {
         background: transparent !important;
+        background-color: transparent !important;
         border: none !important;
         box-shadow: none !important;
-        padding: 12px 30px;
-        color: var(--text-main);
-        font-size: 1.05rem;
+        padding: 12px 30px !important;
+        color: var(--text-main) !important;
+        font-size: 1.05rem !important;
+        outline: none !important;
     }
     .send-btn {
         width: 52px; height: 52px; border-radius: 50% !important;
