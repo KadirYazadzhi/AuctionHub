@@ -167,53 +167,6 @@ public class AuctionsController : Controller
         return RedirectToAction(nameof(Details), new { id = auctionId });
     }
 
-    [HttpGet]
-    public async Task<IActionResult> PrivateChat(int id, string? targetUserId = null)
-    {
-        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(currentUserId)) return Challenge();
-
-        // Ensure user can access the chat
-        bool canAccess = await _chatService.CanAccessPrivateChatAsync(id, currentUserId);
-        if (!canAccess)
-        {
-            TempData["Error"] = "You do not have permission to access this chat.";
-            return RedirectToAction(nameof(Details), new { id = id });
-        }
-
-        var auction = await _auctionService.GetAuctionDetailsAsync(id, currentUserId);
-        if (auction == null) return NotFound();
-
-        // Determine the other party
-        string otherUserId;
-        if (!string.IsNullOrEmpty(targetUserId))
-        {
-            otherUserId = targetUserId;
-        }
-        else
-        {
-            otherUserId = currentUserId == auction.SellerId ? (auction.WinnerId ?? "") : auction.SellerId;
-        }
-        
-        if (string.IsNullOrEmpty(otherUserId))
-        {
-            TempData["Error"] = "The other party is not available for chat yet.";
-            return RedirectToAction(nameof(Details), new { id = id });
-        }
-        
-        var messages = await _chatService.GetPrivateMessagesAsync(id, currentUserId, otherUserId);
-
-        var otherUser = await _userManager.FindByIdAsync(otherUserId);
-        ViewBag.OtherUserName = otherUser?.DisplayName ?? otherUser?.UserName ?? "User";
-        
-        ViewBag.AuctionId = id;
-        ViewBag.AuctionTitle = auction.Title;
-        ViewBag.OtherUserId = otherUserId;
-        ViewBag.CurrentUserId = currentUserId;
-
-        return View(messages);
-    }
-
     [HttpPost]
     public async Task<IActionResult> ConfirmDelivery(int auctionId)
     {

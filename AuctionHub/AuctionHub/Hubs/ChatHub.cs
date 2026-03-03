@@ -79,6 +79,6 @@ public class ChatHub : Hub
         
         await _notificationService.NotifyUserAsync(receiverId, 
             $"✉️ New message from {senderName}: \"{(message.Length > 50 ? message.Substring(0, 47) + "..." : message)}\"", 
-            $"/Auctions/PrivateChat/{auctionId}?targetUserId={senderId}");
+            $"/Chat/Index?auctionId={auctionId}&targetUserId={senderId}");
     }
 }

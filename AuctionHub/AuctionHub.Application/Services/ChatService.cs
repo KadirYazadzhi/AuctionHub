@@ -33,6 +33,73 @@ public class ChatService : IChatService
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<ChatSessionDto>> GetUserChatSessionsAsync(string userId)
+    {
+        var sessions = new List<ChatSessionDto>();
+
+        // 1. Global Chat Session
+        var lastGlobalMessage = await _context.ChatMessages
+            .Where(m => m.IsGlobal)
+            .OrderByDescending(m => m.SentOn)
+            .FirstOrDefaultAsync();
+
+        if (lastGlobalMessage != null)
+        {
+            sessions.Add(new ChatSessionDto
+            {
+                IsGlobal = true,
+                LastMessage = lastGlobalMessage.Content,
+                LastMessageTime = lastGlobalMessage.SentOn,
+                OtherUserName = "Global Chat"
+            });
+        }
+        else
+        {
+            sessions.Add(new ChatSessionDto
+            {
+                IsGlobal = true,
+                LastMessage = "No messages yet.",
+                LastMessageTime = DateTime.MinValue,
+                OtherUserName = "Global Chat"
+            });
+        }
+
+        // 2. Private Chat Sessions
+        var privateMessages = await _context.ChatMessages
+            .Include(m => m.Auction)
+            .Include(m => m.Sender)
+            .Include(m => m.Receiver)
+            .Where(m => !m.IsGlobal && (m.SenderId == userId || m.ReceiverId == userId))
+            .ToListAsync();
+
+        var groupedPrivateSessions = privateMessages
+            .GroupBy(m => new 
+            { 
+                m.AuctionId, 
+                OtherUserId = m.SenderId == userId ? m.ReceiverId : m.SenderId 
+            })
+            .Select(g => 
+            {
+                var lastMsg = g.OrderByDescending(m => m.SentOn).First();
+                var otherUser = lastMsg.SenderId == userId ? lastMsg.Receiver : lastMsg.Sender;
+                return new ChatSessionDto
+                {
+                    IsGlobal = false,
+                    AuctionId = g.Key.AuctionId,
+                    AuctionTitle = lastMsg.Auction?.Title ?? "Unknown Auction",
+                    OtherUserId = g.Key.OtherUserId,
+                    OtherUserName = otherUser?.DisplayName ?? otherUser?.UserName ?? "Unknown User",
+                    OtherUserAvatar = otherUser?.ProfilePictureUrl,
+                    LastMessage = lastMsg.Content,
+                    LastMessageTime = lastMsg.SentOn
+                };
+            });
+
+        sessions.AddRange(groupedPrivateSessions);
+
+        return sessions.OrderByDescending(s => s.LastMessageTime).ToList();
+    }
+
     public async Task<IEnumerable<ChatMessageDto>> GetPrivateMessagesAsync(int auctionId, string userId1, string userId2)
     {
         return await _context.ChatMessages

@@ -119,46 +119,24 @@
                                 <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#reportModal">
                                     <i class="bi bi-flag-fill me-1"></i> Report
                                 </button>
-                                
-                                @if (User.IsInRole("Administrator"))
-                                {
-                                    <a asp-action="PrivateChat" asp-route-id="@Model.Id" asp-route-targetUserId="@Model.SellerId" class="btn btn-outline-info btn-sm rounded-pill px-3">
-                                        <i class="bi bi-person-badge me-1"></i> Contact Seller (Admin)
-                                    </a>
-                                    @if (!string.IsNullOrEmpty(Model.WinnerId))
-                                    {
-                                        <a asp-action="PrivateChat" asp-route-id="@Model.Id" asp-route-targetUserId="@Model.WinnerId" class="btn btn-outline-info btn-sm rounded-pill px-3">
-                                            <i class="bi bi-trophy me-1"></i> Contact Winner (Admin)
-                                        </a>
-                                    }
-                                }
-                                else
-                                {
-                                    <a asp-action="PrivateChat" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm rounded-pill px-3">
-                                        <i class="bi bi-chat-dots-fill me-1"></i> Contact Seller
-                                    </a>
-                                }
+                                <a asp-controller="Chat" asp-action="Index" asp-route-auctionId="@Model.Id" asp-route-targetUserId="@Model.SellerId" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                                    <i class="bi bi-chat-dots-fill me-1"></i> Message
+                                </a>
                             </div>
                         }
 
                         @if (User.Identity?.IsAuthenticated == true && Model.SellerId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
                         {
                             <div class="ms-auto d-flex gap-2">
-                                @if (!Model.IsActive && !string.IsNullOrEmpty(Model.WinnerId))
-                                {
-                                    <a asp-action="PrivateChat" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm rounded-pill px-3">
-                                        <i class="bi bi-chat-dots-fill me-1"></i> Contact Winner
-                                    </a>
-                                }
-                                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-warning rounded-pill">Edit</a>
+                                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-warning rounded-pill px-3">Edit</a>
                                 @if (!Model.Bids.Any() && Model.IsActive)
                                 {
                                     <form asp-action="Cancel" asp-route-id="@Model.Id" method="post" onsubmit="return confirm('Are you sure you want to cancel this auction?');">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">Cancel</button>
+                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3">Cancel</button>
                                     </form>
                                 }
                                 <form asp-action="Delete" asp-route-id="@Model.Id" method="post" onsubmit="return confirm('Are you sure?');">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">Delete</button>
+                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3">Delete</button>
                                 </form>
                             </div>
                         }
@@ -363,7 +341,7 @@
                                             </div>
                                         }
                                         
-                                        <a asp-action="PrivateChat" asp-route-id="@Model.Id" class="btn btn-primary rounded-pill px-4 py-2 shadow-sm fw-bold hover-lift">
+                                        <a asp-controller="Chat" asp-action="Index" asp-route-auctionId="@Model.Id" class="btn btn-primary rounded-pill px-4 py-2 shadow-sm fw-bold hover-lift">
                                             <i class="bi bi-chat-lock-fill me-2"></i> Open Secure Chat
                                         </a>
                                         <p class="small text-muted mt-2 mb-0">Discuss shipping & payment details securely.</p>
