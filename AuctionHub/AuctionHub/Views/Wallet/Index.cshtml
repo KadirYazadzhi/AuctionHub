@@ -148,32 +148,34 @@
     }
 </style>
 
-<!-- Modal -->
-<div class="modal fade" id="addFundsModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg rounded-5 overflow-hidden">
-            <div class="modal-header border-0 bg-primary text-white p-4">
-                <h5 class="modal-title fw-bold">Add Funds to Wallet</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-4 p-lg-5">
-                <form asp-action="AddFunds" method="post">
-                    <div class="text-center mb-4">
-                        <i class="bi bi-cash-coin display-4 text-primary opacity-25 dark-mode-light-icon"></i>
-                        <p class="text-muted mt-2">Enter the amount you wish to add to your balance.</p>
-                    </div>
-                    <div class="mb-4">
-                        <label class="form-label text-muted small text-uppercase fw-bold">Deposit Amount</label>
-                        <div class="input-group input-group-lg">
-                            <span class="input-group-text border-end-0 bg-light text-muted rounded-start-pill ps-3">€</span>
-                            <input type="number" name="amount" class="form-control border-start-0 bg-light rounded-end-pill" placeholder="0.00" step="0.01" min="0.01" required autofocus>
+@section Modals {
+    <!-- Modal -->
+    <div class="modal fade" id="addFundsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-5 overflow-hidden">
+                <div class="modal-header border-0 bg-primary text-white p-4">
+                    <h5 class="modal-title fw-bold">Add Funds to Wallet</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 p-lg-5">
+                    <form asp-action="AddFunds" method="post">
+                        <div class="text-center mb-4">
+                            <i class="bi bi-cash-coin display-4 text-primary opacity-25 dark-mode-light-icon"></i>
+                            <p class="text-muted mt-2">Enter the amount you wish to add to your balance.</p>
                         </div>
-                    </div>
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary btn-lg rounded-pill shadow-sm">Confirm Deposit</button>
-                    </div>
-                </form>
+                        <div class="mb-4">
+                            <label class="form-label text-muted small text-uppercase fw-bold">Deposit Amount</label>
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text border-end-0 bg-light text-muted rounded-start-pill ps-3">€</span>
+                                <input type="number" name="amount" class="form-control border-start-0 bg-light rounded-end-pill" placeholder="0.00" step="0.01" min="0.01" required autofocus>
+                            </div>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg rounded-pill shadow-sm">Confirm Deposit</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
-</div>
+}

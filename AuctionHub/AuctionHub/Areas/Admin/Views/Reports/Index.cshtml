@@ -80,48 +80,50 @@
     </div>
 </div>
 
-@foreach (var report in Model)
-{
-    <!-- Resolve Modal -->
-    <div class="modal fade" id="resolveModal-@report.Id" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg rounded-4">
-                <div class="modal-header border-0 p-4 pb-0">
-                    <h5 class="modal-title fw-bold">Report Details</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <div class="mb-4">
-                        <small class="text-muted text-uppercase fw-bold smallest d-block mb-1">Reason</small>
-                        <p class="fw-bold text-dark">@report.Reason</p>
+@section Modals {
+    @foreach (var report in Model)
+    {
+        <!-- Resolve Modal -->
+        <div class="modal fade" id="resolveModal-@report.Id" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow-lg rounded-4">
+                    <div class="modal-header border-0 p-4 pb-0">
+                        <h5 class="modal-title fw-bold">Report Details</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="mb-4">
-                        <small class="text-muted text-uppercase fw-bold smallest d-block mb-1">Full Details</small>
-                        <div class="p-3 bg-light rounded-4 small">@report.Details</div>
-                    </div>
-                    
-                    @if (report.IsResolved)
-                    {
-                        <div class="alert alert-success border-0 rounded-4">
-                            <h6 class="fw-bold mb-1">Resolution Notes:</h6>
-                            <p class="mb-0 small">@report.AdminNotes</p>
+                    <div class="modal-body p-4">
+                        <div class="mb-4">
+                            <small class="text-muted text-uppercase fw-bold smallest d-block mb-1">Reason</small>
+                            <p class="fw-bold text-dark">@report.Reason</p>
                         </div>
-                    }
-                    else
-                    {
-                        <form asp-action="Resolve" method="post">
-                            <input type="hidden" name="reportId" value="@report.Id" />
-                            <div class="mb-3">
-                                <label class="form-label small text-muted fw-bold">ADMIN NOTES</label>
-                                <textarea name="adminNotes" class="form-control rounded-4 border-light bg-light p-3" rows="3" placeholder="Action taken..."></textarea>
+                        <div class="mb-4">
+                            <small class="text-muted text-uppercase fw-bold smallest d-block mb-1">Full Details</small>
+                            <div class="p-3 bg-light rounded-4 small">@report.Details</div>
+                        </div>
+                        
+                        @if (report.IsResolved)
+                        {
+                            <div class="alert alert-success border-0 rounded-4">
+                                <h6 class="fw-bold mb-1">Resolution Notes:</h6>
+                                <p class="mb-0 small">@report.AdminNotes</p>
                             </div>
-                            <button type="submit" class="btn btn-primary w-100 rounded-pill py-3 fw-bold shadow-sm">Mark as Resolved</button>
-                        </form>
-                    }
+                        }
+                        else
+                        {
+                            <form asp-action="Resolve" method="post">
+                                <input type="hidden" name="reportId" value="@report.Id" />
+                                <div class="mb-3">
+                                    <label class="form-label small text-muted fw-bold">ADMIN NOTES</label>
+                                    <textarea name="adminNotes" class="form-control rounded-4 border-light bg-light p-3" rows="3" placeholder="Action taken..."></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100 rounded-pill py-3 fw-bold shadow-sm">Mark as Resolved</button>
+                            </form>
+                        }
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    }
 }
 
 <style>

@@ -122,28 +122,30 @@
     }
 </style>
 
-<!-- Modal - PLACED OUTSIDE THE ANIMATED DIV TO FIX UI BUG -->
-<div class="modal fade" id="balanceModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 rounded-5 shadow-lg">
-            <div class="modal-header border-0 p-4">
-                <h5 class="modal-title fw-bold">Adjust User Balance</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-4 pt-0">
-                <form asp-action="UpdateBalance" method="post">
-                    <input type="hidden" name="userId" value="@Model.Id" />
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-muted">Amount (use negative to deduct)</label>
-                        <input type="number" name="amount" class="form-control rounded-pill" step="0.01" required />
-                    </div>
-                    <div class="mb-4">
-                        <label class="form-label small fw-bold text-muted">Reason</label>
-                        <input type="text" name="reason" class="form-control rounded-pill" placeholder="e.g. Bonus, Correction" required />
-                    </div>
-                    <button type="submit" class="btn btn-primary rounded-pill w-100 py-2">Update Balance</button>
-                </form>
+@section Modals {
+    <!-- Modal -->
+    <div class="modal fade" id="balanceModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-5 shadow-lg">
+                <div class="modal-header border-0 p-4">
+                    <h5 class="modal-title fw-bold">Adjust User Balance</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 pt-0">
+                    <form asp-action="UpdateBalance" method="post">
+                        <input type="hidden" name="userId" value="@Model.Id" />
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted">Amount (use negative to deduct)</label>
+                            <input type="number" name="amount" class="form-control rounded-pill" step="0.01" required />
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-muted">Reason</label>
+                            <input type="text" name="reason" class="form-control rounded-pill" placeholder="e.g. Bonus, Correction" required />
+                        </div>
+                        <button type="submit" class="btn btn-primary rounded-pill w-100 py-2">Update Balance</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
-</div>
+}
