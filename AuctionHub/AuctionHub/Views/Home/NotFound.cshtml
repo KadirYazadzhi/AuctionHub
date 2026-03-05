@@ -2,33 +2,49 @@
     ViewData["Title"] = "Page Not Found";
 }
 
-<div class="container py-5 my-5">
+<div class="container min-vh-75 d-flex align-items-center justify-content-center py-5">
     <div class="row justify-content-center text-center">
-        <div class="col-lg-6">
-            <div class="error-illustration mb-5 animate-fade-up">
-                <i class="bi bi-search display-1 text-primary opacity-25"></i>
-                <h1 class="display-1 fw-bold text-primary mt-n4">404</h1>
-            </div>
-            
-            <h2 class="fw-bold mb-3 h1">Whoops! Lost in transit.</h2>
-            <p class="text-muted fs-5 mb-5">The page you're looking for has either ended, been moved, or never existed in this auction house.</p>
-            
-            <div class="d-flex flex-column flex-sm-row justify-content-center gap-3">
-                <a asp-controller="Home" asp-action="Index" class="btn btn-primary rounded-pill px-5 py-3 fw-bold shadow-sm hover-lift">
-                    <i class="bi bi-house-door-fill me-2"></i> Back to Home
-                </a>
-                <a asp-controller="Auctions" asp-action="Index" class="btn btn-outline-primary rounded-pill px-5 py-3 fw-bold hover-lift">
-                    Explore Auctions <i class="bi bi-arrow-right ms-2"></i>
-                </a>
+        <div class="col-lg-8">
+            <div class="error-container p-5 rounded-5 shadow-lg bg-card border border-light-subtle animate-fade-up">
+                <div class="position-relative mb-4">
+                    <div class="display-1 fw-black text-primary opacity-10 position-absolute top-50 start-50 translate-middle" style="font-size: 12rem; z-index: 0;">404</div>
+                    <div class="floating-icon position-relative z-1">
+                        <i class="bi bi-hammer text-primary display-1"></i>
+                    </div>
+                </div>
+                
+                <h1 class="fw-bold mb-3 text-main">Going, going... gone!</h1>
+                <p class="text-muted fs-5 mb-5 mx-auto max-width-500">The auction page you are looking for has been sold, moved, or never entered the bidding floor.</p>
+                
+                <div class="d-flex flex-column flex-sm-row justify-content-center gap-3">
+                    <a asp-controller="Home" asp-action="Index" class="btn btn-primary rounded-pill px-5 py-3 fw-bold shadow-sm hover-lift">
+                        <i class="bi bi-house-door-fill me-2"></i> Back to Home
+                    </a>
+                    <a asp-controller="Auctions" asp-action="Index" class="btn btn-outline-primary rounded-pill px-5 py-3 fw-bold hover-lift">
+                        Explore Auctions <i class="bi bi-arrow-right ms-2"></i>
+                    </a>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <style>
-    .error-illustration {
-        position: relative;
-        padding: 2rem;
+    .fw-black { font-weight: 900; }
+    .max-width-500 { max-width: 500px; }
+    .min-vh-75 { min-height: 75vh; }
+    
+    .floating-icon {
+        animation: float 3s ease-in-out infinite;
     }
-    .mt-n4 { margin-top: -1.5rem; }
+
+    @@keyframes float {
+        0%, 100% { transform: translateY(0) rotate(-10deg); }
+        50% { transform: translateY(-20px) rotate(10deg); }
+    }
+
+    [data-bs-theme="dark"] .bg-card {
+        background-color: #1e293b !important;
+        border-color: rgba(255,255,255,0.05) !important;
+    }
 </style>

@@ -2,33 +2,52 @@
     ViewData["Title"] = "Server Error";
 }
 
-<div class="container py-5 my-5">
+<div class="container min-vh-75 d-flex align-items-center justify-content-center py-5">
     <div class="row justify-content-center text-center">
-        <div class="col-lg-6">
-            <div class="error-illustration mb-5 animate-fade-up">
-                <i class="bi bi-exclamation-triangle display-1 text-danger opacity-25"></i>
-                <h1 class="display-1 fw-bold text-danger mt-n4">500</h1>
-            </div>
-            
-            <h2 class="fw-bold mb-3 h1">Bidding Interrupted.</h2>
-            <p class="text-muted fs-5 mb-5">Something went wrong on our end. Our technicians are already on the case, like an outbid notification!</p>
-            
-            <div class="d-flex flex-column flex-sm-row justify-content-center gap-3">
-                <a asp-controller="Home" asp-action="Index" class="btn btn-primary rounded-pill px-5 py-3 fw-bold shadow-sm hover-lift">
-                    <i class="bi bi-arrow-left me-2"></i> Safe Return to Home
-                </a>
-                <a href="mailto:support@auctionhub.com" class="btn btn-outline-secondary rounded-pill px-5 py-3 fw-bold hover-lift">
-                    <i class="bi bi-envelope-fill me-2"></i> Report Issue
-                </a>
+        <div class="col-lg-8">
+            <div class="error-container p-5 rounded-5 shadow-lg bg-card border border-light-subtle animate-fade-up">
+                <div class="position-relative mb-4">
+                    <div class="display-1 fw-black text-danger opacity-10 position-absolute top-50 start-50 translate-middle" style="font-size: 12rem; z-index: 0;">500</div>
+                    <div class="shake-icon position-relative z-1">
+                        <i class="bi bi-exclamation-octagon-fill text-danger display-1"></i>
+                    </div>
+                </div>
+                
+                <h1 class="fw-bold mb-3 text-main">Bidding Interrupted</h1>
+                <p class="text-muted fs-5 mb-5 mx-auto max-width-500">Something went wrong on our end. Like a lost signal during a live auction, we are working hard to reconnect.</p>
+                
+                <div class="d-flex flex-column flex-sm-row justify-content-center gap-3">
+                    <a asp-controller="Home" asp-action="Index" class="btn btn-primary rounded-pill px-5 py-3 fw-bold shadow-sm hover-lift">
+                        <i class="bi bi-arrow-left me-2"></i> Safe Return to Home
+                    </a>
+                    <a href="mailto:support@auctionhub.com" class="btn btn-outline-secondary rounded-pill px-5 py-3 fw-bold hover-lift">
+                        <i class="bi bi-envelope-heart-fill me-2"></i> Contact Support
+                    </a>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <style>
-    .error-illustration {
-        position: relative;
-        padding: 2rem;
+    .fw-black { font-weight: 900; }
+    .max-width-500 { max-width: 500px; }
+    .min-vh-75 { min-height: 75vh; }
+    
+    .shake-icon {
+        animation: shake 4s cubic-bezier(.36,.07,.19,.97) infinite;
+        transform: translate3d(0, 0, 0);
     }
-    .mt-n4 { margin-top: -1.5rem; }
+
+    @@keyframes shake {
+        10%, 90% { transform: translate3d(-1px, 0, 0); }
+        20%, 80% { transform: translate3d(2px, 0, 0); }
+        30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+        40%, 60% { transform: translate3d(4px, 0, 0); }
+    }
+
+    [data-bs-theme="dark"] .bg-card {
+        background-color: #1e293b !important;
+        border-color: rgba(255,255,255,0.05) !important;
+    }
 </style>
