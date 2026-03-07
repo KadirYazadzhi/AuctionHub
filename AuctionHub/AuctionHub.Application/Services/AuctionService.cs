@@ -1209,23 +1209,28 @@ public class AuctionService : IAuctionService
 
         if (!allActiveAutoBids.Any()) return;
 
-        // 2. Identify bots that are now disqualified (manual bid exceeded their MaxAmount)
-        // We deactivate them so they don't try to bid again
-        var disqualifiedBots = allActiveAutoBids
-            .Where(ab => ab.MaxAmount < auction.CurrentPrice + auction.MinIncrease)
-            .ToList();
-        
-        foreach (var bot in disqualifiedBots)
+        // 2. Identify and deactivate bots that are now disqualified
+        foreach (var bot in allActiveAutoBids)
         {
-            bot.IsActive = false;
+            // A. Limit exceeded
+            if (bot.MaxAmount < auction.CurrentPrice + auction.MinIncrease)
+            {
+                bot.IsActive = false;
+                // No need for notification here, usually implied by the bid history
+            }
+            // B. Insufficient Balance
+            else if (bot.User.WalletBalance < auction.CurrentPrice + auction.MinIncrease)
+            {
+                bot.IsActive = false;
+                await _notificationService.NotifyUserAsync(bot.UserId, 
+                    $"⚠️ Your auto-bidder for '{auction.Title}' has been deactivated due to insufficient funds in your wallet. Please top up to participate.", 
+                    "/Wallet");
+            }
         }
 
-        // 3. Only consider bots that CAN still bid (have enough money AND MaxAmount is high enough)
+        // 3. Only consider bots that are STILL ACTIVE after the cleanup above
         var validBots = allActiveAutoBids
-            .Where(ab => ab.IsActive && 
-                         ab.UserId != lastBidderId && 
-                         ab.MaxAmount >= auction.CurrentPrice + auction.MinIncrease &&
-                         ab.User.WalletBalance >= auction.CurrentPrice + auction.MinIncrease)
+            .Where(ab => ab.IsActive && ab.UserId != lastBidderId)
             .OrderByDescending(ab => ab.MaxAmount)
             .ThenBy(ab => ab.CreatedOn)
             .ToList();
