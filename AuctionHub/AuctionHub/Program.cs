@@ -10,6 +10,8 @@ using System.Globalization;
 using AuctionHub.Hubs;
 using AuctionHub.Services;
 using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.AspNetCore.DataProtection;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,6 +53,11 @@ var redisUrl = builder.Configuration.GetConnectionString("Redis")
     ?? "localhost:6379";
 
 var redisConnectionString = $"{redisUrl},abortConnect=false";
+
+var redis = ConnectionMultiplexer.Connect(redisConnectionString);
+builder.Services.AddDataProtection()
+    .PersistKeysToStackExchangeRedis(redis, "AuctionHub-DataProtection-Keys")
+    .SetApplicationName("AuctionHub");
 
 builder.Services.AddSignalR().AddStackExchangeRedis(redisConnectionString, options => {
     options.Configuration.ChannelPrefix = StackExchange.Redis.RedisChannel.Literal("AuctionHub_SignalR");
