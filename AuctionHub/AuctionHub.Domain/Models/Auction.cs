@@ -8,6 +8,8 @@ public class Auction
     [Key]
     public int Id { get; set; }
 
+    public Guid PublicId { get; set; } = Guid.NewGuid();
+
     [Required]
     [StringLength(100)]
     public string Title { get; set; } = null!;

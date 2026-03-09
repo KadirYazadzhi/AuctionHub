@@ -57,6 +57,7 @@ public class AuctionsController : Controller
         var viewModelItems = paginatedDto.Select(a => new AuctionListViewModel
         {
             Id = a.Id,
+            PublicId = a.PublicId,
             Title = a.Title,
             ImageUrl = a.ImageUrl,
             CurrentPrice = a.CurrentPrice,
@@ -83,10 +84,10 @@ public class AuctionsController : Controller
 
     [AllowAnonymous]
     [HttpGet]
-    public async Task<IActionResult> Details(int id)
+    public async Task<IActionResult> Details(Guid id)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var auction = await _auctionService.GetAuctionDetailsAsync(id, currentUserId);
+        var auction = await _auctionService.GetAuctionDetailsByPublicIdAsync(id, currentUserId);
 
         if (auction == null)
         {
@@ -96,6 +97,7 @@ public class AuctionsController : Controller
         var model = new AuctionDetailsViewModel
         {
             Id = auction.Id,
+            PublicId = auction.PublicId,
             Title = auction.Title,
             Description = auction.Description,
             ImageUrl = auction.ImageUrl,
@@ -184,7 +186,8 @@ public class AuctionsController : Controller
             TempData["Error"] = result.Message;
         }
 
-        return RedirectToAction(nameof(Details), new { id = auctionId });
+        var auction = await _auctionService.GetAuctionDetailsAsync(auctionId);
+        return RedirectToAction(nameof(Details), new { id = auction?.PublicId });
     }
 
     [HttpPost]
@@ -224,7 +227,8 @@ public class AuctionsController : Controller
             TempData["Error"] = result.Message;
         }
 
-        return RedirectToAction(nameof(Details), new { id = auctionId });
+        var auction = await _auctionService.GetAuctionDetailsAsync(auctionId);
+        return RedirectToAction(nameof(Details), new { id = auction?.PublicId });
     }
 
     [HttpPost]
@@ -244,7 +248,8 @@ public class AuctionsController : Controller
             TempData["Error"] = result.Message;
         }
 
-        return RedirectToAction(nameof(Details), new { id = auctionId });
+        var auction = await _auctionService.GetAuctionDetailsAsync(auctionId);
+        return RedirectToAction(nameof(Details), new { id = auction?.PublicId });
     }
 
     [HttpPost]
@@ -264,7 +269,8 @@ public class AuctionsController : Controller
             TempData["Error"] = result.Message;
         }
 
-        return RedirectToAction(nameof(Details), new { id = auctionId });
+        var auction = await _auctionService.GetAuctionDetailsAsync(auctionId);
+        return RedirectToAction(nameof(Details), new { id = auction?.PublicId });
     }
 
     [HttpPost]
@@ -284,7 +290,8 @@ public class AuctionsController : Controller
             TempData["Error"] = result.Message;
         }
 
-        return RedirectToAction(nameof(Details), new { id = auctionId });
+        var auction = await _auctionService.GetAuctionDetailsAsync(auctionId);
+        return RedirectToAction(nameof(Details), new { id = auction?.PublicId });
     }
 
     [HttpGet]
@@ -307,6 +314,7 @@ public class AuctionsController : Controller
         var viewModelItems = paginatedDto.Select(a => new AuctionListViewModel
         {
             Id = a.Id,
+            PublicId = a.PublicId,
             Title = a.Title,
             ImageUrl = a.ImageUrl,
             CurrentPrice = a.CurrentPrice,
@@ -351,6 +359,7 @@ public class AuctionsController : Controller
         var viewModelItems = paginatedDto.Select(a => new AuctionListViewModel
         {
             Id = a.Id,
+            PublicId = a.PublicId,
             Title = a.Title,
             ImageUrl = a.ImageUrl,
             CurrentPrice = a.CurrentPrice,
@@ -409,6 +418,7 @@ public class AuctionsController : Controller
         var viewModelItems = paginatedDto.Select(a => new AuctionListViewModel
         {
             Id = a.Id,
+            PublicId = a.PublicId,
             Title = a.Title,
             ImageUrl = a.ImageUrl,
             CurrentPrice = a.CurrentPrice,
@@ -732,6 +742,7 @@ public class AuctionsController : Controller
         var viewModelItems = paginatedDto.Select(a => new AuctionListViewModel
         {
             Id = a.Id,
+            PublicId = a.PublicId,
             Title = a.Title,
             ImageUrl = a.ImageUrl,
             CurrentPrice = a.CurrentPrice,

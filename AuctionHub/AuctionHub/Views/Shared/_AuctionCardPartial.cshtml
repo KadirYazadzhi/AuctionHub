@@ -45,7 +45,7 @@
             }
         </div>
         
-        <div class="overflow-hidden @(Model.IsPromoted ? "rounded-top-promoted" : "rounded-top-4")" style="height: 220px; cursor: pointer;" onclick="window.location.href='@Url.Action("Details", "Auctions", new { id = Model.Id })'">
+        <div class="overflow-hidden @(Model.IsPromoted ? "rounded-top-promoted" : "rounded-top-4")" style="height: 220px; cursor: pointer;" onclick="window.location.href='@Url.Action("Details", "Auctions", new { id = Model.PublicId })'">
             <img src="@(string.IsNullOrEmpty(Model.ImageUrl) ? "https://via.placeholder.com/400x300?text=No+Image" : Model.ImageUrl)" 
                  class="card-img-top h-100 w-100 object-fit-cover transition-transform" 
                  alt="@Model.Title">
@@ -78,7 +78,7 @@
             </div>
             
             <div class="d-grid mt-4 gap-2">
-                <a asp-controller="Auctions" asp-action="Details" asp-route-id="@Model.Id" 
+                <a asp-controller="Auctions" asp-action="Details" asp-route-id="@Model.PublicId" 
                    class="btn @(isOwner ? "btn-outline-primary" : "btn-primary") rounded-pill py-2 fw-bold">
                    @if (isOwner)
                    {

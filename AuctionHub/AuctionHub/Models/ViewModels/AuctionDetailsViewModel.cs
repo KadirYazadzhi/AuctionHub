@@ -5,6 +5,7 @@ namespace AuctionHub.Models.ViewModels;
 public class AuctionDetailsViewModel
 {
     public int Id { get; set; }
+    public Guid PublicId { get; set; }
 
     public string Title { get; set; } = null!;
 

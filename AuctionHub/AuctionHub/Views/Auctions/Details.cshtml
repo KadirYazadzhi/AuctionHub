@@ -77,7 +77,7 @@
                         
                         @if(User.Identity?.IsAuthenticated == true)
                         {
-                            <form asp-action="ToggleWatchlist" asp-route-id="@Model.Id" method="post">
+                            <form asp-action="ToggleWatchlist" asp-route-id="@Model.PublicId" method="post">
                                 <button type="submit" class="btn btn-sm @(Model.IsWatched ? "btn-warning" : "btn-outline-secondary") rounded-pill px-3 py-2">
                                     <i class="bi @(Model.IsWatched ? "bi-star-fill" : "bi-star") me-1"></i> 
                                     @(Model.IsWatched ? "Watching" : "Watch")
@@ -128,16 +128,16 @@
                         @if (User.Identity?.IsAuthenticated == true && Model.SellerId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
                         {
                             <div class="ms-auto d-flex gap-2">
-                                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-warning rounded-pill px-3 shadow-sm">
+                                <a asp-action="Edit" asp-route-id="@Model.PublicId" class="btn btn-sm btn-outline-warning rounded-pill px-3 shadow-sm">
                                     <i class="bi bi-pencil-square me-1"></i> Edit
                                 </a>
                                 @if (!Model.Bids.Any() && Model.IsActive)
                                 {
-                                    <form asp-action="Cancel" asp-route-id="@Model.Id" method="post" onsubmit="return confirm('Are you sure you want to cancel this auction?');">
+                                    <form asp-action="Cancel" asp-route-id="@Model.PublicId" method="post" onsubmit="return confirm('Are you sure you want to cancel this auction?');">
                                         <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3 shadow-sm">Cancel</button>
                                     </form>
                                 }
-                                <form asp-action="Delete" asp-route-id="@Model.Id" method="post" onsubmit="return confirm('Are you sure?');">
+                                <form asp-action="Delete" asp-route-id="@Model.PublicId" method="post" onsubmit="return confirm('Are you sure?');">
                                     <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3 shadow-sm">Delete</button>
                                 </form>
                             </div>
@@ -268,7 +268,7 @@
                                                     <div class="badge bg-info text-white rounded-pill px-3 py-2">
                                                         <i class="bi bi-check-lg me-1"></i> Active
                                                     </div>
-                                                    <form asp-action="DeactivateAutoBid" asp-route-id="@Model.Id" method="post" style="display:inline;">
+                                                    <form asp-action="DeactivateAutoBid" asp-route-id="@Model.PublicId" method="post" style="display:inline;">
                                                         <button type="submit" class="btn btn-sm btn-outline-danger rounded-circle border-0 p-0" title="Deactivate Auto-Bid" style="width: 24px; height: 24px;">
                                                             <i class="bi bi-x-circle-fill"></i>
                                                         </button>
@@ -322,7 +322,7 @@
                                                     </button>
                                                 </form>
                                                 <form asp-action="Dispute" method="post" onsubmit="return confirm('Are you sure you want to open a dispute? This will freeze the funds until an administrator reviews the case.');">
-                                                    <input type="hidden" name="id" value="@Model.Id" />
+                                                    <input type="hidden" name="id" value="@Model.PublicId" />
                                                     <button type="submit" class="btn btn-outline-danger rounded-pill px-3 py-2 shadow-sm fw-bold">
                                                         <i class="bi bi-shield-exclamation"></i> Dispute
                                                     </button>

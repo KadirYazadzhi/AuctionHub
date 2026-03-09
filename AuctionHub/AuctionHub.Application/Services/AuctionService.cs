@@ -100,6 +100,7 @@ public class AuctionService : IAuctionService
             .Select(a => new AuctionDto
             {
                 Id = a.Id,
+                PublicId = a.PublicId,
                 Title = a.Title,
                 ImageUrl = a.ImageUrl,
                 CurrentPrice = a.CurrentPrice,
@@ -153,6 +154,7 @@ public class AuctionService : IAuctionService
         var projectedQuery = query.Select(a => new AuctionDto
         {
             Id = a.Id,
+            PublicId = a.PublicId,
             Title = a.Title,
             ImageUrl = a.ImageUrl,
             CurrentPrice = a.CurrentPrice,
@@ -206,6 +208,7 @@ public class AuctionService : IAuctionService
         var projectedQuery = query.Select(a => new AuctionDto
         {
             Id = a.Id,
+            PublicId = a.PublicId,
             Title = a.Title,
             ImageUrl = a.ImageUrl,
             CurrentPrice = a.CurrentPrice,
@@ -260,6 +263,7 @@ public class AuctionService : IAuctionService
         var projectedQuery = query.Select(a => new AuctionDto
         {
             Id = a.Id,
+            PublicId = a.PublicId,
             Title = a.Title,
             ImageUrl = a.ImageUrl,
             CurrentPrice = a.CurrentPrice,
@@ -317,6 +321,7 @@ public class AuctionService : IAuctionService
         var projectedQuery = query.Select(a => new AuctionDto
         {
             Id = a.Id,
+            PublicId = a.PublicId,
             Title = a.Title,
             ImageUrl = a.ImageUrl,
             CurrentPrice = a.CurrentPrice,
@@ -371,6 +376,7 @@ public class AuctionService : IAuctionService
             .Select(a => new AuctionDto
             {
                 Id = a.Id,
+                PublicId = a.PublicId,
                 Title = a.Title,
                 ImageUrl = a.ImageUrl,
                 CurrentPrice = a.CurrentPrice,
@@ -633,6 +639,24 @@ public class AuctionService : IAuctionService
                 .ThenInclude(b => b.Bidder)
             .FirstOrDefaultAsync(a => a.Id == id);
 
+        return await MapToDetailsDtoAsync(auction, currentUserId);
+    }
+
+    public async Task<AuctionDetailsDto?> GetAuctionDetailsByPublicIdAsync(Guid publicId, string? currentUserId = null)
+    {
+        var auction = await _context.Auctions
+            .Include(a => a.Category)
+            .Include(a => a.Seller)
+            .Include(a => a.Images)
+            .Include(a => a.Bids)
+                .ThenInclude(b => b.Bidder)
+            .FirstOrDefaultAsync(a => a.PublicId == publicId);
+
+        return await MapToDetailsDtoAsync(auction, currentUserId);
+    }
+
+    private async Task<AuctionDetailsDto?> MapToDetailsDtoAsync(Auction? auction, string? currentUserId)
+    {
         if (auction == null) return null;
 
         // Fetch seller rating statistics
@@ -645,17 +669,18 @@ public class AuctionService : IAuctionService
 
         if (currentUserId != null)
         {
-            isWatched = await _context.Watchlist.AnyAsync(w => w.AuctionId == id && w.UserId == currentUserId);
+            isWatched = await _context.Watchlist.AnyAsync(w => w.AuctionId == auction.Id && w.UserId == currentUserId);
             
             // Fetch active auto-bid limit for the current user
             var autoBid = await _context.AutoBids
-                .FirstOrDefaultAsync(ab => ab.AuctionId == id && ab.UserId == currentUserId && ab.IsActive);
+                .FirstOrDefaultAsync(ab => ab.AuctionId == auction.Id && ab.UserId == currentUserId && ab.IsActive);
             currentAutoBidLimit = autoBid?.MaxAmount;
         }
 
         return new AuctionDetailsDto
         {
             Id = auction.Id,
+            PublicId = auction.PublicId,
             Title = auction.Title,
             Description = auction.Description,
             ImageUrl = auction.ImageUrl,
@@ -672,7 +697,7 @@ public class AuctionService : IAuctionService
             SellerRating = sellerRating,
             SellerReviewCount = reviewCount,
             IsActive = auction.IsActive && auction.EndTime > DateTime.UtcNow,
-            IsDelivered = await _context.Transactions.AnyAsync(t => t.UserId == auction.SellerId && t.TransactionType == "Sale" && t.AuctionId == id),
+            IsDelivered = await _context.Transactions.AnyAsync(t => t.UserId == auction.SellerId && t.TransactionType == "Sale" && t.AuctionId == auction.Id),
             IsSettled = auction.IsSettled,
             IsDisputed = auction.IsDisputed,
             IsSuspended = auction.IsSuspended,
@@ -693,6 +718,7 @@ public class AuctionService : IAuctionService
                 .ToList()
         };
     }
+
 
     public async Task<IEnumerable<CategoryDto>> GetCategoriesAsync()
     {

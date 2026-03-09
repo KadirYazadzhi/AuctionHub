@@ -63,6 +63,7 @@ public interface IAuctionService
         string? status);
 
     Task<AuctionDetailsDto?> GetAuctionDetailsAsync(int id, string? currentUserId = null);
+    Task<AuctionDetailsDto?> GetAuctionDetailsByPublicIdAsync(Guid publicId, string? currentUserId = null);
     Task<IEnumerable<CategoryDto>> GetCategoriesAsync();
     Task<int> CreateAuctionAsync(AuctionFormDto model, string sellerId);
     Task<(bool Success, string Message, string? OldImageUrl)> UpdateAuctionAsync(int id, AuctionFormDto model, string userId);
