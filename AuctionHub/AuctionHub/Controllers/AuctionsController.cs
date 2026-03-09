@@ -135,7 +135,7 @@ public class AuctionsController : Controller
         // Check if user can leave a review
         if (currentUserId != null)
         {
-            ViewBag.CanLeaveReview = await _reviewService.CanReviewAsync(id, currentUserId);
+            ViewBag.CanLeaveReview = await _reviewService.CanReviewAsync(auction.Id, currentUserId);
         }
 
         return View(model);
