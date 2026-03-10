@@ -55,7 +55,9 @@ public class AuctionFormModel
     [StringLength(50)]
     public string? District { get; set; }
 
+    [Range(-90, 90)]
     public double? Latitude { get; set; }
+    [Range(-180, 180)]
     public double? Longitude { get; set; }
 
     public List<IFormFile> AdditionalImageFiles { get; set; } = new();

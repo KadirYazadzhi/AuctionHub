@@ -98,6 +98,9 @@ builder.Services.AddControllersWithViews(options => {
     options.ModelBinderProviders.Insert(0, new DecimalModelBinderProvider());
 });
 builder.Services.AddRazorPages();
+builder.Services.AddAntiforgery(options => {
+    options.HeaderName = "X-XSRF-TOKEN";
+});
 
 // Rate Limiting Configuration
 builder.Services.AddRateLimiter(options =>

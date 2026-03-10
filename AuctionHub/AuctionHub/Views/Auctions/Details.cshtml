@@ -601,7 +601,9 @@
     }
 
     const connection = new signalR.HubConnectionBuilder()
-        .withUrl("/hubs/bidding")
+        .withUrl("/hubs/bidding", {
+            headers: { "X-XSRF-TOKEN": document.cookie.split('; ').find(row => row.startsWith('XSRF-TOKEN='))?.split('=')[1] }
+        })
         .build();
 
     connection.on("ReceiveNewBid", function (amount, bidderName, bidTime) {
