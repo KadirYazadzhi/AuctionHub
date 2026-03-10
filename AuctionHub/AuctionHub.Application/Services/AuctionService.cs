@@ -759,6 +759,13 @@ public class AuctionService : IAuctionService
     {
         var now = DateTime.UtcNow;
 
+        // Validation: MinIncrease should be at least 1% of StartPrice for practicality
+        decimal minAllowedIncrease = Math.Round(model.StartPrice * 0.01m, 2);
+        if (model.MinIncrease < minAllowedIncrease && model.MinIncrease < 0.10m)
+        {
+            model.MinIncrease = minAllowedIncrease > 0.10m ? minAllowedIncrease : 0.10m;
+        }
+
         using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
@@ -938,16 +945,34 @@ public class AuctionService : IAuctionService
         // Use IgnoreQueryFilters to find the auction even if it was already soft-deleted
         var auction = await _context.Auctions
             .Include(a => a.Bids)
+                .ThenInclude(b => b.Bidder)
             .Include(a => a.Images)
             .FirstOrDefaultAsync(a => a.Id == id);
 
         if (auction == null) return (false, "Auction not found.", null);
         if (auction.SellerId != userId) return (false, "Forbidden.", null);
         
-        // Rule 1: Never delete an auction that has bidding history (even if it ended)
+        // Rule 1: Decide on refund if there are bids
         if (auction.Bids.Any()) 
         {
-            return (false, "Cannot delete an auction that has bidding history. You can only archive it.", null);
+            var latestBid = auction.Bids.OrderByDescending(b => b.Amount).First();
+            var bidder = latestBid.Bidder;
+
+            // Refund the user
+            bidder.WalletBalance += latestBid.Amount;
+            _context.Transactions.Add(new Transaction
+            {
+                UserId = bidder.Id,
+                Amount = latestBid.Amount,
+                Description = $"Refund: Auction '{auction.Title}' was deleted by the seller.",
+                TransactionType = "Refund",
+                TransactionDate = DateTime.UtcNow,
+                AuctionId = id
+            });
+
+            await _notificationService.NotifyUserAsync(bidder.Id, 
+                $"⚠️ The auction for '{auction.Title}' was deleted by the seller. Your bid of {latestBid.Amount:C} has been refunded to your wallet.", 
+                "/Wallet");
         }
 
         // Rule 2: Decide whether to physically delete images from storage
@@ -1117,7 +1142,16 @@ public class AuctionService : IAuctionService
                 return (false, "You are already the highest bidder.");
             }
 
-            if (amount < auction.CurrentPrice + auction.MinIncrease) return (false, $"Bid must be at least {auction.CurrentPrice + auction.MinIncrease:C}.");
+            // DYNAMIC MINIMUM STEP: 5% of current price for items over 100€
+            decimal currentMinStep = auction.MinIncrease;
+            if (auction.CurrentPrice >= 100.00m)
+            {
+                decimal dynamicStep = Math.Round(auction.CurrentPrice * 0.05m, 2);
+                if (dynamicStep > currentMinStep) currentMinStep = dynamicStep;
+            }
+
+            if (amount < auction.CurrentPrice + currentMinStep) 
+                return (false, $"Bid must be at least {auction.CurrentPrice + currentMinStep:C}.");
 
             if (currentUser.WalletBalance < amount) return (false, "Insufficient funds.");
 
@@ -1278,9 +1312,17 @@ public class AuctionService : IAuctionService
         var challengers = allActiveAutoBids.Where(ab => ab.UserId != winnerAutoBid.UserId).ToList();
         decimal highestChallengerLimit = challengers.Any() ? challengers.Max(ab => ab.MaxAmount) : 0;
         
+        // DYNAMIC MINIMUM STEP: 5% of current price for items over 100€
+        decimal currentMinStep = auction.MinIncrease;
+        if (auction.CurrentPrice >= 100.00m)
+        {
+            decimal dynamicStep = Math.Round(auction.CurrentPrice * 0.05m, 2);
+            if (dynamicStep > currentMinStep) currentMinStep = dynamicStep;
+        }
+
         // The price needs to beat both the manual bid AND any other bot's limit
         decimal baseToBeat = Math.Max(auction.CurrentPrice, highestChallengerLimit);
-        decimal finalPrice = baseToBeat + auction.MinIncrease;
+        decimal finalPrice = baseToBeat + currentMinStep;
 
         // Cap the price at the winner's own limit
         if (finalPrice > winnerAutoBid.MaxAmount)
@@ -1291,7 +1333,7 @@ public class AuctionService : IAuctionService
         // Final safety check: if for some reason the price didn't increase, force a step
         if (finalPrice <= auction.CurrentPrice)
         {
-            finalPrice = auction.CurrentPrice + auction.MinIncrease;
+            finalPrice = auction.CurrentPrice + currentMinStep;
         }
 
         // Ensure winner can still afford it

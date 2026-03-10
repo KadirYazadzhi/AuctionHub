@@ -72,12 +72,12 @@ builder.Services.AddStackExchangeRedisCache(options => {
 
 // Identity and External Authentication
 builder.Services.AddDefaultIdentity<ApplicationUser>(options => {
-    options.SignIn.RequireConfirmedAccount = true; // Email confirmation required!
-    options.Password.RequireDigit = false;
-    options.Password.RequireLowercase = false;
-    options.Password.RequireUppercase = false;
-    options.Password.RequireNonAlphanumeric = false;
-    options.Password.RequiredLength = 3;
+    options.SignIn.RequireConfirmedAccount = true;
+    options.Password.RequireDigit = true;
+    options.Password.RequireLowercase = true;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireNonAlphanumeric = true;
+    options.Password.RequiredLength = 8;
 })
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<AuctionHubDbContext>();
