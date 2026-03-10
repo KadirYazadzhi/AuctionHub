@@ -6,6 +6,8 @@ namespace AuctionHub.Domain.Models;
 
 public class ApplicationUser : IdentityUser
 {
+    public Guid PublicId { get; set; } = Guid.NewGuid();
+
     [StringLength(50)]
     public string? FirstName { get; set; }
 

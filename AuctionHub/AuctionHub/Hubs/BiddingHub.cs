@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.Authorization;
 
 namespace AuctionHub.Hubs;
 
+[Authorize]
 public class BiddingHub : Hub
 {
     public async Task JoinAuctionGroup(int auctionId)

@@ -28,7 +28,8 @@ public class AuctionDetailsViewModel
 
     public string Seller { get; set; } = null!;
     public string SellerId { get; set; } = null!;
-        public double SellerRating { get; set; }
+    public Guid SellerPublicId { get; set; }
+    public double SellerRating { get; set; }
         public int SellerReviewCount { get; set; }
             public bool IsActive { get; set; }
             public bool IsDelivered { get; set; }

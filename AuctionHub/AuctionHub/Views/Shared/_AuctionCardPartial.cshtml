@@ -54,7 +54,7 @@
         <div class="card-body p-4">
             <div class="d-flex align-items-center mb-2">
                 <small class="text-muted me-2">Seller:</small>
-                <a asp-controller="Auctions" asp-action="UserAuctions" asp-route-username="@Model.SellerName" class="text-decoration-none small fw-bold text-dark hover-primary">
+                <a asp-controller="Auctions" asp-action="UserAuctions" asp-route-id="@Model.SellerPublicId" class="text-decoration-none small fw-bold text-dark hover-primary">
                     @Model.SellerName
                 </a>
                 @if (Model.IsTopSeller)

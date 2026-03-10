@@ -8,10 +8,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace AuctionHub.Controllers;
 
 [Authorize]
+[EnableRateLimiting("fixed")]
 public class AuctionsController : Controller
 {
     private readonly IWebHostEnvironment _webHostEnvironment;
@@ -71,6 +73,7 @@ public class AuctionsController : Controller
             WinnerId = a.WinnerId,
             SellerName = a.SellerName,
             SellerId = a.SellerId,
+            SellerPublicId = a.SellerPublicId,
             IsTopSeller = a.IsTopSeller
         }).ToList();
 
@@ -110,6 +113,7 @@ public class AuctionsController : Controller
             Images = auction.Images.Select(i => i.Url).ToList(),
             Seller = auction.Seller,
             SellerId = auction.SellerId,
+            SellerPublicId = auction.SellerPublicId,
             SellerRating = auction.SellerRating,
             SellerReviewCount = auction.SellerReviewCount,
             IsActive = auction.IsActive,
@@ -326,6 +330,7 @@ public class AuctionsController : Controller
             IsSuspended = a.IsSuspended,
             SellerName = a.SellerName,
             SellerId = a.SellerId,
+            SellerPublicId = a.SellerPublicId,
             IsTopSeller = a.IsTopSeller,
             IsWinning = a.IsWinning,
             WinnerId = a.WinnerId
@@ -381,11 +386,9 @@ public class AuctionsController : Controller
 
     [AllowAnonymous]
     [HttpGet]
-    public async Task<IActionResult> UserAuctions(string username, string? searchTerm, int? categoryId, string? sortOrder, int? pageNumber, decimal? minPrice, decimal? maxPrice, string? status = "active")
+    public async Task<IActionResult> UserAuctions(Guid id, string? searchTerm, int? categoryId, string? sortOrder, int? pageNumber, decimal? minPrice, decimal? maxPrice, string? status = "active")
     {
-        if (string.IsNullOrEmpty(username)) return NotFound();
-
-        var user = await _userService.GetByUsernameAsync(username);
+        var user = await _userService.GetByPublicIdAsync(id);
         if (user == null) return NotFound();
 
         // Check if target user is an Admin
@@ -403,7 +406,7 @@ public class AuctionsController : Controller
         ViewData["TargetUserRating"] = user.AverageRating;
         ViewData["TargetUserIsTopSeller"] = user.IsTopSeller;
         ViewData["TargetUserReviews"] = user.Reviews;
-        ViewData["CurrentUsername"] = username;
+        ViewData["CurrentUsername"] = user.UserName;
         ViewData["CurrentSort"] = sortOrder;
         ViewData["CurrentSearch"] = searchTerm;
         ViewData["CurrentCategory"] = categoryId;
@@ -413,7 +416,7 @@ public class AuctionsController : Controller
 
         int pageSize = 6;
         var paginatedDto = await _auctionService.GetUserAuctionsAsync(
-            username, searchTerm, categoryId, sortOrder, pageNumber ?? 1, pageSize, minPrice, maxPrice, status);
+            user.UserName, searchTerm, categoryId, sortOrder, pageNumber ?? 1, pageSize, minPrice, maxPrice, status);
 
         var viewModelItems = paginatedDto.Select(a => new AuctionListViewModel
         {
@@ -430,6 +433,7 @@ public class AuctionsController : Controller
             IsSuspended = a.IsSuspended,
             SellerName = a.SellerName,
             SellerId = a.SellerId,
+            SellerPublicId = a.SellerPublicId,
             IsTopSeller = a.IsTopSeller,
             IsWinning = a.IsWinning,
             WinnerId = a.WinnerId
@@ -754,6 +758,7 @@ public class AuctionsController : Controller
             IsSuspended = a.IsSuspended,
             SellerName = a.SellerName,
             SellerId = a.SellerId,
+            SellerPublicId = a.SellerPublicId,
             IsTopSeller = a.IsTopSeller,
             IsWinning = a.IsWinning,
             WinnerId = a.WinnerId

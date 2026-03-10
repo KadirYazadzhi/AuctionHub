@@ -111,6 +111,10 @@ public class AuctionHubDbContext : IdentityDbContext<ApplicationUser>, IAuctionH
         builder.Entity<ApplicationUser>().Property(u => u.WalletBalance).HasColumnType("decimal(18,2)");
         builder.Entity<AutoBid>().Property(ab => ab.MaxAmount).HasColumnType("decimal(18,2)");
 
+        // SQL Check Constraint for non-negative balance
+        builder.Entity<ApplicationUser>()
+            .ToTable(t => t.HasCheckConstraint("CK_ApplicationUser_WalletBalance_Positive", "[WalletBalance] >= 0"));
+
         // Global Query Filters
         builder.Entity<Auction>().HasQueryFilter(a => !a.IsDeleted);
         builder.Entity<AuctionImage>().HasQueryFilter(i => !i.Auction.IsDeleted);

@@ -72,6 +72,20 @@ public class UserService : IUserService
         return MapToUserDetailsDto(user);
     }
 
+    public async Task<UserDetailsDto?> GetByPublicIdAsync(Guid publicId)
+    {
+        var user = await _context.Users
+            .Include(u => u.MyAuctions).ThenInclude(a => a.Category)
+            .Include(u => u.MyBids).ThenInclude(b => b.Auction)
+            .Include(u => u.ReceivedReviews).ThenInclude(r => r.Reviewer)
+            .Include(u => u.ReceivedReviews).ThenInclude(r => r.Auction)
+            .FirstOrDefaultAsync(u => u.PublicId == publicId);
+
+        if (user == null) return null;
+
+        return MapToUserDetailsDto(user);
+    }
+
     public async Task<(bool Success, string Message)> ToggleShadowBanAsync(string userId)
     {
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
@@ -123,6 +137,7 @@ public class UserService : IUserService
         return new UserDetailsDto
         {
             Id = user.Id,
+            PublicId = user.PublicId,
             UserName = user.UserName ?? user.Email ?? "Unknown",
             Email = user.Email ?? "",
             FirstName = user.FirstName,
@@ -155,6 +170,7 @@ public class UserService : IUserService
             Auctions = user.MyAuctions.Select(a => new AuctionDto
             {
                 Id = a.Id,
+                PublicId = a.PublicId,
                 Title = a.Title,
                 ImageUrl = a.ImageUrl,
                 CurrentPrice = a.CurrentPrice,

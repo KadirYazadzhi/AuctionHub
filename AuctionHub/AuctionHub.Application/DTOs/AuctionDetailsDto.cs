@@ -17,6 +17,7 @@ public class AuctionDetailsDto
     public List<AuctionImageDto> Images { get; set; } = new();
     public string Seller { get; set; } = null!;
     public string SellerId { get; set; } = null!;
+    public Guid SellerPublicId { get; set; }
     public double SellerRating { get; set; }
     public int SellerReviewCount { get; set; }
     public bool IsActive { get; set; }
