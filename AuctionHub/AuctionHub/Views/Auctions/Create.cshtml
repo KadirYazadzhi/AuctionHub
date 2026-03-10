@@ -55,6 +55,43 @@
                                 </div>
 
                                 <div class="d-flex justify-content-end mt-5">
+                                    <button type="button" class="btn btn-primary btn-lg rounded-pill px-5 py-3 fw-bold shadow-sm next-step" data-next="location">
+                                        Next: Item Location <i class="bi bi-geo-alt ms-2"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- New Step: Location Selection -->
+                            <div class="form-step d-none" id="step-location">
+                                <div class="d-flex align-items-center mb-4">
+                                    <div class="step-num bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold me-3">L</div>
+                                    <h3 class="fw-bold mb-0">Where is the item located?</h3>
+                                </div>
+
+                                <div class="row g-3 mb-4">
+                                    <div class="col-md-4">
+                                        <label asp-for="Country" class="form-label fw-bold">Country</label>
+                                        <input asp-for="Country" class="form-control rounded-pill bg-light" placeholder="e.g. Bulgaria" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label asp-for="City" class="form-label fw-bold">City <span class="text-danger">*</span></label>
+                                        <input asp-for="City" id="inputCity" class="form-control rounded-pill bg-light" placeholder="e.g. Sofia" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label asp-for="District" class="form-label fw-bold">District</label>
+                                        <input asp-for="District" id="inputDistrict" class="form-control rounded-pill bg-light" placeholder="e.g. Mladost" />
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <p class="text-muted small mb-2"><i class="bi bi-info-circle me-1"></i> Drag the marker or click on the map to set the approximate location. Only City/District will be visible to buyers.</p>
+                                    <div id="map" class="rounded-4 shadow-sm border" style="height: 350px; z-index: 1;"></div>
+                                    <input type="hidden" asp-for="Latitude" id="inputLat" />
+                                    <input type="hidden" asp-for="Longitude" id="inputLng" />
+                                </div>
+
+                                <div class="d-flex justify-content-between mt-5">
+                                    <button type="button" class="btn btn-light btn-lg rounded-pill px-4 prev-step" data-prev="1">Back</button>
                                     <button type="button" class="btn btn-primary btn-lg rounded-pill px-5 py-3 fw-bold shadow-sm next-step" data-next="2">
                                         Next: Pricing & Time <i class="bi bi-arrow-right ms-2"></i>
                                     </button>
@@ -238,6 +275,8 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@@1.9.4/dist/leaflet.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const steps = document.querySelectorAll('.form-step');
@@ -246,27 +285,95 @@
             const prevBtns = document.querySelectorAll('.prev-step');
             const hiddenUrlJson = document.getElementById('AdditionalImageUrlsJson');
             let additionalUrls = [];
+            
+            // Map Variables
+            let map;
+            let marker;
 
             // 1. Wizard Navigation
             nextBtns.forEach(btn => {
                 btn.addEventListener('click', () => {
-                    const stepNum = parseInt(btn.getAttribute('data-next'));
-                    goToStep(stepNum);
+                    const nextStep = btn.getAttribute('data-next');
+                    if (nextStep === "location") {
+                        goToStep("location");
+                        initMap();
+                    } else {
+                        goToStep(parseInt(nextStep));
+                    }
                 });
             });
 
             prevBtns.forEach(btn => {
                 btn.addEventListener('click', () => {
-                    const stepNum = parseInt(btn.getAttribute('data-prev'));
-                    goToStep(stepNum);
+                    const prevStep = btn.getAttribute('data-prev');
+                    goToStep(prevStep === "location" ? "location" : parseInt(prevStep));
                 });
             });
 
             function goToStep(num) {
                 steps.forEach(s => s.classList.add('d-none'));
-                document.getElementById('step' + num).classList.remove('d-none');
-                progressBar.style.width = (num * 33.33) + '%';
+                const stepId = isNaN(num) ? 'step-' + num : 'step' + num;
+                document.getElementById(stepId).classList.remove('d-none');
+                
+                let progress = 33;
+                if (num === "location") progress = 45;
+                else if (num === 2) progress = 66;
+                else if (num === 3) progress = 100;
+
+                progressBar.style.width = progress + '%';
                 window.scrollTo({ top: 0, behavior: 'smooth' });
+                
+                if (num === "location" && map) {
+                    setTimeout(() => map.invalidateSize(), 100);
+                }
+            }
+
+            function initMap() {
+                if (map) return;
+                
+                // Sofia default center
+                const defaultPos = [42.6977, 23.3219];
+                map = L.map('map').setView(defaultPos, 13);
+                
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap'
+                }).addTo(map);
+
+                marker = L.marker(defaultPos, { draggable: true }).addTo(map);
+                
+                function updateCoords(lat, lng) {
+                    document.getElementById('inputLat').value = lat.toFixed(6);
+                    document.getElementById('inputLng').value = lng.toFixed(6);
+                    
+                    // Basic Reverse Geocoding via Nominatim (Free)
+                    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.address) {
+                                document.getElementById('inputCity').value = data.address.city || data.address.town || data.address.village || "";
+                                document.getElementById('inputDistrict').value = data.address.suburb || data.address.neighbourhood || "";
+                            }
+                        });
+                }
+
+                map.on('click', (e) => {
+                    marker.setLatLng(e.latlng);
+                    updateCoords(e.latlng.lat, e.latlng.lng);
+                });
+
+                marker.on('dragend', (e) => {
+                    updateCoords(e.target.getLatLng().lat, e.target.getLatLng().lng);
+                });
+                
+                // Ask for browser location
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(pos => {
+                        const userPos = [pos.coords.latitude, pos.coords.longitude];
+                        map.setView(userPos, 14);
+                        marker.setLatLng(userPos);
+                        updateCoords(pos.coords.latitude, pos.coords.longitude);
+                    });
+                }
             }
 
             // 2. Real-time Preview Logic

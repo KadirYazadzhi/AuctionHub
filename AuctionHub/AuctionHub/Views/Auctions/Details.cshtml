@@ -144,6 +144,28 @@
                         }
                     </div>
 
+                    <!-- Location Data -->
+                    <div class="card border-0 bg-light rounded-5 mb-4 shadow-sm border-start border-4 border-primary">
+                        <div class="card-body p-4 d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="fw-bold mb-1"><i class="bi bi-geo-alt-fill text-primary me-2"></i>Location</h6>
+                                <p class="text-muted small mb-0">@Model.City, @Model.District (@Model.Country)</p>
+                            </div>
+                            @if (Model.Latitude.HasValue && Model.Longitude.HasValue)
+                            {
+                                <button class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#mapCollapse">
+                                    <i class="bi bi-map me-1"></i> Show on Map
+                                </button>
+                            }
+                        </div>
+                        @if (Model.Latitude.HasValue && Model.Longitude.HasValue)
+                        {
+                            <div class="collapse" id="mapCollapse">
+                                <div id="detailsMap" class="rounded-bottom-5" style="height: 250px;"></div>
+                            </div>
+                        }
+                    </div>
+
                     <!-- Pricing Display -->
                     <div class="p-4 rounded-5 mb-4 text-center" style="background: linear-gradient(135deg, rgba(67, 97, 238, 0.05) 0%, rgba(67, 97, 238, 0.1) 100%); border: 1px solid rgba(67, 97, 238, 0.1);">
                         @if (Model.IsSuspended)

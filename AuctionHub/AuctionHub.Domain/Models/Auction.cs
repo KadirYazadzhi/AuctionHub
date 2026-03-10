@@ -40,7 +40,17 @@ public class Auction
     [Required]
     public DateTime EndTime { get; set; }
 
-        public bool IsActive { get; set; } = true;
+    // --- Location Data ---
+    [StringLength(50)]
+    public string? Country { get; set; } = "Bulgaria";
+    [StringLength(50)]
+    public string? City { get; set; }
+    [StringLength(50)]
+    public string? District { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+
+    public bool IsActive { get; set; } = true;
         public bool IsPromoted { get; set; } = false;
         public bool IsSuspended { get; set; } = false;
         public bool IsDeleted { get; set; } = false;

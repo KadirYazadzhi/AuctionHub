@@ -41,7 +41,7 @@ public class AuctionsController : Controller
 
     [AllowAnonymous]
     [HttpGet]
-    public async Task<IActionResult> Index(string? searchTerm, int? categoryId, string? sortOrder, int? pageNumber, decimal? minPrice, decimal? maxPrice, string? status)
+    public async Task<IActionResult> Index(string? searchTerm, int? categoryId, string? sortOrder, int? pageNumber, decimal? minPrice, decimal? maxPrice, string? status, double? latitude, double? longitude, double? maxDistance)
     {
         ViewData["CurrentSort"] = sortOrder;
         ViewData["CurrentSearch"] = searchTerm;
@@ -49,12 +49,15 @@ public class AuctionsController : Controller
         ViewData["MinPrice"] = minPrice;
         ViewData["MaxPrice"] = maxPrice;
         ViewData["Status"] = status;
+        ViewData["Latitude"] = latitude;
+        ViewData["Longitude"] = longitude;
+        ViewData["MaxDistance"] = maxDistance;
         
         int pageSize = 9;
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         var paginatedDto = await _auctionService.GetAuctionsAsync(
-            searchTerm, categoryId, sortOrder, pageNumber ?? 1, pageSize, minPrice, maxPrice, status, currentUserId);
+            searchTerm, categoryId, sortOrder, pageNumber ?? 1, pageSize, minPrice, maxPrice, status, currentUserId, latitude, longitude, maxDistance);
 
         var viewModelItems = paginatedDto.Select(a => new AuctionListViewModel
         {

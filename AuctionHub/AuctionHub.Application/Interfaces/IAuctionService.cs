@@ -16,7 +16,10 @@ public interface IAuctionService
         decimal? minPrice, 
         decimal? maxPrice, 
         string? status,
-        string? currentUserId = null);
+        string? currentUserId = null,
+        double? latitude = null,
+        double? longitude = null,
+        double? maxDistance = null);
 
     Task<PaginatedList<AuctionDto>> GetMyAuctionsAsync(
         string userId,

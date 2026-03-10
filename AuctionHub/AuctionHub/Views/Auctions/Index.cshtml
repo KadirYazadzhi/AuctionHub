@@ -63,6 +63,26 @@
                                 </script>
                             }
                         </div>
+
+                        <!-- Location & Distance -->
+                        <div class="mb-4">
+                            <label class="form-label small text-uppercase text-muted fw-bold d-flex justify-content-between">
+                                Location & Distance
+                                <div class="form-check form-switch small">
+                                    <input class="form-check-input" type="checkbox" id="enableLocation" @(ViewData["MaxDistance"] != null ? "checked" : "")>
+                                </div>
+                            </label>
+                            
+                            <div id="locationFilterUI" class="@(ViewData["MaxDistance"] != null ? "" : "d-none")">
+                                <input type="range" name="maxDistance" class="form-range" min="1" max="100" value="@(ViewData["MaxDistance"] ?? 20)" id="distanceRange">
+                                <div class="d-flex justify-content-between small text-muted mb-2">
+                                    <span>Radius: <span id="radiusVal">@(ViewData["MaxDistance"] ?? 20)</span> km</span>
+                                </div>
+                                <div id="filterMap" class="rounded-3 border mb-2" style="height: 150px;"></div>
+                                <input type="hidden" name="latitude" id="filterLat" value="@ViewData["Latitude"]" />
+                                <input type="hidden" name="longitude" id="filterLng" value="@ViewData["Longitude"]" />
+                            </div>
+                        </div>
                         
                         <!-- Sort (Hidden here, synced if needed or simple reset) -->
                         <input type="hidden" name="sortOrder" value="@currentSort" />
@@ -85,10 +105,10 @@
                         Sort By: @(currentSort == "price_asc" ? "Price: Low to High" : currentSort == "price_desc" ? "Price: High to Low" : currentSort == "newest" ? "Newest Listed" : "Ending Soonest")
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end shadow border-0">
-                        <li><a class="dropdown-item" asp-route-sortOrder="" asp-route-searchTerm="@currentSearch" asp-route-categoryId="@currentCategory" asp-route-minPrice="@minPrice" asp-route-maxPrice="@maxPrice" asp-route-status="@status">Ending Soonest</a></li>
-                        <li><a class="dropdown-item" asp-route-sortOrder="newest" asp-route-searchTerm="@currentSearch" asp-route-categoryId="@currentCategory" asp-route-minPrice="@minPrice" asp-route-maxPrice="@maxPrice" asp-route-status="@status">Newest Listed</a></li>
-                        <li><a class="dropdown-item" asp-route-sortOrder="price_asc" asp-route-searchTerm="@currentSearch" asp-route-categoryId="@currentCategory" asp-route-minPrice="@minPrice" asp-route-maxPrice="@maxPrice" asp-route-status="@status">Price: Low to High</a></li>
-                        <li><a class="dropdown-item" asp-route-sortOrder="price_desc" asp-route-searchTerm="@currentSearch" asp-route-categoryId="@currentCategory" asp-route-minPrice="@minPrice" asp-route-maxPrice="@maxPrice" asp-route-status="@status">Price: High to Low</a></li>
+                        <li><a class="dropdown-item" asp-route-sortOrder="" asp-route-searchTerm="@currentSearch" asp-route-categoryId="@currentCategory" asp-route-minPrice="@minPrice" asp-route-maxPrice="@maxPrice" asp-route-status="@status" asp-route-latitude="@ViewData["Latitude"]" asp-route-longitude="@ViewData["Longitude"]" asp-route-maxDistance="@ViewData["MaxDistance"]">Ending Soonest</a></li>
+                        <li><a class="dropdown-item" asp-route-sortOrder="newest" asp-route-searchTerm="@currentSearch" asp-route-categoryId="@currentCategory" asp-route-minPrice="@minPrice" asp-route-maxPrice="@maxPrice" asp-route-status="@status" asp-route-latitude="@ViewData["Latitude"]" asp-route-longitude="@ViewData["Longitude"]" asp-route-maxDistance="@ViewData["MaxDistance"]">Newest Listed</a></li>
+                        <li><a class="dropdown-item" asp-route-sortOrder="price_asc" asp-route-searchTerm="@currentSearch" asp-route-categoryId="@currentCategory" asp-route-minPrice="@minPrice" asp-route-maxPrice="@maxPrice" asp-route-status="@status" asp-route-latitude="@ViewData["Latitude"]" asp-route-longitude="@ViewData["Longitude"]" asp-route-maxDistance="@ViewData["MaxDistance"]">Price: Low to High</a></li>
+                        <li><a class="dropdown-item" asp-route-sortOrder="price_desc" asp-route-searchTerm="@currentSearch" asp-route-categoryId="@currentCategory" asp-route-minPrice="@minPrice" asp-route-maxPrice="@maxPrice" asp-route-status="@status" asp-route-latitude="@ViewData["Latitude"]" asp-route-longitude="@ViewData["Longitude"]" asp-route-maxDistance="@ViewData["MaxDistance"]">Price: High to Low</a></li>
                     </ul>
                 </div>
             </div>
@@ -121,7 +141,9 @@
                                 <a class="page-link rounded-start-pill px-3" asp-route-pageNumber="@(Model.PageIndex - 1)" 
                                    asp-route-sortOrder="@currentSort" asp-route-searchTerm="@currentSearch" 
                                    asp-route-categoryId="@currentCategory" asp-route-minPrice="@minPrice" 
-                                   asp-route-maxPrice="@maxPrice" asp-route-status="@status">
+                                   asp-route-maxPrice="@maxPrice" asp-route-status="@status"
+                                   asp-route-latitude="@ViewData["Latitude"]" asp-route-longitude="@ViewData["Longitude"]" 
+                                   asp-route-maxDistance="@ViewData["MaxDistance"]">
                                     <i class="bi bi-chevron-left"></i>
                                 </a>
                             </li>
@@ -132,7 +154,9 @@
                                 <a class="page-link rounded-end-pill px-3" asp-route-pageNumber="@(Model.PageIndex + 1)"
                                    asp-route-sortOrder="@currentSort" asp-route-searchTerm="@currentSearch"
                                    asp-route-categoryId="@currentCategory" asp-route-minPrice="@minPrice"
-                                   asp-route-maxPrice="@maxPrice" asp-route-status="@status">
+                                   asp-route-maxPrice="@maxPrice" asp-route-status="@status"
+                                   asp-route-latitude="@ViewData["Latitude"]" asp-route-longitude="@ViewData["Longitude"]" 
+                                   asp-route-maxDistance="@ViewData["MaxDistance"]">
                                     <i class="bi bi-chevron-right"></i>
                                 </a>
                             </li>

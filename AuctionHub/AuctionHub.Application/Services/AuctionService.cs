@@ -42,7 +42,10 @@ public class AuctionService : IAuctionService
         decimal? minPrice, 
         decimal? maxPrice, 
         string? status,
-        string? currentUserId = null)
+        string? currentUserId = null,
+        double? latitude = null,
+        double? longitude = null,
+        double? maxDistance = null)
     {
         // Get Admin IDs to exclude their test auctions from public view
         var adminIds = await GetAdminIdsAsync();
@@ -51,6 +54,24 @@ public class AuctionService : IAuctionService
             .Include(a => a.Category)
             .Where(a => !adminIds.Contains(a.SellerId)) // Hide Admin auctions
             .AsQueryable();
+
+        // --- Distance Filtering ---
+        if (latitude.HasValue && longitude.HasValue && maxDistance.HasValue)
+        {
+            double kmPerDegreeLat = 111.0;
+            double kmPerDegreeLng = 111.0 * Math.Cos(latitude.Value * Math.PI / 180.0);
+
+            double latDelta = maxDistance.Value / kmPerDegreeLat;
+            double lngDelta = maxDistance.Value / kmPerDegreeLng;
+
+            double minLat = latitude.Value - latDelta;
+            double maxLat = latitude.Value + latDelta;
+            double minLng = longitude.Value - lngDelta;
+            double maxLng = longitude.Value + lngDelta;
+
+            query = query.Where(a => a.Latitude >= minLat && a.Latitude <= maxLat &&
+                                     a.Longitude >= minLng && a.Longitude <= maxLng);
+        }
 
         // Status Filtering
         if (string.IsNullOrEmpty(status) || status == "active")
@@ -106,6 +127,8 @@ public class AuctionService : IAuctionService
                 CurrentPrice = a.CurrentPrice,
                 EndTime = a.EndTime,
                 Category = a.Category.Name,
+                City = a.City,
+                Country = a.Country,
                 CategoryId = a.CategoryId,
                 IsActive = a.IsActive,
                 IsPromoted = a.IsPromoted,
@@ -387,6 +410,8 @@ public class AuctionService : IAuctionService
                 CurrentPrice = a.CurrentPrice,
                 EndTime = a.EndTime,
                 Category = a.Category.Name,
+                City = a.City,
+                Country = a.Country,
                 CategoryId = a.CategoryId,
                 IsActive = a.IsActive,
                 IsPromoted = a.IsPromoted,
@@ -697,6 +722,11 @@ public class AuctionService : IAuctionService
             EndTime = auction.EndTime,
             Category = auction.Category.Name,
             CategoryId = auction.CategoryId,
+            Country = auction.Country,
+            City = auction.City,
+            District = auction.District,
+            Latitude = auction.Latitude,
+            Longitude = auction.Longitude,
             Images = auction.Images.Select(i => new AuctionImageDto { Id = i.Id, Url = i.Url }).ToList(),
             Seller = auction.Seller.DisplayName,
             SellerId = auction.SellerId,
@@ -798,7 +828,12 @@ public class AuctionService : IAuctionService
                 IsPromoted = model.ShouldPromote,
                 CategoryId = model.CategoryId,
                 SellerId = sellerId,
-                RowVersion = new byte[8]
+                RowVersion = new byte[8],
+                Country = model.Country,
+                City = model.City,
+                District = model.District,
+                Latitude = model.Latitude,
+                Longitude = model.Longitude
             };
 
             // --- Handle Images ---

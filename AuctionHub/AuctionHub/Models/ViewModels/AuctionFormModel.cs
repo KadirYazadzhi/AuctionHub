@@ -43,6 +43,21 @@ public class AuctionFormModel
     [Display(Name = "Category")]
     public int CategoryId { get; set; }
 
+    // --- Location Data ---
+    [Required]
+    [StringLength(50)]
+    public string? Country { get; set; } = "Bulgaria";
+
+    [Required]
+    [StringLength(50)]
+    public string? City { get; set; }
+
+    [StringLength(50)]
+    public string? District { get; set; }
+
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+
     public List<IFormFile> AdditionalImageFiles { get; set; } = new();
     public string? AdditionalImageUrlsJson { get; set; } 
     public List<AuctionImageDto> ExistingImages { get; set; } = new();

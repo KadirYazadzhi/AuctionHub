@@ -24,6 +24,14 @@ public class AuctionDetailsViewModel
     public DateTime EndTime { get; set; }
 
     public string Category { get; set; } = null!;
+    
+    // --- Location Data ---
+    public string? Country { get; set; }
+    public string? City { get; set; }
+    public string? District { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+
     public List<string> Images { get; set; } = new();
 
     public string Seller { get; set; } = null!;

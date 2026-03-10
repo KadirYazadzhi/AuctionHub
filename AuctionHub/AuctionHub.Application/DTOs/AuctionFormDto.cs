@@ -11,6 +11,13 @@ public class AuctionFormDto
     public DateTime EndTime { get; set; }
     public int CategoryId { get; set; }
     
+    // --- Location Data ---
+    public string? Country { get; set; }
+    public string? City { get; set; }
+    public string? District { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+    
     public List<Stream> ImageStreams { get; set; } = new();
     public List<string> ImageFileNames { get; set; } = new();
     public List<string> AdditionalImageUrls { get; set; } = new();

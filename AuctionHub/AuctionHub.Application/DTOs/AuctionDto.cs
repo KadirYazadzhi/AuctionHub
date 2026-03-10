@@ -9,6 +9,8 @@ public class AuctionDto
     public decimal CurrentPrice { get; set; }
     public DateTime EndTime { get; set; }
     public string Category { get; set; } = null!;
+    public string? City { get; set; }
+    public string? Country { get; set; }
     public int CategoryId { get; set; }
     public bool IsActive { get; set; }
     public bool IsPromoted { get; set; }

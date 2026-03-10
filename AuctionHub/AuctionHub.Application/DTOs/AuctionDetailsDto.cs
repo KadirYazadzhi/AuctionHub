@@ -14,6 +14,14 @@ public class AuctionDetailsDto
     public DateTime EndTime { get; set; }
     public string Category { get; set; } = null!;
     public int CategoryId { get; set; }
+    
+    // --- Location Data ---
+    public string? Country { get; set; }
+    public string? City { get; set; }
+    public string? District { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+    
     public List<AuctionImageDto> Images { get; set; } = new();
     public string Seller { get; set; } = null!;
     public string SellerId { get; set; } = null!;
