@@ -42,6 +42,7 @@ builder.Services.AddScoped<IBiddingNotificationService, SignalRBiddingNotificati
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IPhotoService, PhotoService>();
+builder.Services.AddScoped<IImageAnalysisService, MockImageAnalysisService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddTransient<IEmailSender, EmailSender>();
 builder.Services.AddTransient<IEmailService, EmailSender>();

@@ -16,6 +16,7 @@ public class AuctionService : IAuctionService
     private readonly IDistributedCache _cache;
     private readonly ILogger<AuctionService> _logger;
     private readonly IPhotoService _photoService;
+    private readonly IImageAnalysisService _imageAnalysisService;
 
     public AuctionService(
         IAuctionHubDbContext context, 
@@ -23,7 +24,8 @@ public class AuctionService : IAuctionService
         IBiddingNotificationService biddingNotificationService,
         IDistributedCache cache,
         ILogger<AuctionService> logger,
-        IPhotoService photoService)
+        IPhotoService photoService,
+        IImageAnalysisService imageAnalysisService)
     {
         _context = context;
         _notificationService = notificationService;
@@ -31,6 +33,7 @@ public class AuctionService : IAuctionService
         _cache = cache;
         _logger = logger;
         _photoService = photoService;
+        _imageAnalysisService = imageAnalysisService;
     }
 
     public async Task<PaginatedList<AuctionDto>> GetAuctionsAsync(
@@ -786,7 +789,7 @@ public class AuctionService : IAuctionService
         return categories;
     }
 
-    public async Task<int> CreateAuctionAsync(AuctionFormDto model, string sellerId)
+    public async Task<(int AuctionId, string Message)> CreateAuctionAsync(AuctionFormDto model, string sellerId)
     {
         var now = DateTime.UtcNow;
 
@@ -797,11 +800,27 @@ public class AuctionService : IAuctionService
             model.MinIncrease = minAllowedIncrease > 0.10m ? minAllowedIncrease : 0.10m;
         }
 
+        // --- AI Image Moderation ---
+        for (int i = 0; i < model.ImageStreams.Count; i++)
+        {
+            var stream = model.ImageStreams[i];
+            var fileName = model.ImageFileNames[i];
+            
+            // Analyze
+            var aiResult = await _imageAnalysisService.AnalyzeImageAsync(stream, fileName);
+            if (!aiResult.IsSafeForWork)
+            {
+                return (-2, $"Image '{fileName}' rejected: {aiResult.FlaggedReason}");
+            }
+            
+            // Reset stream position for Cloudinary upload
+            stream.Position = 0;
+        }
+
         using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
             // Database-level check for duplicate within a short timeframe
-            // This is safer in multi-instance environments than in-memory dictionaries
             var recentThreshold = now.AddSeconds(-30);
             var isDuplicate = await _context.Auctions.AnyAsync(a => 
                 a.SellerId == sellerId && 
@@ -810,7 +829,7 @@ public class AuctionService : IAuctionService
 
             if (isDuplicate)
             {
-                return -1;
+                return (-1, "Duplicate auction detected.");
             }
 
             var auction = new Auction
@@ -898,7 +917,7 @@ public class AuctionService : IAuctionService
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            return auction.Id;
+            return (auction.Id, "Success");
         }
         catch (Exception)
         {
@@ -920,6 +939,21 @@ public class AuctionService : IAuctionService
         if (auction.Bids.Any()) return (false, "You cannot edit an auction that has existing bids.", null);
 
         string? oldImageUrl = null;
+
+        // --- AI Image Moderation ---
+        for (int i = 0; i < model.ImageStreams.Count; i++)
+        {
+            var stream = model.ImageStreams[i];
+            var fileName = model.ImageFileNames[i];
+            
+            var aiResult = await _imageAnalysisService.AnalyzeImageAsync(stream, fileName);
+            if (!aiResult.IsSafeForWork)
+            {
+                return (false, $"Image '{fileName}' rejected by AI: {aiResult.FlaggedReason}", null);
+            }
+            
+            stream.Position = 0; // Reset for upload
+        }
 
         // 1. Remove selected images
         if (model.ImagesToRemoveIds.Any())

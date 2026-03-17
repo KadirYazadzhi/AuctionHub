@@ -702,7 +702,9 @@ public class AuctionsController : Controller
         }
 
         // 3. Call Service
-        int auctionId = await _auctionService.CreateAuctionAsync(dto, currentUserId);
+        int auctionId;
+        string message;
+        (auctionId, message) = await _auctionService.CreateAuctionAsync(dto, currentUserId);
 
         if (auctionId > 0)
         {
@@ -713,6 +715,10 @@ public class AuctionsController : Controller
         if (auctionId == -1)
         {
             TempData["Error"] = "A similar auction was recently created. Please wait a few seconds.";
+        }
+        else if (auctionId == -2)
+        {
+            TempData["Error"] = message; // AI Moderation Failed
         }
         else
         {
