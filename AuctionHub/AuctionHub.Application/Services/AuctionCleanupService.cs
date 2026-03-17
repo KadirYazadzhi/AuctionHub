@@ -60,46 +60,76 @@ public class AuctionCleanupService : BackgroundService
 
                         if (winningBid != null)
                         {
-                            // 1. Log Escrow (Funds are held)
-                            context.Transactions.Add(new Transaction
+                            bool reserveMet = !auction.ReservePrice.HasValue || winningBid.Amount >= auction.ReservePrice.Value;
+
+                            if (reserveMet)
                             {
-                                UserId = auction.SellerId,
-                                Amount = winningBid.Amount,
-                                Description = $"Escrow: Payment for '{auction.Title}' held until delivery confirmation (Auction ID: {auction.Id}).",
-                                TransactionType = "Escrow",
-                                TransactionDate = DateTime.UtcNow,
-                                AuctionId = auction.Id
-                            });
+                                // 1. Log Escrow (Funds are held)
+                                context.Transactions.Add(new Transaction
+                                {
+                                    UserId = auction.SellerId,
+                                    Amount = winningBid.Amount,
+                                    Description = $"Escrow: Payment for '{auction.Title}' held until delivery confirmation (Auction ID: {auction.Id}).",
+                                    TransactionType = "Escrow",
+                                    TransactionDate = DateTime.UtcNow,
+                                    AuctionId = auction.Id
+                                });
 
-                            // 2. Notify Winner
-                            await notificationService.NotifyUserAsync(winningBid.BidderId, 
-                                $"🎉 Congratulations! You won the auction for '{auction.Title}' with a bid of {winningBid.Amount:C}! Please confirm receipt in the auction details to release funds to the seller.", 
-                                $"/Auctions/Details/{auction.Id}");
+                                // 2. Notify Winner
+                                await notificationService.NotifyUserAsync(winningBid.BidderId, 
+                                    $"🎉 Congratulations! You won the auction for '{auction.Title}' with a bid of {winningBid.Amount:C}! Please confirm receipt in the auction details to release funds to the seller.", 
+                                    $"/Auctions/Details/{auction.Id}");
 
-                            // 3. Notify Seller
-                            await notificationService.NotifyUserAsync(auction.SellerId, 
-                                $"💰 Your item '{auction.Title}' was sold to {winningBid.Bidder.DisplayName} for {winningBid.Amount:C}!", 
-                                $"/Auctions/Details/{auction.Id}");
+                                // 3. Notify Seller
+                                await notificationService.NotifyUserAsync(auction.SellerId, 
+                                    $"💰 Your item '{auction.Title}' was sold to {winningBid.Bidder.DisplayName ?? winningBid.Bidder.UserName} for {winningBid.Amount:C}!", 
+                                    $"/Auctions/Details/{auction.Id}");
 
-                            // Notify Losers
-                            var losingBidders = auction.Bids
-                                .Where(b => b.BidderId != winningBid.BidderId)
-                                .Select(b => b.BidderId)
-                                .Distinct()
-                                .ToList();
+                                // Notify Losers
+                                var losingBidders = auction.Bids
+                                    .Where(b => b.BidderId != winningBid.BidderId)
+                                    .Select(b => b.BidderId)
+                                    .Distinct()
+                                    .ToList();
 
-                            foreach (var loserId in losingBidders)
+                                foreach (var loserId in losingBidders)
+                                {
+                                    try 
+                                    {
+                                        await notificationService.NotifyUserAsync(loserId, 
+                                            $"🔔 The auction for '{auction.Title}' has ended. Unfortunately, you did not win this time.", 
+                                            $"/Auctions/Details/{auction.Id}");
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _logger.LogWarning($"Failed to notify loser {loserId}: {ex.Message}");
+                                    }
+                                }
+                            }
+                            else
                             {
-                                try 
+                                // Reserve not met
+                                // Refund the highest bidder
+                                var highestBidder = winningBid.Bidder;
+                                highestBidder.WalletBalance += winningBid.Amount;
+                                
+                                context.Transactions.Add(new Transaction
                                 {
-                                    await notificationService.NotifyUserAsync(loserId, 
-                                        $"🔔 The auction for '{auction.Title}' has ended. Unfortunately, you did not win this time.", 
-                                        $"/Auctions/Details/{auction.Id}");
-                                }
-                                catch (Exception ex)
-                                {
-                                    _logger.LogWarning($"Failed to notify loser {loserId}: {ex.Message}");
-                                }
+                                    UserId = highestBidder.Id,
+                                    Amount = winningBid.Amount,
+                                    Description = $"Refund: Reserve price not met for '{auction.Title}'",
+                                    TransactionType = "Refund",
+                                    TransactionDate = DateTime.UtcNow,
+                                    AuctionId = auction.Id
+                                });
+
+                                await notificationService.NotifyUserAsync(winningBid.BidderId, 
+                                    $"🔔 The auction for '{auction.Title}' ended, but your bid of {winningBid.Amount:C} did not meet the reserve price. Your funds have been refunded.", 
+                                    $"/Auctions/Details/{auction.Id}");
+
+                                await notificationService.NotifyUserAsync(auction.SellerId, 
+                                    $"📉 Your auction for '{auction.Title}' has ended, but the highest bid ({winningBid.Amount:C}) did not meet your reserve price of {auction.ReservePrice:C}.", 
+                                    $"/Auctions/Details/{auction.Id}");
                             }
                         }
                         else

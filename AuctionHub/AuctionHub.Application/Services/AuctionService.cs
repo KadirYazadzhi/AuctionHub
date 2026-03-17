@@ -719,6 +719,7 @@ public class AuctionService : IAuctionService
             StartPrice = auction.StartPrice,
             MinIncrease = auction.MinIncrease,
             BuyItNowPrice = auction.BuyItNowPrice,
+            ReservePrice = auction.ReservePrice,
             EndTime = auction.EndTime,
             Category = auction.Category.Name,
             CategoryId = auction.CategoryId,
@@ -821,6 +822,7 @@ public class AuctionService : IAuctionService
                 CurrentPrice = model.StartPrice,
                 MinIncrease = model.MinIncrease,
                 BuyItNowPrice = model.BuyItNowPrice,
+                ReservePrice = model.ReservePrice,
                 EndTime = new DateTime(model.EndTime.Year, model.EndTime.Month, model.EndTime.Day, 
                                      model.EndTime.Hour, model.EndTime.Minute, 0, 0, model.EndTime.Kind),
                 CreatedOn = now,
@@ -967,6 +969,7 @@ public class AuctionService : IAuctionService
         auction.StartPrice = model.StartPrice;
         auction.MinIncrease = model.MinIncrease;
         auction.BuyItNowPrice = model.BuyItNowPrice;
+        auction.ReservePrice = model.ReservePrice;
         auction.EndTime = new DateTime(model.EndTime.Year, model.EndTime.Month, model.EndTime.Day, 
                                      model.EndTime.Hour, model.EndTime.Minute, 0, 0, model.EndTime.Kind);
         auction.CategoryId = model.CategoryId;

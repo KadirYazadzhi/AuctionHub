@@ -94,6 +94,11 @@
                                         <span asp-validation-for="StartPrice" class="text-danger"></span>
                                     </div>
                                     <div class="mb-3">
+                                        <label asp-for="ReservePrice" class="form-label fw-bold text-dark">Reserve Price (€)</label>
+                                        <input type="text" asp-for="ReservePrice" class="form-control border-0 bg-light rounded-4 px-3" step="0.01" placeholder="Optional" />
+                                        <span asp-validation-for="ReservePrice" class="text-danger"></span>
+                                    </div>
+                                    <div class="mb-3">
                                         <label asp-for="EndTime" class="form-label fw-bold text-dark">Auction End Time</label>
                                         <input asp-for="EndTime" class="form-control border-0 bg-light rounded-4 px-3" type="datetime-local" />
                                         <span asp-validation-for="EndTime" class="text-danger"></span>

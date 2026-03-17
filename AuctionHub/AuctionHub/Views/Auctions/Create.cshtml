@@ -124,14 +124,25 @@
                                     </div>
                                 </div>
 
-                                <div class="mb-4">
-                                    <label asp-for="BuyItNowPrice" class="form-label fw-bold text-dark">Buy It Now Price (Optional)</label>
-                                    <div class="input-group input-group-lg shadow-sm rounded-4 overflow-hidden">
-                                        <span class="input-group-text bg-white border-0 ps-4">€</span>
-                                        <input type="text" asp-for="BuyItNowPrice" id="inputBuyItNow" class="form-control border-0 ps-2 price-input" placeholder="Leave empty to disable" inputmode="decimal" />
+                                <div class="row g-4 mb-4">
+                                    <div class="col-md-6">
+                                        <label asp-for="BuyItNowPrice" class="form-label fw-bold text-dark">Buy It Now Price (Optional)</label>
+                                        <div class="input-group input-group-lg shadow-sm rounded-4 overflow-hidden">
+                                            <span class="input-group-text bg-white border-0 ps-4">€</span>
+                                            <input type="text" asp-for="BuyItNowPrice" id="inputBuyItNow" class="form-control border-0 ps-2 price-input" placeholder="Leave empty to disable" inputmode="decimal" />
+                                        </div>
+                                        <div class="form-text text-muted">Buyers can end the auction instantly.</div>
+                                        <span asp-validation-for="BuyItNowPrice" class="text-danger"></span>
                                     </div>
-                                    <div class="form-text text-muted">Buyers can end the auction instantly by paying this price.</div>
-                                    <span asp-validation-for="BuyItNowPrice" class="text-danger"></span>
+                                    <div class="col-md-6">
+                                        <label asp-for="ReservePrice" class="form-label fw-bold text-dark">Reserve Price (Optional)</label>
+                                        <div class="input-group input-group-lg shadow-sm rounded-4 overflow-hidden">
+                                            <span class="input-group-text bg-white border-0 ps-4">€</span>
+                                            <input type="text" asp-for="ReservePrice" id="inputReservePrice" class="form-control border-0 ps-2 price-input" placeholder="Hidden minimum price" inputmode="decimal" />
+                                        </div>
+                                        <div class="form-text text-muted">Item won't be sold unless bids reach this.</div>
+                                        <span asp-validation-for="ReservePrice" class="text-danger"></span>
+                                    </div>
                                 </div>
 
                                 <div class="mb-4">

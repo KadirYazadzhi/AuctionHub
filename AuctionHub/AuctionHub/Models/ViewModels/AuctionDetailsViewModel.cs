@@ -20,6 +20,8 @@ public class AuctionDetailsViewModel
     public decimal MinIncrease { get; set; }
     
     public decimal? BuyItNowPrice { get; set; }
+    public decimal? ReservePrice { get; set; }
+    public bool ReservePriceMet { get; set; }
 
     public DateTime EndTime { get; set; }
 

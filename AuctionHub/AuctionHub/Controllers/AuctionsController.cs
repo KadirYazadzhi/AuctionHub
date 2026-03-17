@@ -113,6 +113,8 @@ public class AuctionsController : Controller
             StartPrice = auction.StartPrice,
             MinIncrease = auction.MinIncrease,
             BuyItNowPrice = auction.BuyItNowPrice,
+            ReservePrice = auction.ReservePrice,
+            ReservePriceMet = auction.ReservePriceMet,
             EndTime = auction.EndTime,
             Category = auction.Category,
             Images = auction.Images.Select(i => i.Url).ToList(),
@@ -483,6 +485,7 @@ public class AuctionsController : Controller
             StartPrice = auction.StartPrice,
             MinIncrease = auction.MinIncrease,
             BuyItNowPrice = auction.BuyItNowPrice,
+            ReservePrice = auction.ReservePrice,
             EndTime = new DateTime(auction.EndTime.Year, auction.EndTime.Month, auction.EndTime.Day, 
                                  auction.EndTime.Hour, auction.EndTime.Minute, 0, 0, auction.EndTime.Kind),
             CategoryId = auction.CategoryId,
@@ -523,6 +526,7 @@ public class AuctionsController : Controller
             StartPrice = model.StartPrice,
             MinIncrease = model.MinIncrease,
             BuyItNowPrice = model.BuyItNowPrice,
+            ReservePrice = model.ReservePrice,
             EndTime = model.EndTime,
             CategoryId = model.CategoryId
         };
@@ -661,6 +665,7 @@ public class AuctionsController : Controller
             StartPrice = model.StartPrice,
             MinIncrease = model.MinIncrease,
             BuyItNowPrice = model.BuyItNowPrice,
+            ReservePrice = model.ReservePrice,
             EndTime = model.EndTime,
             CategoryId = model.CategoryId,
             ShouldPromote = model.ShouldPromote

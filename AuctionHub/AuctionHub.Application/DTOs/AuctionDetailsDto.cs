@@ -11,6 +11,8 @@ public class AuctionDetailsDto
     public decimal StartPrice { get; set; }
     public decimal MinIncrease { get; set; }
     public decimal? BuyItNowPrice { get; set; }
+    public decimal? ReservePrice { get; set; }
+    public bool ReservePriceMet => !ReservePrice.HasValue || CurrentPrice >= ReservePrice.Value;
     public DateTime EndTime { get; set; }
     public string Category { get; set; } = null!;
     public int CategoryId { get; set; }

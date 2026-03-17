@@ -35,6 +35,10 @@ public class AuctionFormModel
     [Range(0.01, double.MaxValue, ErrorMessage = "Price must be greater than 0.")]
     public decimal? BuyItNowPrice { get; set; }
 
+    [Display(Name = "Reserve Price (Optional)")]
+    [Range(0.01, double.MaxValue, ErrorMessage = "Reserve price must be greater than 0.")]
+    public decimal? ReservePrice { get; set; }
+
     [Required]
     [Display(Name = "Auction End Time")]
     public DateTime EndTime { get; set; }
