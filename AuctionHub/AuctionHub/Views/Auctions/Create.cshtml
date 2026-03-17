@@ -156,6 +156,26 @@
                                     <span asp-validation-for="EndTime" class="text-danger"></span>
                                 </div>
 
+                                <!-- Dutch Auction Toggle -->
+                                <div class="card border-0 bg-info bg-opacity-10 rounded-4 p-4 mb-4">
+                                    <div class="form-check form-switch mb-3">
+                                        <input class="form-check-input fs-4" type="checkbox" asp-for="IsDutchAuction" id="dutchToggle">
+                                        <label class="form-check-label ms-2 fw-bold pt-1" for="dutchToggle">Make it a Dutch Auction</label>
+                                    </div>
+                                    <p class="text-muted small">In a Dutch Auction, the price starts high and drops over time. The first person to bid wins instantly.</p>
+                                    
+                                    <div id="dutchFields" class="row g-3 d-none">
+                                        <div class="col-md-6">
+                                            <label asp-for="DutchDecrementAmount" class="form-label fw-bold text-dark small">Price Drop Amount (€)</label>
+                                            <input asp-for="DutchDecrementAmount" class="form-control border-0 bg-white shadow-sm" type="number" step="0.01" placeholder="e.g. 5.00" />
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label asp-for="DutchDecrementIntervalMinutes" class="form-label fw-bold text-dark small">Drop Interval (Minutes)</label>
+                                            <input asp-for="DutchDecrementIntervalMinutes" class="form-control border-0 bg-white shadow-sm" type="number" placeholder="e.g. 10" />
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div class="d-flex justify-content-between mt-5">
                                     <button type="button" class="btn btn-light btn-lg rounded-pill px-4 prev-step" data-prev="1">Back</button>
                                     <button type="button" class="btn btn-primary btn-lg rounded-pill px-5 py-3 fw-bold shadow-sm next-step" data-next="3">
@@ -507,6 +527,23 @@
                 inputs.endTime.value = date.toISOString().slice(0, 16);
                 updatePreview();
             };
+
+            const dutchToggle = document.getElementById('dutchToggle');
+            const dutchFields = document.getElementById('dutchFields');
+            if (dutchToggle && dutchFields) {
+                dutchToggle.addEventListener('change', function() {
+                    if(this.checked) {
+                        dutchFields.classList.remove('d-none');
+                        // Disable min increase and buy it now logic if desired
+                        document.getElementById('inputMinIncrease').closest('.col-md-6').style.opacity = '0.5';
+                        document.getElementById('inputBuyItNow').closest('.col-md-6').style.opacity = '0.5';
+                    } else {
+                        dutchFields.classList.add('d-none');
+                        document.getElementById('inputMinIncrease').closest('.col-md-6').style.opacity = '1';
+                        document.getElementById('inputBuyItNow').closest('.col-md-6').style.opacity = '1';
+                    }
+                });
+            }
         });
     </script>
 }

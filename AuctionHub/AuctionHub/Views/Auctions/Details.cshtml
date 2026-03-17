@@ -244,6 +244,26 @@
                                     <small class="text-muted">Bidding is disabled for administrators to ensure marketplace fairness.</small>
                                 </div>
                             }
+                            else if (Model.IsDutchAuction)
+                            {
+                                <div class="card border-warning border-opacity-50 rounded-5 mb-4 shadow-sm overflow-hidden bg-warning bg-opacity-10">
+                                    <div class="card-body p-4 text-center">
+                                        <div class="badge bg-warning text-dark mb-3 px-3 py-2 rounded-pill"><i class="bi bi-clock-history me-1"></i> Dutch Auction</div>
+                                        <h5 class="fw-bold mb-2">Price is dropping!</h5>
+                                        <p class="text-muted small mb-4">
+                                            The price drops by <strong>@Model.DutchDecrementAmount?.ToString("C")</strong> every <strong>@Model.DutchDecrementIntervalMinutes minutes</strong>.
+                                            The first person to buy it, wins it instantly.
+                                        </p>
+                                        <form asp-action="PlaceBid" method="post" onsubmit="return confirm('Are you sure you want to buy this item now at the current price?');">
+                                            <input type="hidden" name="AuctionId" value="@Model.Id" />
+                                            <input type="hidden" name="Amount" value="@Model.CurrentPrice.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)" />
+                                            <button type="submit" class="btn btn-warning btn-lg w-100 rounded-pill fw-bold py-3 shadow-sm hover-lift text-dark">
+                                                Buy Now at Current Price
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            }
                             else
                             {
                                 <div class="card border-primary border-opacity-25 rounded-5 mb-4 shadow-sm overflow-hidden">

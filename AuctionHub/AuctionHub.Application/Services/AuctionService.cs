@@ -771,6 +771,12 @@ public class AuctionService : IAuctionService
             MinIncrease = auction.MinIncrease,
             BuyItNowPrice = auction.BuyItNowPrice,
             ReservePrice = auction.ReservePrice,
+            IsDutchAuction = auction.IsDutchAuction,
+            DutchDecrementAmount = auction.DutchDecrementAmount,
+            DutchDecrementIntervalMinutes = auction.DutchDecrementIntervalMinutes,
+            NextDutchDecrement = auction.IsDutchAuction && auction.LastDutchDecrement.HasValue && auction.DutchDecrementIntervalMinutes.HasValue 
+                ? auction.LastDutchDecrement.Value.AddMinutes(auction.DutchDecrementIntervalMinutes.Value) 
+                : null,
             EndTime = auction.EndTime,
             Category = auction.Category.Name,
             CategoryId = auction.CategoryId,
@@ -890,6 +896,10 @@ public class AuctionService : IAuctionService
                 MinIncrease = model.MinIncrease,
                 BuyItNowPrice = model.BuyItNowPrice,
                 ReservePrice = model.ReservePrice,
+                IsDutchAuction = model.IsDutchAuction,
+                DutchDecrementAmount = model.IsDutchAuction ? model.DutchDecrementAmount : null,
+                DutchDecrementIntervalMinutes = model.IsDutchAuction ? model.DutchDecrementIntervalMinutes : null,
+                LastDutchDecrement = model.IsDutchAuction ? now : null,
                 EndTime = new DateTime(model.EndTime.Year, model.EndTime.Month, model.EndTime.Day, 
                                      model.EndTime.Hour, model.EndTime.Minute, 0, 0, model.EndTime.Kind),
                 CreatedOn = now,
@@ -1052,6 +1062,16 @@ public class AuctionService : IAuctionService
         auction.MinIncrease = model.MinIncrease;
         auction.BuyItNowPrice = model.BuyItNowPrice;
         auction.ReservePrice = model.ReservePrice;
+        
+        // Prevent changing to/from Dutch once created, or allow it but reset
+        if (!auction.IsDutchAuction && model.IsDutchAuction)
+        {
+            auction.IsDutchAuction = true;
+            auction.LastDutchDecrement = DateTime.UtcNow;
+        }
+        auction.DutchDecrementAmount = model.IsDutchAuction ? model.DutchDecrementAmount : null;
+        auction.DutchDecrementIntervalMinutes = model.IsDutchAuction ? model.DutchDecrementIntervalMinutes : null;
+
         auction.EndTime = new DateTime(model.EndTime.Year, model.EndTime.Month, model.EndTime.Day, 
                                      model.EndTime.Hour, model.EndTime.Minute, 0, 0, model.EndTime.Kind);
         auction.CategoryId = model.CategoryId;
@@ -1262,9 +1282,9 @@ public class AuctionService : IAuctionService
                 return (false, "You are already the highest bidder.");
             }
 
-            // DYNAMIC MINIMUM STEP: 5% of current price for items over 100€
-            decimal currentMinStep = auction.MinIncrease;
-            if (auction.CurrentPrice >= 100.00m)
+            // DYNAMIC MINIMUM STEP: 5% of current price for items over 100€ (Skip for Dutch)
+            decimal currentMinStep = auction.IsDutchAuction ? 0 : auction.MinIncrease;
+            if (!auction.IsDutchAuction && auction.CurrentPrice >= 100.00m)
             {
                 decimal dynamicStep = Math.Round(auction.CurrentPrice * 0.05m, 2);
                 if (dynamicStep > currentMinStep) currentMinStep = dynamicStep;
@@ -1355,18 +1375,21 @@ public class AuctionService : IAuctionService
                 $"/Auctions/Details/{auctionId}",
                 excludeUserId: userId);
 
-            if (auction.BuyItNowPrice.HasValue && amount >= auction.BuyItNowPrice.Value)
+            if ((auction.BuyItNowPrice.HasValue && amount >= auction.BuyItNowPrice.Value) || auction.IsDutchAuction)
             {
                 auction.IsActive = false;
                 auction.EndTime = DateTime.UtcNow;
                 
                 await _notificationService.NotifyAllWatchersAsync(auctionId, 
-                    $"Auction '{auction.Title}' has ended (Buy It Now price reached).", 
+                    $"Auction '{auction.Title}' has ended.", 
                     $"/Auctions/Details/{auctionId}");
             }
 
             // --- Auto-Bidding Logic (Calculates everything in memory) ---
-            await ProcessAutoBidsAsync(auction, userId);
+            if (!auction.IsDutchAuction)
+            {
+                await ProcessAutoBidsAsync(auction, userId);
+            }
             
             // ONE SINGLE SAVE FOR EVERYTHING
             await _context.SaveChangesAsync();

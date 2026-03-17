@@ -37,6 +37,14 @@ public class Auction
     [Column(TypeName = "decimal(18,2)")]
     public decimal? ReservePrice { get; set; }
 
+    // --- Dutch Auction ---
+    public bool IsDutchAuction { get; set; } = false;
+    
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal? DutchDecrementAmount { get; set; }
+    public int? DutchDecrementIntervalMinutes { get; set; }
+    public DateTime? LastDutchDecrement { get; set; }
+
     [Required]
     public DateTime CreatedOn { get; set; }
 

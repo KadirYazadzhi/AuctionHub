@@ -39,6 +39,15 @@ public class AuctionFormModel
     [Range(0.01, double.MaxValue, ErrorMessage = "Reserve price must be greater than 0.")]
     public decimal? ReservePrice { get; set; }
 
+    // --- Dutch Auction ---
+    public bool IsDutchAuction { get; set; }
+    
+    [Display(Name = "Price Drop Amount (€)")]
+    public decimal? DutchDecrementAmount { get; set; }
+    
+    [Display(Name = "Price Drop Interval (Minutes)")]
+    public int? DutchDecrementIntervalMinutes { get; set; }
+
     [Required]
     [Display(Name = "Auction End Time")]
     public DateTime EndTime { get; set; }

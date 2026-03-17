@@ -23,6 +23,11 @@ public class AuctionDetailsViewModel
     public decimal? ReservePrice { get; set; }
     public bool ReservePriceMet { get; set; }
 
+    public bool IsDutchAuction { get; set; }
+    public decimal? DutchDecrementAmount { get; set; }
+    public int? DutchDecrementIntervalMinutes { get; set; }
+    public DateTime? NextDutchDecrement { get; set; }
+
     public DateTime EndTime { get; set; }
 
     public string Category { get; set; } = null!;

@@ -24,10 +24,56 @@ public class AuctionCleanupService : BackgroundService
         {
             _logger.LogInformation("Auction Cleanup Service running at: {time}", DateTimeOffset.Now);
 
+            await ProcessDutchAuctionsAsync();
             await CloseExpiredAuctionsAsync();
 
             // Run every 1 minute
             await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+        }
+    }
+
+    private async Task ProcessDutchAuctionsAsync()
+    {
+        using (var scope = _serviceProvider.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<IAuctionHubDbContext>();
+            var biddingNotifier = scope.ServiceProvider.GetRequiredService<IBiddingNotificationService>();
+            
+            var now = DateTime.UtcNow;
+            
+            // Find active Dutch auctions that are due for a price drop
+            var dutchAuctions = await context.Auctions
+                .Where(a => a.IsActive && a.IsDutchAuction && a.LastDutchDecrement.HasValue && a.DutchDecrementIntervalMinutes.HasValue && a.DutchDecrementAmount.HasValue)
+                .ToListAsync();
+
+            var auctionsToUpdate = dutchAuctions
+                .Where(a => a.LastDutchDecrement.Value.AddMinutes(a.DutchDecrementIntervalMinutes.Value) <= now)
+                .ToList();
+
+            foreach (var auction in auctionsToUpdate)
+            {
+                // Calculate minimum allowed price (ReservePrice or 0)
+                decimal minPrice = auction.ReservePrice ?? 0.01m;
+                
+                if (auction.CurrentPrice > minPrice)
+                {
+                    auction.CurrentPrice -= auction.DutchDecrementAmount.Value;
+                    if (auction.CurrentPrice < minPrice)
+                    {
+                        auction.CurrentPrice = minPrice;
+                    }
+                    
+                    auction.LastDutchDecrement = now;
+                    
+                    // Notify clients in real-time
+                    await biddingNotifier.NotifyNewBidAsync(auction.Id, "System (Price Drop)", auction.CurrentPrice, now);
+                }
+            }
+
+            if (auctionsToUpdate.Any())
+            {
+                await context.SaveChangesAsync();
+            }
         }
     }
 

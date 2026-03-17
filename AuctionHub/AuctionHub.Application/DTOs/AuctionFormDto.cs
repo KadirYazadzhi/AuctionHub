@@ -9,6 +9,10 @@ public class AuctionFormDto
     public decimal MinIncrease { get; set; }
     public decimal? BuyItNowPrice { get; set; }
     public decimal? ReservePrice { get; set; }
+
+    public bool IsDutchAuction { get; set; }
+    public decimal? DutchDecrementAmount { get; set; }
+    public int? DutchDecrementIntervalMinutes { get; set; }
     public DateTime EndTime { get; set; }
     public int CategoryId { get; set; }
     
