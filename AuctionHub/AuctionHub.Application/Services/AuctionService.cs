@@ -564,6 +564,49 @@ public class AuctionService : IAuctionService
         return (true, "Dispute opened. Our team will review the transaction.");
     }
 
+    public async Task<SellerAnalyticsDto> GetSellerAnalyticsAsync(string userId)
+    {
+        var analytics = new SellerAnalyticsDto();
+
+        var sellerAuctions = await _context.Auctions
+            .Where(a => a.SellerId == userId)
+            .ToListAsync();
+
+        analytics.TotalActiveAuctions = sellerAuctions.Count(a => a.IsActive);
+        analytics.TotalViews = sellerAuctions.Sum(a => a.ViewCount);
+
+        var auctionIds = sellerAuctions.Select(a => a.Id).ToList();
+
+        var watchlistCounts = await _context.Watchlist
+            .Where(w => auctionIds.Contains(w.AuctionId))
+            .GroupBy(w => w.AuctionId)
+            .Select(g => new { AuctionId = g.Key, Count = g.Count() })
+            .ToListAsync();
+
+        analytics.TotalWatchlistAdds = watchlistCounts.Sum(w => w.Count);
+
+        analytics.TotalRevenue = await _context.Transactions
+            .Where(t => t.UserId == userId && t.TransactionType == "Sale")
+            .SumAsync(t => t.Amount);
+
+        // Chart Data (Top 5 active or recent auctions)
+        var topAuctions = sellerAuctions
+            .OrderByDescending(a => a.CreatedOn)
+            .Take(5)
+            .ToList();
+
+        foreach (var auction in topAuctions)
+        {
+            analytics.AuctionTitles.Add(auction.Title);
+            analytics.AuctionViews.Add(auction.ViewCount);
+            
+            var watchCount = watchlistCounts.FirstOrDefault(w => w.AuctionId == auction.Id)?.Count ?? 0;
+            analytics.AuctionWatchlistCounts.Add(watchCount);
+        }
+
+        return analytics;
+    }
+
     public async Task<(bool Success, string Message)> PromoteAuctionAsync(int auctionId, string userId)
     {
         using var dbTransaction = await _context.Database.BeginTransactionAsync();
@@ -685,6 +728,11 @@ public class AuctionService : IAuctionService
             .Include(a => a.Bids)
                 .ThenInclude(b => b.Bidder)
             .FirstOrDefaultAsync(a => a.PublicId == publicId);
+
+        if (auction != null && auction.SellerId != currentUserId)
+        {
+            await _context.Database.ExecuteSqlRawAsync("UPDATE Auctions SET ViewCount = ViewCount + 1 WHERE Id = {0}", auction.Id);
+        }
 
         return await MapToDetailsDtoAsync(auction, currentUserId);
     }

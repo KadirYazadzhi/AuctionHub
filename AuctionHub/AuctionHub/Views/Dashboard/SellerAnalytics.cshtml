@@ -1,0 +1,154 @@
+@model AuctionHub.Application.DTOs.SellerAnalyticsDto
+@{
+    ViewData["Title"] = "Seller Analytics";
+}
+
+<div class="container py-5 min-vh-100">
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <div>
+            <h1 class="display-5 fw-bold text-dark mb-2">Seller Analytics</h1>
+            <p class="text-muted lead mb-0">Track the performance of your listings.</p>
+        </div>
+        <a asp-controller="Dashboard" asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4 shadow-sm">
+            <i class="bi bi-arrow-left me-2"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 bg-primary text-white h-100 p-4 animate-fade-up">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="mb-1 opacity-75 fw-bold text-uppercase small">Total Revenue</p>
+                        <h2 class="display-6 fw-bold mb-0">@Model.TotalRevenue.ToString("C")</h2>
+                    </div>
+                    <i class="bi bi-wallet2 display-5 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 bg-white h-100 p-4 animate-fade-up delay-100 border-start border-4 border-success">
+                <div class="d-flex justify-content-between text-dark">
+                    <div>
+                        <p class="mb-1 text-muted fw-bold text-uppercase small">Active Auctions</p>
+                        <h2 class="display-6 fw-bold mb-0">@Model.TotalActiveAuctions</h2>
+                    </div>
+                    <i class="bi bi-shop display-5 text-success opacity-50"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 bg-white h-100 p-4 animate-fade-up delay-200 border-start border-4 border-info">
+                <div class="d-flex justify-content-between text-dark">
+                    <div>
+                        <p class="mb-1 text-muted fw-bold text-uppercase small">Total Views</p>
+                        <h2 class="display-6 fw-bold mb-0">@Model.TotalViews</h2>
+                    </div>
+                    <i class="bi bi-eye display-5 text-info opacity-50"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 bg-white h-100 p-4 animate-fade-up delay-300 border-start border-4 border-warning">
+                <div class="d-flex justify-content-between text-dark">
+                    <div>
+                        <p class="mb-1 text-muted fw-bold text-uppercase small">Watchlist Adds</p>
+                        <h2 class="display-6 fw-bold mb-0">@Model.TotalWatchlistAdds</h2>
+                    </div>
+                    <i class="bi bi-star display-5 text-warning opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="row g-4">
+        <div class="col-lg-8 animate-fade-up delay-400">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                <h5 class="fw-bold mb-4">Performance by Item (Views vs Watchers)</h5>
+                <div style="height: 350px;">
+                    <canvas id="performanceChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 animate-fade-up delay-500">
+            <div class="card border-0 bg-light shadow-sm rounded-4 p-4 h-100">
+                <h5 class="fw-bold mb-4">Tips for Sellers</h5>
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-3 d-flex align-items-start">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span class="small text-muted"><strong>High Views, Low Bids:</strong> Consider lowering your starting price or reserve price.</span>
+                    </li>
+                    <li class="mb-3 d-flex align-items-start">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span class="small text-muted"><strong>Many Watchers:</strong> People are waiting for the last minute. Don't worry, action happens late!</span>
+                    </li>
+                    <li class="mb-3 d-flex align-items-start">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span class="small text-muted"><strong>Low Views:</strong> Try using the "Promote" feature to boost visibility in searches.</span>
+                    </li>
+                </ul>
+                <div class="mt-auto pt-4 text-center">
+                    <a asp-controller="Auctions" asp-action="Create" class="btn btn-primary rounded-pill px-4 shadow-sm w-100">Create New Listing</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            
+            // Serialize data from C# model
+            const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AuctionTitles));
+            const viewsData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AuctionViews));
+            const watchlistData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AuctionWatchlistCounts));
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Views',
+                            data: viewsData,
+                            backgroundColor: 'rgba(67, 97, 238, 0.7)',
+                            borderColor: 'rgba(67, 97, 238, 1)',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Watchlist Adds',
+                            data: watchlistData,
+                            backgroundColor: 'rgba(255, 193, 7, 0.7)',
+                            borderColor: 'rgba(255, 193, 7, 1)',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { borderDash: [2, 4], color: '#e9ecef' }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: { mode: 'index', intersect: false }
+                    }
+                }
+            });
+        });
+    </script>
+}

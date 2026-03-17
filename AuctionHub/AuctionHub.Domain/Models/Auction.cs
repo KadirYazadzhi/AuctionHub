@@ -60,6 +60,8 @@ public class Auction
         public bool IsSettled { get; set; } = false;
         public bool IsDisputed { get; set; } = false;
 
+    public int ViewCount { get; set; } = 0;
+
     [Timestamp]
     public byte[] RowVersion { get; set; } = null!;
 

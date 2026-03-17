@@ -35,4 +35,14 @@ public class DashboardController : Controller
 
         return View(userDetails);
     }
+
+    [HttpGet]
+    public async Task<IActionResult> SellerAnalytics()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId == null) return Challenge();
+
+        var analytics = await _auctionService.GetSellerAnalyticsAsync(userId);
+        return View(analytics);
+    }
 }
