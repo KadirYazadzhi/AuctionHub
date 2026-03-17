@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using AuctionHub.Application.DTOs;
 
 namespace AuctionHub.Models.ViewModels;
 
