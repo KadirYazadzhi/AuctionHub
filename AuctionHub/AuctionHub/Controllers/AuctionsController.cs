@@ -102,6 +102,8 @@ public class AuctionsController : Controller
             return NotFound();
         }
 
+        ViewBag.IsFollowing = currentUserId != null && await _userService.IsFollowingAsync(currentUserId, auction.SellerId);
+
         var model = new AuctionDetailsViewModel
         {
             Id = auction.Id,
@@ -418,8 +420,15 @@ public class AuctionsController : Controller
         ViewData["TargetUser"] = user.DisplayName;
         ViewData["TargetUserImage"] = user.ProfilePictureUrl;
         ViewData["TargetUserAboutMe"] = user.AboutMe;
+        
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        ViewBag.IsFollowing = currentUserId != null && await _userService.IsFollowingAsync(currentUserId, user.Id);
+        ViewBag.TargetUserId = user.Id;
+        ViewBag.TargetUserPublicId = user.PublicId;
         ViewData["TargetUserRating"] = user.AverageRating;
         ViewData["TargetUserIsTopSeller"] = user.IsTopSeller;
+        ViewData["TargetUserFollowersCount"] = user.FollowersCount;
+        ViewData["TargetUserFollowingCount"] = user.FollowingCount;
         ViewData["TargetUserReviews"] = user.Reviews;
         ViewData["CurrentUsername"] = user.UserName;
         ViewData["CurrentSort"] = sortOrder;
@@ -985,5 +994,35 @@ public class AuctionsController : Controller
         else TempData["Error"] = result.Message;
 
         return RedirectToAction(nameof(Details), new { id = auctionId });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Follow(string sellerId, Guid publicId)
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (currentUserId == null) return Challenge();
+
+        var result = await _userService.FollowUserAsync(currentUserId, sellerId);
+        
+        if (result.Success) TempData["Success"] = result.Message;
+        else TempData["Error"] = result.Message;
+
+        return RedirectToAction(nameof(UserAuctions), new { id = publicId });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Unfollow(string sellerId, Guid publicId)
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (currentUserId == null) return Challenge();
+
+        var result = await _userService.UnfollowUserAsync(currentUserId, sellerId);
+        
+        if (result.Success) TempData["Success"] = result.Message;
+        else TempData["Error"] = result.Message;
+
+        return RedirectToAction(nameof(UserAuctions), new { id = publicId });
     }
 }

@@ -67,6 +67,42 @@
     </div>
 
     <div class="row g-4 mb-5">
+        <!-- Sellers I Follow -->
+        <div class="col-lg-12">
+            <div class="card border-0 shadow-sm rounded-5 bg-card border border-light-subtle">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-4 text-main"><i class="bi bi-people-fill text-primary me-2"></i>Sellers I Follow</h5>
+                    @if (Model.Following.Any())
+                    {
+                        <div class="d-flex gap-4 overflow-auto pb-2 custom-scrollbar">
+                            @foreach (var seller in Model.Following)
+                            {
+                                <a asp-controller="Auctions" asp-action="UserAuctions" asp-route-id="@seller.PublicId" class="text-decoration-none text-center group-hover" style="min-width: 100px;">
+                                    <div class="avatar-md bg-light rounded-circle mx-auto mb-2 overflow-hidden shadow-sm border border-2 border-white transition-all hover-border-primary" style="width: 64px; height: 64px;">
+                                        @if (!string.IsNullOrEmpty(seller.ProfilePictureUrl))
+                                        {
+                                            <img src="@seller.ProfilePictureUrl" class="w-100 h-100 object-fit-cover" alt="@seller.DisplayName">
+                                        }
+                                        else
+                                        {
+                                            <div class="w-100 h-100 d-flex align-items-center justify-content-center text-primary fs-4">
+                                                @seller.DisplayName[0]
+                                            </div>
+                                        }
+                                    </div>
+                                    <small class="fw-bold text-main d-block text-truncate">@seller.DisplayName</small>
+                                </a>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted small mb-0">You are not following any sellers yet. Start exploring to find great items!</p>
+                    }
+                </div>
+            </div>
+        </div>
+
         <!-- Activity Chart -->
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm rounded-5 bg-card h-100 p-2 border border-light-subtle overflow-hidden">
@@ -309,6 +345,11 @@
         transform: translateX(5px); 
         border-color: var(--primary-color) !important;
         box-shadow: 0 5px 15px rgba(0,0,0,0.05) !important;
+    }
+
+    .hover-border-primary:hover {
+        border-color: var(--primary-color) !important;
+        transform: scale(1.05);
     }
 
     /* Minimal Wallet Card */

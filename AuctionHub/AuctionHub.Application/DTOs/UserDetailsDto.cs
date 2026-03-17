@@ -25,6 +25,12 @@ public class UserDetailsDto
 
     public double AverageRating { get; set; }
     public bool IsTopSeller { get; set; }
+    public int FollowersCount { get; set; }
+    public int FollowingCount { get; set; }
+    
+    public List<FollowerDto> Followers { get; set; } = new();
+    public List<FollowerDto> Following { get; set; } = new();
+
     public List<ReviewDto> Reviews { get; set; } = new();
     public List<AuctionDto> Auctions { get; set; } = new();
     public List<BidDto> Bids { get; set; } = new();

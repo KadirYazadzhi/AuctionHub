@@ -51,6 +51,8 @@ public class UserService : IUserService
             .Include(u => u.MyBids).ThenInclude(b => b.Auction)
             .Include(u => u.ReceivedReviews).ThenInclude(r => r.Reviewer)
             .Include(u => u.ReceivedReviews).ThenInclude(r => r.Auction)
+            .Include(u => u.Followers).ThenInclude(f => f.Follower)
+            .Include(u => u.Following).ThenInclude(f => f.Seller)
             .FirstOrDefaultAsync(u => u.Id == id);
 
         if (user == null) return null;
@@ -65,6 +67,8 @@ public class UserService : IUserService
             .Include(u => u.MyBids).ThenInclude(b => b.Auction)
             .Include(u => u.ReceivedReviews).ThenInclude(r => r.Reviewer)
             .Include(u => u.ReceivedReviews).ThenInclude(r => r.Auction)
+            .Include(u => u.Followers).ThenInclude(f => f.Follower)
+            .Include(u => u.Following).ThenInclude(f => f.Seller)
             .FirstOrDefaultAsync(u => u.UserName == username);
 
         if (user == null) return null;
@@ -79,6 +83,8 @@ public class UserService : IUserService
             .Include(u => u.MyBids).ThenInclude(b => b.Auction)
             .Include(u => u.ReceivedReviews).ThenInclude(r => r.Reviewer)
             .Include(u => u.ReceivedReviews).ThenInclude(r => r.Auction)
+            .Include(u => u.Followers).ThenInclude(f => f.Follower)
+            .Include(u => u.Following).ThenInclude(f => f.Seller)
             .FirstOrDefaultAsync(u => u.PublicId == publicId);
 
         if (user == null) return null;
@@ -150,6 +156,24 @@ public class UserService : IUserService
             IsShadowBanned = user.IsShadowBanned,
             AverageRating = user.AverageRating,
             IsTopSeller = user.IsTopSeller,
+            FollowersCount = user.Followers.Count,
+            FollowingCount = user.Following.Count,
+
+            Followers = user.Followers.Select(f => new FollowerDto
+            {
+                Id = f.FollowerId,
+                PublicId = f.Follower.PublicId,
+                DisplayName = f.Follower.DisplayName,
+                ProfilePictureUrl = f.Follower.ProfilePictureUrl
+            }).ToList(),
+
+            Following = user.Following.Select(f => new FollowerDto
+            {
+                Id = f.SellerId,
+                PublicId = f.Seller.PublicId,
+                DisplayName = f.Seller.DisplayName,
+                ProfilePictureUrl = f.Seller.ProfilePictureUrl
+            }).ToList(),
             
             ActiveBidsCount = activeBidsCount,
             TotalSpent = totalSpent - refunds,
@@ -242,5 +266,48 @@ public class UserService : IUserService
             await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
             return (true, "User locked indefinitely.");
         }
+    }
+
+    // --- Social ---
+
+    public async Task<(bool Success, string Message)> FollowUserAsync(string followerId, string sellerId)
+    {
+        if (followerId == sellerId) return (false, "You cannot follow yourself.");
+
+        var existing = await _context.UserFollowers
+            .FirstOrDefaultAsync(f => f.FollowerId == followerId && f.SellerId == sellerId);
+
+        if (existing != null) return (false, "You are already following this user.");
+
+        var follower = new UserFollower
+        {
+            FollowerId = followerId,
+            SellerId = sellerId,
+            FollowedOn = DateTime.UtcNow
+        };
+
+        _context.UserFollowers.Add(follower);
+        await _context.SaveChangesAsync();
+
+        return (true, "User followed successfully.");
+    }
+
+    public async Task<(bool Success, string Message)> UnfollowUserAsync(string followerId, string sellerId)
+    {
+        var existing = await _context.UserFollowers
+            .FirstOrDefaultAsync(f => f.FollowerId == followerId && f.SellerId == sellerId);
+
+        if (existing == null) return (false, "You are not following this user.");
+
+        _context.UserFollowers.Remove(existing);
+        await _context.SaveChangesAsync();
+
+        return (true, "User unfollowed.");
+    }
+
+    public async Task<bool> IsFollowingAsync(string followerId, string sellerId)
+    {
+        return await _context.UserFollowers
+            .AnyAsync(f => f.FollowerId == followerId && f.SellerId == sellerId);
     }
 }

@@ -28,10 +28,27 @@ public class AuctionHubDbContext : IdentityDbContext<ApplicationUser>, IAuctionH
     public DbSet<UserReport> UserReports { get; set; } = null!;
     public DbSet<PrivateOffer> PrivateOffers { get; set; } = null!;
     public DbSet<AuctionParticipant> AuctionParticipants { get; set; } = null!;
+    public DbSet<UserFollower> UserFollowers { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+
+        // --- Social: User Followers ---
+        builder.Entity<UserFollower>()
+            .HasKey(f => new { f.FollowerId, f.SellerId });
+
+        builder.Entity<UserFollower>()
+            .HasOne(f => f.Follower)
+            .WithMany(u => u.Following)
+            .HasForeignKey(f => f.FollowerId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<UserFollower>()
+            .HasOne(f => f.Seller)
+            .WithMany(u => u.Followers)
+            .HasForeignKey(f => f.SellerId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         // Configure Review
         builder.Entity<Review>()

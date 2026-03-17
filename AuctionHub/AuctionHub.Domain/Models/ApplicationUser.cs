@@ -52,6 +52,10 @@ public class ApplicationUser : IdentityUser
     public virtual ICollection<AuctionWatchlist> Watchlist { get; set; } = new HashSet<AuctionWatchlist>();
     public virtual ICollection<Review> ReceivedReviews { get; set; } = new HashSet<Review>();
 
+    // --- Social ---
+    public virtual ICollection<UserFollower> Followers { get; set; } = new HashSet<UserFollower>();
+    public virtual ICollection<UserFollower> Following { get; set; } = new HashSet<UserFollower>();
+
     [NotMapped]
     public double AverageRating => ReceivedReviews.Any() ? ReceivedReviews.Average(r => r.Rating) : 0;
 

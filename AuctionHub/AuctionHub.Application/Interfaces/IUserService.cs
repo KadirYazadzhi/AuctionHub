@@ -11,4 +11,9 @@ public interface IUserService
     Task<(bool Success, string Message)> UpdateBalanceAsync(string userId, decimal amount, string reason);
     Task<(bool Success, string Message)> ToggleLockAsync(string userId);
     Task<(bool Success, string Message)> ToggleShadowBanAsync(string userId);
+
+    // --- Social ---
+    Task<(bool Success, string Message)> FollowUserAsync(string followerId, string sellerId);
+    Task<(bool Success, string Message)> UnfollowUserAsync(string followerId, string sellerId);
+    Task<bool> IsFollowingAsync(string followerId, string sellerId);
 }

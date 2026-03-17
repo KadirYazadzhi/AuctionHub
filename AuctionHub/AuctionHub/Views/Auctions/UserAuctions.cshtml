@@ -38,6 +38,18 @@
                                 <i class="bi bi-trophy-fill me-1"></i> Top Seller
                             </span>
                         }
+                        
+                        @if (User.Identity?.IsAuthenticated == true && ViewBag.TargetUserId != User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
+                        {
+                            <form asp-action="@(ViewBag.IsFollowing ? "Unfollow" : "Follow")" method="post" class="ms-2">
+                                <input type="hidden" name="sellerId" value="@ViewBag.TargetUserId" />
+                                <input type="hidden" name="publicId" value="@ViewBag.TargetUserPublicId" />
+                                <button type="submit" class="btn @(ViewBag.IsFollowing ? "btn-outline-danger" : "btn-primary") rounded-pill px-4 shadow-sm fw-bold">
+                                    <i class="bi @(ViewBag.IsFollowing ? "bi-person-dash-fill" : "bi-person-plus-fill") me-2"></i>
+                                    @(ViewBag.IsFollowing ? "Unfollow" : "Follow")
+                                </button>
+                            </form>
+                        }
                     </div>
                     
                     @{
@@ -56,6 +68,17 @@
                             }
                         }
                         <span class="text-muted small ms-2">(@rating.ToString("F1"))</span>
+                    </div>
+
+                    <div class="d-flex gap-4 mt-3">
+                        <div class="text-center">
+                            <span class="fw-bold d-block">@ViewData["TargetUserFollowersCount"]</span>
+                            <small class="text-muted text-uppercase smallest fw-bold letter-spacing-1">Followers</small>
+                        </div>
+                        <div class="text-center border-start ps-4">
+                            <span class="fw-bold d-block">@ViewData["TargetUserFollowingCount"]</span>
+                            <small class="text-muted text-uppercase smallest fw-bold letter-spacing-1">Following</small>
+                        </div>
                     </div>
 
                     @if (ViewData["TargetUserAboutMe"] is string aboutMe && !string.IsNullOrEmpty(aboutMe))

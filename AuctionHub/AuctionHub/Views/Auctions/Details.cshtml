@@ -115,6 +115,20 @@
                         
                         @if (User.Identity?.IsAuthenticated == true && Model.SellerId != User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
                         {
+                            <div class="ms-3">
+                                <form asp-action="@(ViewBag.IsFollowing ? "Unfollow" : "Follow")" method="post">
+                                    <input type="hidden" name="sellerId" value="@Model.SellerId" />
+                                    <input type="hidden" name="publicId" value="@Model.PublicId" />
+                                    <button type="submit" class="btn btn-sm @(ViewBag.IsFollowing ? "btn-light" : "btn-outline-primary") rounded-pill px-3 fw-bold">
+                                        <i class="bi @(ViewBag.IsFollowing ? "bi-person-check-fill" : "bi-person-plus") me-1"></i>
+                                        @(ViewBag.IsFollowing ? "Following" : "Follow")
+                                    </button>
+                                </form>
+                            </div>
+                        }
+
+                        @if (User.Identity?.IsAuthenticated == true && Model.SellerId != User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
+                        {
                             <div class="ms-auto d-flex gap-2">
                                 <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#reportModal">
                                     <i class="bi bi-flag me-1"></i> Report

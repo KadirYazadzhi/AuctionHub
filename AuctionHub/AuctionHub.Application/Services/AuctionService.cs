@@ -997,6 +997,19 @@ public class AuctionService : IAuctionService
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
 
+            // --- Social: Notify Followers ---
+            var followers = await _context.UserFollowers
+                .Where(f => f.SellerId == sellerId)
+                .Select(f => f.FollowerId)
+                .ToListAsync();
+
+            foreach (var followerId in followers)
+            {
+                await _notificationService.NotifyUserAsync(followerId, 
+                    $"📢 A seller you follow just listed a new item: '{auction.Title}'", 
+                    $"/Auctions/Details/{auction.Id}");
+            }
+
             return (auction.Id, "Success");
         }
         catch (Exception)
