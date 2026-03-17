@@ -47,7 +47,7 @@ public class AuctionCleanupService : BackgroundService
                 .ToListAsync();
 
             var auctionsToUpdate = dutchAuctions
-                .Where(a => a.LastDutchDecrement.Value.AddMinutes(a.DutchDecrementIntervalMinutes.Value) <= now)
+                .Where(a => a.LastDutchDecrement!.Value.AddMinutes(a.DutchDecrementIntervalMinutes!.Value) <= now)
                 .ToList();
 
             foreach (var auction in auctionsToUpdate)
@@ -57,7 +57,7 @@ public class AuctionCleanupService : BackgroundService
                 
                 if (auction.CurrentPrice > minPrice)
                 {
-                    auction.CurrentPrice -= auction.DutchDecrementAmount.Value;
+                    auction.CurrentPrice -= auction.DutchDecrementAmount!.Value;
                     if (auction.CurrentPrice < minPrice)
                     {
                         auction.CurrentPrice = minPrice;

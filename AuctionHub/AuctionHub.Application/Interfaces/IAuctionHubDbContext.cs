@@ -21,6 +21,8 @@ public interface IAuctionHubDbContext
     DbSet<AuditLog> AuditLogs { get; set; }
     DbSet<SystemSetting> SystemSettings { get; set; }
     DbSet<UserReport> UserReports { get; set; }
+    DbSet<PrivateOffer> PrivateOffers { get; set; }
+    DbSet<AuctionParticipant> AuctionParticipants { get; set; }
     DbSet<ApplicationUser> Users { get; set; }
     DbSet<IdentityRole> Roles { get; set; }
     DbSet<IdentityUserRole<string>> UserRoles { get; set; }
