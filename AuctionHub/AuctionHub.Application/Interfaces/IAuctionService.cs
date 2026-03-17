@@ -91,4 +91,9 @@ public interface IAuctionService
     // --- Comments ---
     Task<(bool Success, string Message, CommentDto? Comment)> AddCommentAsync(int auctionId, string userId, string content);
     Task<IEnumerable<CommentDto>> GetCommentsAsync(int auctionId);
+
+    // --- Background Jobs ---
+    Task CloseExpiredAuctionsAsync();
+    Task ReleaseEscrowFundsAsync();
+    Task ProcessDutchAuctionsAsync();
 }

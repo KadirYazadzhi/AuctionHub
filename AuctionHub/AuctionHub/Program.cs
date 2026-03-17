@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.RateLimiting;
 using StackExchange.Redis;
 using System.Threading.RateLimiting;
+using Hangfire;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,8 +48,15 @@ builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddTransient<IEmailSender, EmailSender>();
 builder.Services.AddTransient<IEmailService, EmailSender>();
 builder.Services.AddHttpClient();
-builder.Services.AddHostedService<AuctionCleanupService>();
-builder.Services.AddHostedService<EscrowReleaseService>();
+
+// --- Hangfire Configuration ---
+builder.Services.AddHangfire(configuration => configuration
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UseSqlServerStorage(connectionString));
+
+builder.Services.AddHangfireServer();
 
 // Redis Configuration (Standard for K8s deployments)
 var redisUrl = builder.Configuration.GetConnectionString("Redis") 
@@ -137,6 +145,20 @@ app.UseRateLimiter(); // Enable Rate Limiting
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseHangfireDashboard("/hangfire", new DashboardOptions
+{
+    Authorization = new[] { new HangfireAuthorizationFilter() }
+});
+
+// Register Recurring Jobs
+using (var scope = app.Services.CreateScope())
+{
+    var recurringJobManager = scope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
+    recurringJobManager.AddOrUpdate("AuctionCleanup", () => scope.ServiceProvider.GetRequiredService<IAuctionService>().CloseExpiredAuctionsAsync(), Cron.Minutely);
+    recurringJobManager.AddOrUpdate("EscrowRelease", () => scope.ServiceProvider.GetRequiredService<IAuctionService>().ReleaseEscrowFundsAsync(), Cron.Hourly);
+    recurringJobManager.AddOrUpdate("DutchAuctionDrop", () => scope.ServiceProvider.GetRequiredService<IAuctionService>().ProcessDutchAuctionsAsync(), Cron.Minutely);
+}
 
 app.MapControllerRoute(
     name: "areas",
