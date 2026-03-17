@@ -714,6 +714,8 @@ public class AuctionService : IAuctionService
             .Include(a => a.Images)
             .Include(a => a.Bids)
                 .ThenInclude(b => b.Bidder)
+            .Include(a => a.PrivateOffers)
+                .ThenInclude(p => p.Buyer)
             .FirstOrDefaultAsync(a => a.Id == id);
 
         return await MapToDetailsDtoAsync(auction, currentUserId);
@@ -727,6 +729,8 @@ public class AuctionService : IAuctionService
             .Include(a => a.Images)
             .Include(a => a.Bids)
                 .ThenInclude(b => b.Bidder)
+            .Include(a => a.PrivateOffers)
+                .ThenInclude(p => p.Buyer)
             .FirstOrDefaultAsync(a => a.PublicId == publicId);
 
         if (auction != null && auction.SellerId != currentUserId)
@@ -808,7 +812,20 @@ public class AuctionService : IAuctionService
                 {
                     Amount = b.Amount,
                     BidTime = b.BidTime,
-                    Bidder = b.Bidder.DisplayName
+                    Bidder = b.Bidder.DisplayName ?? b.Bidder.UserName ?? "Unknown"
+                })
+                .ToList(),
+            PrivateOffers = auction.PrivateOffers
+                .OrderByDescending(p => p.CreatedOn)
+                .Select(p => new PrivateOfferDto
+                {
+                    Id = p.Id,
+                    AuctionId = p.AuctionId,
+                    BuyerId = p.BuyerId,
+                    BuyerName = p.Buyer.DisplayName ?? p.Buyer.UserName ?? "Unknown",
+                    Amount = p.Amount,
+                    Status = p.Status,
+                    CreatedOn = p.CreatedOn
                 })
                 .ToList()
         };
@@ -1706,5 +1723,203 @@ public class AuctionService : IAuctionService
             return rate / 100m;
         }
         return 0.05m; // Default 5%
+    }
+
+    public async Task<(bool Success, string Message)> RejectPrivateOfferAsync(int offerId, string sellerId)
+    {
+        var offer = await _context.PrivateOffers
+            .Include(o => o.Auction)
+            .FirstOrDefaultAsync(o => o.Id == offerId);
+
+        if (offer == null || offer.Auction.SellerId != sellerId) return (false, "Offer not found or unauthorized.");
+        if (offer.Status != "Pending") return (false, "Offer is no longer pending.");
+
+        using var dbTransaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            offer.Status = "Rejected";
+
+            var buyer = await _context.Users.FindAsync(offer.BuyerId);
+            if (buyer != null)
+            {
+                buyer.WalletBalance += offer.Amount;
+                _context.Transactions.Add(new Transaction
+                {
+                    UserId = buyer.Id,
+                    Amount = offer.Amount,
+                    Description = $"Refund: Private offer on '{offer.Auction.Title}' was rejected.",
+                    TransactionType = "Refund",
+                    TransactionDate = DateTime.UtcNow,
+                    AuctionId = offer.AuctionId
+                });
+            }
+
+            await _context.SaveChangesAsync();
+            await dbTransaction.CommitAsync();
+
+            await _notificationService.NotifyUserAsync(offer.BuyerId, 
+                $"Your private offer of {offer.Amount:C} for '{offer.Auction.Title}' was rejected.", 
+                $"/Auctions/Details/{offer.AuctionId}");
+
+            return (true, "Offer rejected.");
+        }
+        catch (Exception)
+        {
+            await dbTransaction.RollbackAsync();
+            return (false, "An error occurred.");
+        }
+    }
+
+    public async Task<(bool Success, string Message)> MakePrivateOfferAsync(int auctionId, string buyerId, decimal amount)
+    {
+        var auction = await _context.Auctions.FindAsync(auctionId);
+        if (auction == null || !auction.IsActive || auction.IsDutchAuction) 
+            return (false, "This auction is not eligible for private offers.");
+            
+        if (auction.SellerId == buyerId) return (false, "Cannot make an offer on your own item.");
+
+        var buyer = await _context.Users.FindAsync(buyerId);
+        if (buyer == null || buyer.WalletBalance < amount) return (false, "Insufficient funds.");
+
+        var existingOffer = await _context.PrivateOffers
+            .FirstOrDefaultAsync(o => o.AuctionId == auctionId && o.BuyerId == buyerId && o.Status == "Pending");
+            
+        if (existingOffer != null) return (false, "You already have a pending offer for this item.");
+
+        using var dbTransaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            // Hold funds
+            buyer.WalletBalance -= amount;
+            _context.Transactions.Add(new Transaction
+            {
+                UserId = buyerId,
+                Amount = amount,
+                Description = $"Funds held for private offer on '{auction.Title}'",
+                TransactionType = "OfferHold",
+                TransactionDate = DateTime.UtcNow,
+                AuctionId = auctionId
+            });
+
+            var offer = new PrivateOffer
+            {
+                AuctionId = auctionId,
+                BuyerId = buyerId,
+                Amount = amount,
+                Status = "Pending",
+                CreatedOn = DateTime.UtcNow
+            };
+
+            _context.PrivateOffers.Add(offer);
+            await _context.SaveChangesAsync();
+            await dbTransaction.CommitAsync();
+
+            await _notificationService.NotifyUserAsync(auction.SellerId, 
+                $"You have received a new private offer of {amount:C} for '{auction.Title}'.", 
+                $"/Auctions/Details/{auctionId}");
+
+            return (true, "Offer sent successfully.");
+        }
+        catch (Exception)
+        {
+            await dbTransaction.RollbackAsync();
+            return (false, "An error occurred.");
+        }
+    }
+
+    public async Task<(bool Success, string Message)> AcceptPrivateOfferAsync(int offerId, string sellerId)
+    {
+        var offer = await _context.PrivateOffers
+            .Include(o => o.Auction)
+            .Include(o => o.Buyer)
+            .FirstOrDefaultAsync(o => o.Id == offerId);
+
+        if (offer == null || offer.Auction.SellerId != sellerId) return (false, "Offer not found or unauthorized.");
+        if (offer.Status != "Pending") return (false, "Offer is no longer pending.");
+        if (!offer.Auction.IsActive) return (false, "Auction has already ended.");
+
+        using var dbTransaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            offer.Status = "Accepted";
+            var auction = offer.Auction;
+            auction.IsActive = false;
+            auction.EndTime = DateTime.UtcNow;
+            auction.CurrentPrice = offer.Amount; // Set the sale price
+
+            // Transfer the held funds to Escrow
+            _context.Transactions.Add(new Transaction
+            {
+                UserId = sellerId,
+                Amount = offer.Amount,
+                Description = $"Escrow: Payment for '{auction.Title}' (Private Offer) held until delivery confirmation.",
+                TransactionType = "Escrow",
+                TransactionDate = DateTime.UtcNow,
+                AuctionId = auction.Id
+            });
+
+            // Reject all other pending offers and refund
+            var otherOffers = await _context.PrivateOffers
+                .Where(o => o.AuctionId == auction.Id && o.Id != offerId && o.Status == "Pending")
+                .ToListAsync();
+
+            foreach (var otherOffer in otherOffers)
+            {
+                otherOffer.Status = "Rejected";
+                var otherBuyer = await _context.Users.FindAsync(otherOffer.BuyerId);
+                if (otherBuyer != null)
+                {
+                    otherBuyer.WalletBalance += otherOffer.Amount;
+                    _context.Transactions.Add(new Transaction
+                    {
+                        UserId = otherBuyer.Id,
+                        Amount = otherOffer.Amount,
+                        Description = $"Refund: Private offer on '{auction.Title}' rejected (Item sold to another).",
+                        TransactionType = "Refund",
+                        TransactionDate = DateTime.UtcNow,
+                        AuctionId = auction.Id
+                    });
+                }
+            }
+
+            // Refund any normal bidders
+            var activeBids = await _context.Bids
+                .Where(b => b.AuctionId == auction.Id)
+                .OrderByDescending(b => b.Amount)
+                .ToListAsync();
+
+            if (activeBids.Any())
+            {
+                var highestBid = activeBids.First();
+                var bidder = await _context.Users.FindAsync(highestBid.BidderId);
+                if (bidder != null)
+                {
+                    bidder.WalletBalance += highestBid.Amount;
+                    _context.Transactions.Add(new Transaction
+                    {
+                        UserId = bidder.Id,
+                        Amount = highestBid.Amount,
+                        Description = $"Refund: Auction '{auction.Title}' ended via Private Offer.",
+                        TransactionType = "Refund",
+                        TransactionDate = DateTime.UtcNow,
+                        AuctionId = auction.Id
+                    });
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            await dbTransaction.CommitAsync();
+
+            await _notificationService.NotifyUserAsync(offer.BuyerId, 
+                $"🎉 Your private offer of {offer.Amount:C} for '{auction.Title}' was ACCEPTED! Please confirm receipt upon delivery.", 
+                $"/Auctions/Details/{auction.Id}");
+
+            return (true, "Offer accepted. Item sold!");
+        }
+        catch (Exception)
+        {
+            await dbTransaction.RollbackAsync();
+            return (false, "An error occurred.");
+        }
     }
 }

@@ -87,4 +87,5 @@ public class Auction
 
     public virtual ICollection<AuctionImage> Images { get; set; } = new HashSet<AuctionImage>();
     public virtual ICollection<Bid> Bids { get; set; } = new HashSet<Bid>();
+    public virtual ICollection<PrivateOffer> PrivateOffers { get; set; } = new HashSet<PrivateOffer>();
 }

@@ -221,6 +221,22 @@
                         </div>
                     }
 
+                    <!-- Make Offer -->
+                    @if (User.Identity?.IsAuthenticated == true && Model.IsActive && !Model.IsDutchAuction && Model.SellerId != User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value && !User.IsInRole("Administrator"))
+                    {
+                        <div class="card border-0 bg-secondary bg-opacity-10 rounded-5 mb-4 shadow-sm border-start border-4 border-secondary">
+                            <div class="card-body p-4 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="fw-bold text-dark mb-1"><i class="bi bi-chat-text-fill text-secondary me-2"></i> Private Offer</h6>
+                                    <p class="small text-muted mb-0">Negotiate directly with the seller.</p>
+                                </div>
+                                <button type="button" class="btn btn-outline-secondary rounded-pill px-4 py-2 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#offerModal">
+                                    Make Offer
+                                </button>
+                            </div>
+                        </div>
+                    }
+
                     <!-- Bid Section -->
                     @if (User.Identity?.IsAuthenticated == true)
                     {
@@ -445,6 +461,49 @@
                         </div>
                     }
 
+                    <!-- Seller Private Offers -->
+                    @if (User.Identity?.IsAuthenticated == true && Model.SellerId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value && Model.PrivateOffers.Any())
+                    {
+                        <div class="mt-5">
+                            <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-envelope-paper-heart-fill text-danger me-2"></i> Private Offers</h5>
+                            <div class="list-group list-group-flush border rounded-4 overflow-hidden">
+                                @foreach (var offer in Model.PrivateOffers.Where(o => o.Status == "Pending" || o.Status == "Accepted"))
+                                {
+                                    <div class="list-group-item p-3 d-flex align-items-center justify-content-between @(offer.Status == "Accepted" ? "bg-success bg-opacity-10" : "")">
+                                        <div>
+                                            <strong class="text-dark">@offer.BuyerName</strong> offered
+                                            <div class="fw-bold text-primary fs-5">@offer.Amount.ToString("C")</div>
+                                            <small class="text-muted">@offer.CreatedOn.ToLocalTime().ToString("MMM dd, HH:mm")</small>
+                                        </div>
+                                        @if (offer.Status == "Pending" && Model.IsActive)
+                                        {
+                                            <div class="d-flex gap-2">
+                                                <form asp-action="AcceptPrivateOffer" method="post" onsubmit="return confirm('Accept this offer? The auction will end immediately.');">
+                                                    <input type="hidden" name="offerId" value="@offer.Id" />
+                                                    <input type="hidden" name="auctionId" value="@Model.Id" />
+                                                    <button class="btn btn-sm btn-success rounded-pill px-3 shadow-sm fw-bold"><i class="bi bi-check-lg"></i> Accept</button>
+                                                </form>
+                                                <form asp-action="RejectPrivateOffer" method="post">
+                                                    <input type="hidden" name="offerId" value="@offer.Id" />
+                                                    <input type="hidden" name="auctionId" value="@Model.Id" />
+                                                    <button class="btn btn-sm btn-outline-danger rounded-pill px-3 shadow-sm"><i class="bi bi-x-lg"></i> Reject</button>
+                                                </form>
+                                            </div>
+                                        }
+                                        else if (offer.Status == "Accepted")
+                                        {
+                                            <span class="badge bg-success rounded-pill px-3 py-2">Accepted</span>
+                                        }
+                                    </div>
+                                }
+                                @if(!Model.PrivateOffers.Any(o => o.Status == "Pending" || o.Status == "Accepted"))
+                                {
+                                    <div class="list-group-item p-4 text-center text-muted small">No pending offers.</div>
+                                }
+                            </div>
+                        </div>
+                    }
+
                     <!-- History Timeline -->
                     <div class="mt-5">
                         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -561,6 +620,33 @@
 </style>
 
 @section Modals {
+    <!-- Offer Modal -->
+    <div class="modal fade" id="offerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-5">
+                <div class="modal-header border-0 p-4 pb-0">
+                    <h5 class="fw-bold mb-0">Make a Private Offer</h5>
+                    <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form asp-controller="Auctions" asp-action="MakePrivateOffer" method="post">
+                        <input type="hidden" name="auctionId" value="@Model.Id" />
+                        <label class="form-label small fw-bold text-muted text-uppercase">Your Offer Amount</label>
+                        <div class="input-group input-group-lg mb-3">
+                            <span class="input-group-text bg-light border-0 ps-4 text-primary fw-bold">€</span>
+                            <input type="text" name="offerAmount" class="form-control bg-light border-0 py-3" placeholder="0.00" oninput="this.value = this.value.replace(/[^0-9,.]/g, '').replace('.', ',')" inputmode="decimal" required>
+                        </div>
+                        <div class="alert alert-warning border-0 rounded-4 small p-3 d-flex align-items-center mb-4">
+                            <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+                            <div>These funds will be temporarily held from your wallet. They will be refunded if the seller rejects your offer.</div>
+                        </div>
+                        <button type="submit" class="btn btn-secondary text-white w-100 rounded-pill py-3 fw-bold shadow-sm">Send Offer</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Report Modal -->
     <div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">

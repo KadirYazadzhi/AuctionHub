@@ -45,4 +45,5 @@ public class AuctionDetailsDto
     public decimal? CurrentAutoBidLimit { get; set; }
     public string? WinnerId { get; set; }
     public List<BidDto> Bids { get; set; } = new();
+    public List<PrivateOfferDto> PrivateOffers { get; set; } = new();
 }
