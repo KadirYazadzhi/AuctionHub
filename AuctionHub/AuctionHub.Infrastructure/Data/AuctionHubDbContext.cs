@@ -27,6 +27,7 @@ public class AuctionHubDbContext : IdentityDbContext<ApplicationUser>, IAuctionH
     public DbSet<SystemSetting> SystemSettings { get; set; } = null!;
     public DbSet<UserReport> UserReports { get; set; } = null!;
     public DbSet<PrivateOffer> PrivateOffers { get; set; } = null!;
+    public DbSet<AuctionParticipant> AuctionParticipants { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

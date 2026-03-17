@@ -18,6 +18,9 @@ public class AuctionDetailsDto
     public decimal? DutchDecrementAmount { get; set; }
     public int? DutchDecrementIntervalMinutes { get; set; }
     public DateTime? NextDutchDecrement { get; set; }
+
+    public decimal? ParticipationFee { get; set; }
+    public bool HasPaidParticipationFee { get; set; }
     public DateTime EndTime { get; set; }
     public string Category { get; set; } = null!;
     public int CategoryId { get; set; }

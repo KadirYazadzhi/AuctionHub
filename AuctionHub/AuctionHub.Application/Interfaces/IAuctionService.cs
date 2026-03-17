@@ -86,4 +86,5 @@ public interface IAuctionService
     Task<(bool Success, string Message)> MakePrivateOfferAsync(int auctionId, string buyerId, decimal amount);
     Task<(bool Success, string Message)> AcceptPrivateOfferAsync(int offerId, string sellerId);
     Task<(bool Success, string Message)> RejectPrivateOfferAsync(int offerId, string sellerId);
+    Task<(bool Success, string Message)> PayParticipationFeeAsync(int auctionId, string userId);
 }

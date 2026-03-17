@@ -716,6 +716,7 @@ public class AuctionService : IAuctionService
                 .ThenInclude(b => b.Bidder)
             .Include(a => a.PrivateOffers)
                 .ThenInclude(p => p.Buyer)
+            .Include(a => a.Participants)
             .FirstOrDefaultAsync(a => a.Id == id);
 
         return await MapToDetailsDtoAsync(auction, currentUserId);
@@ -731,6 +732,7 @@ public class AuctionService : IAuctionService
                 .ThenInclude(b => b.Bidder)
             .Include(a => a.PrivateOffers)
                 .ThenInclude(p => p.Buyer)
+            .Include(a => a.Participants)
             .FirstOrDefaultAsync(a => a.PublicId == publicId);
 
         if (auction != null && auction.SellerId != currentUserId)
@@ -781,6 +783,8 @@ public class AuctionService : IAuctionService
             NextDutchDecrement = auction.IsDutchAuction && auction.LastDutchDecrement.HasValue && auction.DutchDecrementIntervalMinutes.HasValue 
                 ? auction.LastDutchDecrement.Value.AddMinutes(auction.DutchDecrementIntervalMinutes.Value) 
                 : null,
+            ParticipationFee = auction.ParticipationFee,
+            HasPaidParticipationFee = currentUserId != null && auction.Participants.Any(p => p.UserId == currentUserId),
             EndTime = auction.EndTime,
             Category = auction.Category.Name,
             CategoryId = auction.CategoryId,
@@ -917,6 +921,7 @@ public class AuctionService : IAuctionService
                 DutchDecrementAmount = model.IsDutchAuction ? model.DutchDecrementAmount : null,
                 DutchDecrementIntervalMinutes = model.IsDutchAuction ? model.DutchDecrementIntervalMinutes : null,
                 LastDutchDecrement = model.IsDutchAuction ? now : null,
+                ParticipationFee = model.ParticipationFee,
                 EndTime = new DateTime(model.EndTime.Year, model.EndTime.Month, model.EndTime.Day, 
                                      model.EndTime.Hour, model.EndTime.Minute, 0, 0, model.EndTime.Kind),
                 CreatedOn = now,
@@ -1088,6 +1093,7 @@ public class AuctionService : IAuctionService
         }
         auction.DutchDecrementAmount = model.IsDutchAuction ? model.DutchDecrementAmount : null;
         auction.DutchDecrementIntervalMinutes = model.IsDutchAuction ? model.DutchDecrementIntervalMinutes : null;
+        auction.ParticipationFee = model.ParticipationFee;
 
         auction.EndTime = new DateTime(model.EndTime.Year, model.EndTime.Month, model.EndTime.Day, 
                                      model.EndTime.Hour, model.EndTime.Minute, 0, 0, model.EndTime.Kind);
@@ -1269,11 +1275,19 @@ public class AuctionService : IAuctionService
             var auction = await _context.Auctions
                 .Include(a => a.Bids)
                 .ThenInclude(b => b.Bidder)
+                .Include(a => a.Participants)
                 .FirstOrDefaultAsync(a => a.Id == auctionId);
 
             if (auction == null) return (false, "Auction not found.");
 
             // Validations
+            if (auction.ParticipationFee.HasValue && auction.ParticipationFee.Value > 0)
+            {
+                if (!auction.Participants.Any(p => p.UserId == userId))
+                {
+                    return (false, "You must purchase a participation ticket before bidding.");
+                }
+            }
             var currentUser = await _context.Users.FindAsync(userId);
             if (currentUser == null) return (false, "User not found.");
             
@@ -1588,9 +1602,18 @@ public class AuctionService : IAuctionService
                 .Include(a => a.Seller)
                 .Include(a => a.Bids)
                 .ThenInclude(b => b.Bidder)
+                .Include(a => a.Participants)
                 .FirstOrDefaultAsync(a => a.Id == auctionId);
 
             if (auction == null) return (false, "Auction not found.");
+            
+            if (auction.ParticipationFee.HasValue && auction.ParticipationFee.Value > 0)
+            {
+                if (!auction.Participants.Any(p => p.UserId == userId))
+                {
+                    return (false, "You must purchase a participation ticket before purchasing.");
+                }
+            }
             
             // Validation: Restrict Admin
             var userRoles = await _context.UserRoles.Where(ur => ur.UserId == userId).ToListAsync();
@@ -1920,6 +1943,72 @@ public class AuctionService : IAuctionService
         {
             await dbTransaction.RollbackAsync();
             return (false, "An error occurred.");
+        }
+    }
+
+    public async Task<(bool Success, string Message)> PayParticipationFeeAsync(int auctionId, string userId)
+    {
+        var auction = await _context.Auctions
+            .Include(a => a.Participants)
+            .FirstOrDefaultAsync(a => a.Id == auctionId);
+
+        if (auction == null) return (false, "Auction not found.");
+        if (auction.SellerId == userId) return (false, "You are the seller.");
+        if (!auction.ParticipationFee.HasValue || auction.ParticipationFee.Value <= 0) return (false, "This auction has no participation fee.");
+        if (auction.Participants.Any(p => p.UserId == userId)) return (false, "You have already paid the fee.");
+
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null || user.WalletBalance < auction.ParticipationFee.Value) 
+            return (false, "Insufficient funds to pay the participation fee.");
+
+        using var dbTransaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            user.WalletBalance -= auction.ParticipationFee.Value;
+            
+            // Transfer fee to the seller
+            var seller = await _context.Users.FindAsync(auction.SellerId);
+            if (seller != null)
+            {
+                seller.WalletBalance += auction.ParticipationFee.Value;
+            }
+
+            _context.Transactions.Add(new Transaction
+            {
+                UserId = userId,
+                Amount = auction.ParticipationFee.Value,
+                Description = $"Paid participation fee for auction '{auction.Title}'",
+                TransactionType = "Fee",
+                TransactionDate = DateTime.UtcNow,
+                AuctionId = auctionId
+            });
+
+            _context.Transactions.Add(new Transaction
+            {
+                UserId = auction.SellerId,
+                Amount = auction.ParticipationFee.Value,
+                Description = $"Received participation fee from a user for '{auction.Title}'",
+                TransactionType = "FeeIncome",
+                TransactionDate = DateTime.UtcNow,
+                AuctionId = auctionId
+            });
+
+            _context.AuctionParticipants.Add(new AuctionParticipant
+            {
+                AuctionId = auctionId,
+                UserId = userId,
+                PaidOn = DateTime.UtcNow
+            });
+
+            await _context.SaveChangesAsync();
+            await dbTransaction.CommitAsync();
+
+            return (true, "Participation ticket purchased successfully!");
+        }
+        catch (Exception)
+        {
+            await dbTransaction.RollbackAsync();
+            return (false, "An error occurred while purchasing the ticket.");
         }
     }
 }

@@ -48,6 +48,9 @@ public class AuctionFormModel
     [Display(Name = "Price Drop Interval (Minutes)")]
     public int? DutchDecrementIntervalMinutes { get; set; }
 
+    [Display(Name = "Bidding Participation Fee (€)")]
+    public decimal? ParticipationFee { get; set; }
+
     [Required]
     [Display(Name = "Auction End Time")]
     public DateTime EndTime { get; set; }

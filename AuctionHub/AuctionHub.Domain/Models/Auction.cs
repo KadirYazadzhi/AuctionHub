@@ -45,6 +45,10 @@ public class Auction
     public int? DutchDecrementIntervalMinutes { get; set; }
     public DateTime? LastDutchDecrement { get; set; }
 
+    // --- Participation Fee ---
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal? ParticipationFee { get; set; }
+
     [Required]
     public DateTime CreatedOn { get; set; }
 
@@ -88,4 +92,5 @@ public class Auction
     public virtual ICollection<AuctionImage> Images { get; set; } = new HashSet<AuctionImage>();
     public virtual ICollection<Bid> Bids { get; set; } = new HashSet<Bid>();
     public virtual ICollection<PrivateOffer> PrivateOffers { get; set; } = new HashSet<PrivateOffer>();
+    public virtual ICollection<AuctionParticipant> Participants { get; set; } = new HashSet<AuctionParticipant>();
 }

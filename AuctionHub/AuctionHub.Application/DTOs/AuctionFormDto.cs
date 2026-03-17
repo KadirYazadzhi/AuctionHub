@@ -13,6 +13,7 @@ public class AuctionFormDto
     public bool IsDutchAuction { get; set; }
     public decimal? DutchDecrementAmount { get; set; }
     public int? DutchDecrementIntervalMinutes { get; set; }
+    public decimal? ParticipationFee { get; set; }
     public DateTime EndTime { get; set; }
     public int CategoryId { get; set; }
     
