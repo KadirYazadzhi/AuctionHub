@@ -717,6 +717,8 @@ public class AuctionService : IAuctionService
             .Include(a => a.PrivateOffers)
                 .ThenInclude(p => p.Buyer)
             .Include(a => a.Participants)
+            .Include(a => a.Comments)
+                .ThenInclude(c => c.User)
             .FirstOrDefaultAsync(a => a.Id == id);
 
         return await MapToDetailsDtoAsync(auction, currentUserId);
@@ -733,6 +735,8 @@ public class AuctionService : IAuctionService
             .Include(a => a.PrivateOffers)
                 .ThenInclude(p => p.Buyer)
             .Include(a => a.Participants)
+            .Include(a => a.Comments)
+                .ThenInclude(c => c.User)
             .FirstOrDefaultAsync(a => a.PublicId == publicId);
 
         if (auction != null && auction.SellerId != currentUserId)
@@ -830,6 +834,19 @@ public class AuctionService : IAuctionService
                     Amount = p.Amount,
                     Status = p.Status,
                     CreatedOn = p.CreatedOn
+                })
+                .ToList(),
+            Comments = auction.Comments
+                .OrderByDescending(c => c.CreatedOn)
+                .Select(c => new CommentDto
+                {
+                    Id = c.Id,
+                    AuctionId = c.AuctionId,
+                    UserId = c.UserId,
+                    UserDisplayName = c.User.DisplayName,
+                    UserProfilePictureUrl = c.User.ProfilePictureUrl,
+                    Content = c.Content,
+                    CreatedOn = c.CreatedOn
                 })
                 .ToList()
         };
@@ -2023,5 +2040,61 @@ public class AuctionService : IAuctionService
             await dbTransaction.RollbackAsync();
             return (false, "An error occurred while purchasing the ticket.");
         }
+    }
+
+    // --- Comments ---
+
+    public async Task<(bool Success, string Message, CommentDto? Comment)> AddCommentAsync(int auctionId, string userId, string content)
+    {
+        if (string.IsNullOrWhiteSpace(content)) return (false, "Comment cannot be empty.", null);
+        if (content.Length > 1000) return (false, "Comment is too long (max 1000 characters).", null);
+
+        var auction = await _context.Auctions.FindAsync(auctionId);
+        if (auction == null) return (false, "Auction not found.", null);
+
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null) return (false, "User not found.", null);
+
+        var comment = new Comment
+        {
+            AuctionId = auctionId,
+            UserId = userId,
+            Content = content,
+            CreatedOn = DateTime.UtcNow
+        };
+
+        _context.Comments.Add(comment);
+        await _context.SaveChangesAsync();
+
+        var dto = new CommentDto
+        {
+            Id = comment.Id,
+            AuctionId = auctionId,
+            UserId = userId,
+            UserDisplayName = user.DisplayName,
+            UserProfilePictureUrl = user.ProfilePictureUrl,
+            Content = comment.Content,
+            CreatedOn = comment.CreatedOn
+        };
+
+        return (true, "Comment added.", dto);
+    }
+
+    public async Task<IEnumerable<CommentDto>> GetCommentsAsync(int auctionId)
+    {
+        return await _context.Comments
+            .Where(c => c.AuctionId == auctionId)
+            .OrderByDescending(c => c.CreatedOn)
+            .Select(c => new CommentDto
+            {
+                Id = c.Id,
+                AuctionId = c.AuctionId,
+                UserId = c.UserId,
+                UserDisplayName = c.User.DisplayName,
+                UserProfilePictureUrl = c.User.ProfilePictureUrl,
+                Content = c.Content,
+                CreatedOn = c.CreatedOn
+            })
+            .ToListAsync();
     }
 }

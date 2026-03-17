@@ -66,6 +66,7 @@ public class AuctionDetailsViewModel
 
     public IEnumerable<BidViewModel> Bids { get; set; } = new List<BidViewModel>();
     public IEnumerable<PrivateOfferDto> PrivateOffers { get; set; } = new List<PrivateOfferDto>();
+    public IEnumerable<CommentDto> Comments { get; set; } = new List<CommentDto>();
 
     [Required]
     [Range(0.01, double.MaxValue, ErrorMessage = "Bid amount must be greater than 0.")]

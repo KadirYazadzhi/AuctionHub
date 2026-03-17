@@ -93,4 +93,5 @@ public class Auction
     public virtual ICollection<Bid> Bids { get; set; } = new HashSet<Bid>();
     public virtual ICollection<PrivateOffer> PrivateOffers { get; set; } = new HashSet<PrivateOffer>();
     public virtual ICollection<AuctionParticipant> Participants { get; set; } = new HashSet<AuctionParticipant>();
+    public virtual ICollection<Comment> Comments { get; set; } = new HashSet<Comment>();
 }

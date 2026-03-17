@@ -24,6 +24,7 @@ public interface IAuctionHubDbContext
     DbSet<PrivateOffer> PrivateOffers { get; set; }
     DbSet<AuctionParticipant> AuctionParticipants { get; set; }
     DbSet<UserFollower> UserFollowers { get; set; }
+    DbSet<Comment> Comments { get; set; }
     DbSet<ApplicationUser> Users { get; set; }
     DbSet<IdentityRole> Roles { get; set; }
     DbSet<IdentityUserRole<string>> UserRoles { get; set; }

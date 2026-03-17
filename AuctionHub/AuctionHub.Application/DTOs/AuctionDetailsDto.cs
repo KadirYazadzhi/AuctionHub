@@ -49,4 +49,5 @@ public class AuctionDetailsDto
     public string? WinnerId { get; set; }
     public List<BidDto> Bids { get; set; } = new();
     public List<PrivateOfferDto> PrivateOffers { get; set; } = new();
+    public List<CommentDto> Comments { get; set; } = new();
 }

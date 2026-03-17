@@ -146,6 +146,8 @@ public class AuctionsController : Controller
                     Bidder = b.Bidder
                 })
                 .ToList(),
+            PrivateOffers = auction.PrivateOffers,
+            Comments = auction.Comments,
             NewBidAmount = auction.CurrentPrice + auction.MinIncrease
         };
 
@@ -1024,5 +1026,26 @@ public class AuctionsController : Controller
         else TempData["Error"] = result.Message;
 
         return RedirectToAction(nameof(UserAuctions), new { id = publicId });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddComment(int auctionId, string content)
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (currentUserId == null) return Challenge();
+
+        var result = await _auctionService.AddCommentAsync(auctionId, currentUserId, content);
+        
+        if (result.Success)
+        {
+            TempData["Success"] = "Comment added successfully.";
+        }
+        else
+        {
+            TempData["Error"] = result.Message;
+        }
+
+        return RedirectToAction(nameof(Details), new { id = auctionId });
     }
 }

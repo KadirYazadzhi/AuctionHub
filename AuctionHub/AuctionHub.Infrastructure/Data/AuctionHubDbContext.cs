@@ -29,10 +29,24 @@ public class AuctionHubDbContext : IdentityDbContext<ApplicationUser>, IAuctionH
     public DbSet<PrivateOffer> PrivateOffers { get; set; } = null!;
     public DbSet<AuctionParticipant> AuctionParticipants { get; set; } = null!;
     public DbSet<UserFollower> UserFollowers { get; set; } = null!;
+    public DbSet<Comment> Comments { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+
+        // Configure Comment
+        builder.Entity<Comment>()
+            .HasOne(c => c.Auction)
+            .WithMany(a => a.Comments)
+            .HasForeignKey(c => c.AuctionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<Comment>()
+            .HasOne(c => c.User)
+            .WithMany()
+            .HasForeignKey(c => c.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         // --- Social: User Followers ---
         builder.Entity<UserFollower>()
@@ -141,6 +155,7 @@ public class AuctionHubDbContext : IdentityDbContext<ApplicationUser>, IAuctionH
         builder.Entity<AutoBid>().HasQueryFilter(ab => !ab.Auction.IsDeleted);
         builder.Entity<Bid>().HasQueryFilter(b => !b.Auction.IsDeleted);
         builder.Entity<Review>().HasQueryFilter(r => !r.Auction.IsDeleted);
+        builder.Entity<Comment>().HasQueryFilter(c => !c.IsDeleted);
 
         // Watchlist unique
         builder.Entity<AuctionWatchlist>()

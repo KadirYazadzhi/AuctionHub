@@ -56,11 +56,79 @@
                     </div>
                 }
                 
-                <div class="card border-0 shadow-sm rounded-5 bg-white p-4 p-lg-5">
+                <div class="card border-0 shadow-sm rounded-5 bg-white p-4 p-lg-5 mb-4">
                     <h4 class="fw-bold mb-4 d-flex align-items-center">
                         <i class="bi bi-info-circle text-primary me-2"></i> Item Description
                     </h4>
                     <p class="lead text-muted mb-0" style="white-space: pre-wrap; line-height: 1.8;">@Model.Description</p>
+                </div>
+
+                <!-- Community Feed / Comments -->
+                <div class="card border-0 shadow-sm rounded-5 bg-white p-4 p-lg-5 animate-fade-up">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="fw-bold mb-0">
+                            <i class="bi bi-chat-dots-fill text-primary me-2"></i> Community Feed
+                        </h4>
+                        <span class="badge bg-light text-muted rounded-pill border">@Model.Comments.Count() Comments</span>
+                    </div>
+
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <form asp-action="AddComment" method="post" class="mb-5">
+                            <input type="hidden" name="auctionId" value="@Model.Id" />
+                            <div class="form-group mb-3">
+                                <textarea name="content" class="form-control rounded-4 border-light bg-light p-3" rows="3" placeholder="Ask a question or share your thoughts..." required maxlength="1000"></textarea>
+                            </div>
+                            <div class="text-end">
+                                <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold">Post Comment</button>
+                            </div>
+                        </form>
+                    }
+                    else
+                    {
+                        <div class="alert alert-light border rounded-4 p-4 text-center mb-5">
+                            <p class="mb-0 text-muted small">Please <a asp-area="Identity" asp-page="/Account/Login" class="fw-bold text-primary">log in</a> to participate in the discussion.</p>
+                        </div>
+                    }
+
+                    <div class="comments-list">
+                        @if (!Model.Comments.Any())
+                        {
+                            <div class="text-center py-4 opacity-50">
+                                <i class="bi bi-chat-left display-4 d-block mb-2"></i>
+                                <p class="small mb-0">No comments yet. Be the first to start the conversation!</p>
+                            </div>
+                        }
+                        else
+                        {
+                            @foreach (var comment in Model.Comments)
+                            {
+                                <div class="d-flex mb-4 animate-fade-in">
+                                    <div class="flex-shrink-0">
+                                        <div class="avatar-sm bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center overflow-hidden" style="width: 40px; height: 40px;">
+                                            @if (!string.IsNullOrEmpty(comment.UserProfilePictureUrl))
+                                            {
+                                                <img src="@comment.UserProfilePictureUrl" class="w-100 h-100 object-fit-cover" />
+                                            }
+                                            else
+                                            {
+                                                <i class="bi bi-person-fill fs-5"></i>
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="ms-3 flex-grow-1">
+                                        <div class="bg-light rounded-4 p-3 shadow-sm-hover transition-all" style="border-top-left-radius: 0;">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <span class="fw-bold text-dark small">@comment.UserDisplayName</span>
+                                                <small class="text-muted smallest">@comment.CreatedOn.ToLocalTime().ToString("MMM dd, HH:mm")</small>
+                                            </div>
+                                            <p class="small mb-0 text-secondary" style="line-height: 1.5;">@comment.Content</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </div>
                 </div>
             </div>
         </div>
