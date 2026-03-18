@@ -1137,6 +1137,7 @@ public class AuctionService : IAuctionService
     {
         // Use IgnoreQueryFilters to find the auction even if it was already soft-deleted
         var auction = await _context.Auctions
+            .IgnoreQueryFilters()
             .Include(a => a.Bids)
                 .ThenInclude(b => b.Bidder)
             .Include(a => a.Images)
@@ -1151,21 +1152,28 @@ public class AuctionService : IAuctionService
             var latestBid = auction.Bids.OrderByDescending(b => b.Amount).First();
             var bidder = latestBid.Bidder;
 
-            // Refund the user
-            bidder.WalletBalance += latestBid.Amount;
-            _context.Transactions.Add(new Transaction
+            if (bidder != null)
             {
-                UserId = bidder.Id,
-                Amount = latestBid.Amount,
-                Description = $"Refund: Auction '{auction.Title}' was deleted by the seller.",
-                TransactionType = "Refund",
-                TransactionDate = DateTime.UtcNow,
-                AuctionId = id
-            });
+                // Refund the user
+                bidder.WalletBalance += latestBid.Amount;
+                _context.Transactions.Add(new Transaction
+                {
+                    UserId = bidder.Id,
+                    Amount = latestBid.Amount,
+                    Description = $"Refund: Auction '{auction.Title}' was deleted by the seller.",
+                    TransactionType = "Refund",
+                    TransactionDate = DateTime.UtcNow,
+                    AuctionId = id
+                });
 
-            await _notificationService.NotifyUserAsync(bidder.Id, 
-                $"⚠️ The auction for '{auction.Title}' was deleted by the seller. Your bid of {latestBid.Amount:C} has been refunded to your wallet.", 
-                "/Wallet");
+                await _notificationService.NotifyUserAsync(bidder.Id, 
+                    $"⚠️ The auction for '{auction.Title}' was deleted by the seller. Your bid of {latestBid.Amount:C} has been refunded to your wallet.", 
+                    "/Wallet");
+            }
+            else
+            {
+                _logger.LogWarning($"Bidder {latestBid.BidderId} not found while refunding bid {latestBid.Id} for deleted auction {auction.Id}.");
+            }
         }
 
         // Rule 2: Decide whether to physically delete images from storage
@@ -1461,7 +1469,7 @@ public class AuctionService : IAuctionService
         catch (DbUpdateConcurrencyException)
         {
             await dbTransaction.RollbackAsync();
-            return (false, "Concurrency error: Someone else placed a bid. Please try again.");
+            return (false, "Concurrency error: The data was modified by another process. Please try again.");
         }
         catch (Exception)
         {
@@ -1933,6 +1941,10 @@ public class AuctionService : IAuctionService
                         AuctionId = auction.Id
                     });
                 }
+                else
+                {
+                    _logger.LogWarning($"User {otherOffer.BuyerId} not found while refunding private offer {otherOffer.Id} on auction {auction.Id}.");
+                }
             }
 
             // Refund any normal bidders
@@ -2165,19 +2177,56 @@ public class AuctionService : IAuctionService
 
     public async Task ReleaseEscrowFundsAsync()
     {
-        // Logic to release funds after X days if not disputed
+        // Logic to release funds after 7 days if not disputed
         var releaseThreshold = DateTime.UtcNow.AddDays(-7);
         var auctionsToRelease = await _context.Auctions
+            .Include(a => a.Seller)
+            .Include(a => a.Bids)
             .Where(a => !a.IsActive && !a.IsSettled && !a.IsDisputed && a.EndTime <= releaseThreshold)
             .ToListAsync();
 
         foreach (var auction in auctionsToRelease)
         {
-            // Similar logic to EscrowReleaseService
-            auction.IsSettled = true;
-            // ... (Simplified for this step)
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var winningBid = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault();
+                if (winningBid == null)
+                {
+                    auction.IsSettled = true; // No bids, just settle it
+                }
+                else
+                {
+                    decimal totalAmount = winningBid.Amount;
+                    decimal commissionRate = await GetCommissionRateAsync();
+                    decimal commissionAmount = Math.Round(totalAmount * commissionRate, 2);
+                    decimal finalSellerAmount = totalAmount - commissionAmount;
+
+                    auction.Seller.WalletBalance += finalSellerAmount;
+                    auction.IsSettled = true;
+
+                    _context.Transactions.Add(new Transaction
+                    {
+                        UserId = auction.SellerId,
+                        Amount = finalSellerAmount,
+                        Description = $"Sale of '{auction.Title}' (Auto-released) (Gross: {totalAmount:C}, Commission: {commissionAmount:C})",
+                        TransactionType = "Sale",
+                        TransactionDate = DateTime.UtcNow,
+                        AuctionId = auction.Id
+                    });
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                
+                _logger.LogInformation($"Funds for auction {auction.Id} released automatically.");
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, $"Failed to auto-release funds for auction {auction.Id}");
+            }
         }
-        await _context.SaveChangesAsync();
     }
 
     public async Task ProcessDutchAuctionsAsync()

@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using StackExchange.Redis;
 using System.Threading.RateLimiting;
 using Hangfire;
+using AuctionHub.Infrastructure.Filters;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -155,9 +156,11 @@ app.UseHangfireDashboard("/hangfire", new DashboardOptions
 using (var scope = app.Services.CreateScope())
 {
     var recurringJobManager = scope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
-    recurringJobManager.AddOrUpdate("AuctionCleanup", () => scope.ServiceProvider.GetRequiredService<IAuctionService>().CloseExpiredAuctionsAsync(), Cron.Minutely);
-    recurringJobManager.AddOrUpdate("EscrowRelease", () => scope.ServiceProvider.GetRequiredService<IAuctionService>().ReleaseEscrowFundsAsync(), Cron.Hourly);
-    recurringJobManager.AddOrUpdate("DutchAuctionDrop", () => scope.ServiceProvider.GetRequiredService<IAuctionService>().ProcessDutchAuctionsAsync(), Cron.Minutely);
+    
+    // Correct way: use Type argument for the service
+    recurringJobManager.AddOrUpdate<IAuctionService>("AuctionCleanup", service => service.CloseExpiredAuctionsAsync(), Cron.Minutely);
+    recurringJobManager.AddOrUpdate<IAuctionService>("EscrowRelease", service => service.ReleaseEscrowFundsAsync(), Cron.Hourly);
+    recurringJobManager.AddOrUpdate<IAuctionService>("DutchAuctionDrop", service => service.ProcessDutchAuctionsAsync(), Cron.Minutely);
 }
 
 app.MapControllerRoute(

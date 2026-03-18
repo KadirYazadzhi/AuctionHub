@@ -22,7 +22,8 @@ public class MockImageAnalysisService : IImageAnalysisService
         var lowerName = fileName.ToLower();
         
         // Simple mock rules for project demonstration
-        if (lowerName.Contains("nsfw") || lowerName.Contains("weapon") || lowerName.Contains("fake"))
+        var prohibitedKeywords = new[] { "nsfw", "weapon", "fake", "drugs", "money", "viagra", "adult", "explicit" };
+        if (prohibitedKeywords.Any(k => lowerName.Contains(k)))
         {
             _logger.LogWarning($"[AI Mock] Image {fileName} flagged as unsafe!");
             return new ImageAnalysisResult

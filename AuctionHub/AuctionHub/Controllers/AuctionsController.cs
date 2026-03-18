@@ -22,6 +22,7 @@ public class AuctionsController : Controller
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IChatService _chatService;
     private readonly IReviewService _reviewService;
+    private readonly ILogger<AuctionsController> _logger;
 
     public AuctionsController(
         IWebHostEnvironment webHostEnvironment, 
@@ -29,7 +30,8 @@ public class AuctionsController : Controller
         IUserService userService,
         UserManager<ApplicationUser> userManager,
         IChatService chatService,
-        IReviewService reviewService)
+        IReviewService reviewService,
+        ILogger<AuctionsController> logger)
     {
         _webHostEnvironment = webHostEnvironment;
         _auctionService = auctionService;
@@ -37,6 +39,7 @@ public class AuctionsController : Controller
         _userManager = userManager;
         _chatService = chatService;
         _reviewService = reviewService;
+        _logger = logger;
     }
 
     [AllowAnonymous]
@@ -161,6 +164,7 @@ public class AuctionsController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> LeaveReview(int auctionId, int rating, string comment)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -189,6 +193,7 @@ public class AuctionsController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> ConfirmDelivery(int auctionId)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -210,6 +215,7 @@ public class AuctionsController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Promote(int auctionId)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -230,6 +236,7 @@ public class AuctionsController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> PlaceBid(int auctionId, decimal amount)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -251,6 +258,7 @@ public class AuctionsController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> SetAutoBid(int auctionId, decimal maxAmount)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -272,6 +280,7 @@ public class AuctionsController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> BuyItNow(int auctionId)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -293,6 +302,7 @@ public class AuctionsController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Report(int auctionId, string reason, string details)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -578,7 +588,10 @@ public class AuctionsController : Controller
             {
                 dto.ImagesToRemoveIds = System.Text.Json.JsonSerializer.Deserialize<List<int>>(model.ImagesToRemoveIdsJson) ?? new();
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to deserialize ImagesToRemoveIdsJson.");
+            }
         }
 
         // Handle JSON additional URLs
@@ -589,7 +602,10 @@ public class AuctionsController : Controller
                 var urls = System.Text.Json.JsonSerializer.Deserialize<List<string>>(model.AdditionalImageUrlsJson);
                 if (urls != null) dto.AdditionalImageUrls.AddRange(urls);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to deserialize AdditionalImageUrlsJson during edit.");
+            }
         }
 
         var result = await _auctionService.UpdateAuctionAsync(id, dto, currentUserId);
@@ -606,6 +622,7 @@ public class AuctionsController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -722,7 +739,10 @@ public class AuctionsController : Controller
                 var urls = System.Text.Json.JsonSerializer.Deserialize<List<string>>(model.AdditionalImageUrlsJson);
                 if (urls != null) dto.AdditionalImageUrls.AddRange(urls);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to deserialize AdditionalImageUrlsJson during creation.");
+            }
         }
 
         // 3. Call Service
