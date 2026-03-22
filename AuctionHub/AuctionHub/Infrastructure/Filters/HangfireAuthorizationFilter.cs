@@ -6,7 +6,10 @@ public class HangfireAuthorizationFilter : IDashboardAuthorizationFilter
 {
     public bool Authorize(DashboardContext context)
     {
-        // Allow in development, restrict in production if needed
-        return true; 
+        var httpContext = context.GetHttpContext();
+
+        // Strictly allow only authenticated Administrators
+        return httpContext.User.Identity?.IsAuthenticated == true && 
+               httpContext.User.IsInRole("Administrator");
     }
 }

@@ -671,12 +671,18 @@ public class AuctionsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequestSizeLimit(10 * 1024 * 1024)] // 10MB Total limit
     public async Task<IActionResult> Create(AuctionFormModel model)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (currentUserId == null) return Challenge();
 
         // 1. Validation
+        if (model.EndTime > DateTime.UtcNow.AddDays(30))
+        {
+            ModelState.AddModelError(nameof(model.EndTime), "Auction duration cannot exceed 30 days.");
+        }
+
         ValidateImage(model.ImageFile);
         if (model.AdditionalImageFiles != null)
         {

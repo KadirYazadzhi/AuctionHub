@@ -1403,7 +1403,6 @@ public class AuctionService : IAuctionService
             // 2. Refund Previous Bidder & Notify
             if (previousHighBid != null)
             {
-                // Note: previousHighBid.BidderId != userId is guaranteed by the check on line 1356-1358
                 var previousBidder = previousHighBid.Bidder;
                 previousBidder.WalletBalance += previousHighBid.Amount;
                 _context.Transactions.Add(new Transaction
