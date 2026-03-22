@@ -16,6 +16,14 @@ using StackExchange.Redis;
 using System.Threading.RateLimiting;
 using Hangfire;
 using AuctionHub.Infrastructure.Filters;
+using DotNetEnv;
+
+// Load .env file for local development (K8s uses secrets, this is fallback)
+var envPath = Path.Combine(Directory.GetCurrentDirectory(), ".env");
+if (File.Exists(envPath))
+{
+    Env.Load(envPath);
+}
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,8 +34,16 @@ CultureInfo.DefaultThreadCurrentCulture = cultureInfo;
 CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
 
 // Add services to the container.
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
-    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+// Priority: Environment Variables > .env file > appsettings.json
+var dbServer = Environment.GetEnvironmentVariable("DB_SERVER") ?? builder.Configuration["ConnectionStrings:DbServer"];
+var dbName = Environment.GetEnvironmentVariable("DB_NAME") ?? builder.Configuration["ConnectionStrings:DbName"];
+var dbUser = Environment.GetEnvironmentVariable("DB_USER") ?? builder.Configuration["ConnectionStrings:DbUser"];
+var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD") ?? builder.Configuration["ConnectionStrings:DbPassword"];
+
+var connectionString = !string.IsNullOrEmpty(dbServer) && !string.IsNullOrEmpty(dbPassword)
+    ? $"Server={dbServer};Database={dbName};User Id={dbUser};Password={dbPassword};Encrypt=False;TrustServerCertificate=True;MultipleActiveResultSets=true"
+    : builder.Configuration.GetConnectionString("DefaultConnection") 
+      ?? throw new InvalidOperationException("Connection string not found in environment variables or configuration.");
 
 builder.Services.AddDbContext<AuctionHubDbContext>(options =>
     options.UseSqlServer(connectionString));
@@ -44,7 +60,7 @@ builder.Services.AddScoped<IBiddingNotificationService, SignalRBiddingNotificati
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IPhotoService, PhotoService>();
-builder.Services.AddScoped<IImageAnalysisService, MockImageAnalysisService>();
+builder.Services.AddHttpClient<IImageAnalysisService, LocalAIImageAnalysisService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddTransient<IEmailSender, EmailSender>();
 builder.Services.AddTransient<IEmailService, EmailSender>();
@@ -59,9 +75,9 @@ builder.Services.AddHangfire(configuration => configuration
 
 builder.Services.AddHangfireServer();
 
-// Redis Configuration (Standard for K8s deployments)
-var redisUrl = builder.Configuration.GetConnectionString("Redis") 
-    ?? Environment.GetEnvironmentVariable("REDIS_URL") 
+// Redis Configuration (Priority: Environment > appsettings)
+var redisUrl = Environment.GetEnvironmentVariable("REDIS_URL")
+    ?? builder.Configuration.GetConnectionString("Redis") 
     ?? "localhost:6379";
 
 var redisConnectionString = $"{redisUrl},abortConnect=false";
@@ -95,13 +111,17 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options => {
 builder.Services.AddAuthentication()
     .AddGoogle(googleOptions =>
     {
-        googleOptions.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "placeholder";
-        googleOptions.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "placeholder";
+        googleOptions.ClientId = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID") 
+            ?? builder.Configuration["Authentication:Google:ClientId"] ?? "placeholder";
+        googleOptions.ClientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET") 
+            ?? builder.Configuration["Authentication:Google:ClientSecret"] ?? "placeholder";
     })
     .AddGitHub(githubOptions =>
     {
-        githubOptions.ClientId = builder.Configuration["Authentication:GitHub:ClientId"] ?? "placeholder";
-        githubOptions.ClientSecret = builder.Configuration["Authentication:GitHub:ClientSecret"] ?? "placeholder";
+        githubOptions.ClientId = Environment.GetEnvironmentVariable("GITHUB_CLIENT_ID") 
+            ?? builder.Configuration["Authentication:GitHub:ClientId"] ?? "placeholder";
+        githubOptions.ClientSecret = Environment.GetEnvironmentVariable("GITHUB_CLIENT_SECRET") 
+            ?? builder.Configuration["Authentication:GitHub:ClientSecret"] ?? "placeholder";
     });
 
 builder.Services.AddControllersWithViews(options => {
@@ -115,12 +135,31 @@ builder.Services.AddAntiforgery(options => {
 // Rate Limiting Configuration
 builder.Services.AddRateLimiter(options =>
 {
+    // General rate limiter for most actions
     options.AddFixedWindowLimiter("fixed", opt =>
     {
         opt.PermitLimit = 10;
         opt.Window = TimeSpan.FromMinutes(1);
         opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
         opt.QueueLimit = 5;
+    });
+    
+    // Strict rate limiter for critical bidding operations
+    options.AddFixedWindowLimiter("bidding", opt =>
+    {
+        opt.PermitLimit = 3;
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 2;
+    });
+    
+    // Rate limiter for financial operations
+    options.AddFixedWindowLimiter("financial", opt =>
+    {
+        opt.PermitLimit = 5;
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 3;
     });
 
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -211,7 +250,9 @@ using (var scope = app.Services.CreateScope())
     // Ensure Admin is Confirmed and has Role
     var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
     
-    string adminEmail = "admin@auctionhub.com";
+    string adminEmail = Environment.GetEnvironmentVariable("ADMIN_EMAIL") ?? "admin@auctionhub.com";
+    string adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD") ?? "Admin123!";
+    
     var adminUser = await userManager.FindByEmailAsync(adminEmail);
     
     if (adminUser != null)

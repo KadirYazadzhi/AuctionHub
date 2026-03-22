@@ -102,6 +102,9 @@ namespace AuctionHub.Areas.Identity.Pages.Account
                 {
                     _logger.LogInformation("User created a new account with password.");
 
+                    // Assign "User" role
+                    await _userManager.AddToRoleAsync(user, "User");
+
                     // Record the initial bonus transaction
                     var context = HttpContext.RequestServices.GetRequiredService<AuctionHub.Application.Interfaces.IAuctionHubDbContext>();
                     context.Transactions.Add(new Transaction

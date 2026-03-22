@@ -237,6 +237,7 @@ public class AuctionsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("bidding")]
     public async Task<IActionResult> PlaceBid(int auctionId, decimal amount)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -259,6 +260,7 @@ public class AuctionsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("bidding")]
     public async Task<IActionResult> SetAutoBid(int auctionId, decimal maxAmount)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -281,6 +283,7 @@ public class AuctionsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("bidding")]
     public async Task<IActionResult> BuyItNow(int auctionId)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -849,11 +852,18 @@ public class AuctionsController : Controller
             ModelState.AddModelError("ImageFile", "File size must be less than 5MB.");
         }
 
+        // Validate MIME type (Content-Type)
+        var allowedMimeTypes = new[] { "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp" };
+        if (!string.IsNullOrEmpty(file.ContentType) && !allowedMimeTypes.Contains(file.ContentType.ToLowerInvariant()))
+        {
+            ModelState.AddModelError("ImageFile", "Invalid file type. Must be an image (JPEG, PNG, GIF, or WebP).");
+        }
+
         var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
         var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
         if (!allowedExtensions.Contains(extension))
         {
-            ModelState.AddModelError("ImageFile", "Invalid file type. Allowed: jpg, jpeg, png, gif, webp.");
+            ModelState.AddModelError("ImageFile", "Invalid file extension. Allowed: jpg, jpeg, png, gif, webp.");
         }
     }
 
@@ -960,6 +970,7 @@ public class AuctionsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("bidding")]
     public async Task<IActionResult> MakePrivateOffer(int auctionId, decimal offerAmount)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);

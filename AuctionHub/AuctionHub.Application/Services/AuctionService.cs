@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
+using Hangfire;
 
 namespace AuctionHub.Application.Services;
 
@@ -621,12 +622,15 @@ public class AuctionService : IAuctionService
             var user = await _context.Users.FindAsync(userId);
             if (user == null) return (false, "User not found.");
 
-            // Use Dynamic System Setting for Promotion Fee
-            var feeSetting = await _context.SystemSettings.FirstOrDefaultAsync(s => s.Key == "PromotionFee");
-            decimal promotionFee = feeSetting != null ? decimal.Parse(feeSetting.Value) : 5.00m; 
+                        // Use Dynamic System Setting for Promotion Fee
+                        var feeSetting = await _context.SystemSettings.FirstOrDefaultAsync(s => s.Key == "PromotionFee");
+                        decimal promotionFee = 5.00m;
+                        if (feeSetting != null && decimal.TryParse(feeSetting.Value, out decimal parsedFee))
+                        {
+                            promotionFee = parsedFee >= 0 ? parsedFee : 0;
+                        }
             
-            if (user.WalletBalance < promotionFee) return (false, $"Insufficient funds. Promotion costs {promotionFee:C}.");
-
+                        if (user.WalletBalance < promotionFee) return (false, $"Insufficient funds. Promotion costs {promotionFee:C}.");
             // 1. Charge User
             user.WalletBalance -= promotionFee;
             _context.Transactions.Add(new Transaction
@@ -741,7 +745,9 @@ public class AuctionService : IAuctionService
 
         if (auction != null && auction.SellerId != currentUserId)
         {
-            await _context.Database.ExecuteSqlRawAsync("UPDATE Auctions SET ViewCount = ViewCount + 1 WHERE Id = {0}", auction.Id);
+            // Use EF API instead of raw SQL for better safety
+            auction.ViewCount++;
+            await _context.SaveChangesAsync();
         }
 
         return await MapToDetailsDtoAsync(auction, currentUserId);
@@ -884,6 +890,12 @@ public class AuctionService : IAuctionService
     public async Task<(int AuctionId, string Message)> CreateAuctionAsync(AuctionFormDto model, string sellerId)
     {
         var now = DateTime.UtcNow;
+
+        // Validate positive StartPrice
+        if (model.StartPrice <= 0)
+        {
+            return (-1, "Starting price must be greater than zero.");
+        }
 
         // Validation: MinIncrease should be at least 1% of StartPrice for practicality
         decimal minAllowedIncrease = Math.Round(model.StartPrice * 0.01m, 2);
@@ -1264,6 +1276,9 @@ public class AuctionService : IAuctionService
         if (!auction.IsActive || auction.EndTime <= DateTime.UtcNow) return (false, "This auction has ended.");
         if (auction.SellerId == userId) return (false, "You cannot set auto-bid on your own auction.");
 
+        // Validate positive maxAmount
+        if (maxAmount <= 0) return (false, "Maximum bid amount must be greater than zero.");
+
         var user = await _context.Users.FindAsync(userId);
         if (user == null) return (false, "User not found.");
         
@@ -1310,11 +1325,13 @@ public class AuctionService : IAuctionService
 
         try
         {
+            // Use UPDLOCK to prevent race conditions on auction reads
             var auction = await _context.Auctions
+                .FromSqlInterpolated($"SELECT * FROM Auctions WITH (UPDLOCK, ROWLOCK) WHERE Id = {auctionId}")
                 .Include(a => a.Bids)
                 .ThenInclude(b => b.Bidder)
                 .Include(a => a.Participants)
-                .FirstOrDefaultAsync(a => a.Id == auctionId);
+                .FirstOrDefaultAsync();
 
             if (auction == null) return (false, "Auction not found.");
 
@@ -1326,7 +1343,11 @@ public class AuctionService : IAuctionService
                     return (false, "You must purchase a participation ticket before bidding.");
                 }
             }
-            var currentUser = await _context.Users.FindAsync(userId);
+            
+            // Use UPDLOCK to prevent race conditions on wallet balance checks
+            var currentUser = await _context.Users
+                .FromSqlInterpolated($"SELECT * FROM AspNetUsers WITH (UPDLOCK, ROWLOCK) WHERE Id = {userId}")
+                .FirstOrDefaultAsync();
             if (currentUser == null) return (false, "User not found.");
             
             if (currentUser.IsShadowBanned)
@@ -1344,6 +1365,9 @@ public class AuctionService : IAuctionService
 
             if (auction.SellerId == userId) return (false, "You cannot bid on your own auction.");
             if (!auction.IsActive || auction.EndTime <= DateTime.UtcNow) return (false, "This auction has ended.");
+            
+            // Validate positive amount
+            if (amount <= 0) return (false, "Bid amount must be greater than zero.");
             
             var previousHighBid = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault();
             if (previousHighBid != null && previousHighBid.BidderId == userId)
@@ -1379,41 +1403,26 @@ public class AuctionService : IAuctionService
             // 2. Refund Previous Bidder & Notify
             if (previousHighBid != null)
             {
-                if (previousHighBid.BidderId == userId)
+                // Note: previousHighBid.BidderId != userId is guaranteed by the check on line 1356-1358
+                var previousBidder = previousHighBid.Bidder;
+                previousBidder.WalletBalance += previousHighBid.Amount;
+                _context.Transactions.Add(new Transaction
                 {
-                    currentUser.WalletBalance += previousHighBid.Amount;
-                    _context.Transactions.Add(new Transaction
-                    {
-                        UserId = userId,
-                        Amount = previousHighBid.Amount,
-                        Description = $"Refund outbid on '{auction.Title}'",
-                        TransactionType = "Refund",
-                        TransactionDate = DateTime.UtcNow,
-                        AuctionId = auctionId
-                    });
-                }
-                else
-                {
-                    var previousBidder = previousHighBid.Bidder;
-                    previousBidder.WalletBalance += previousHighBid.Amount;
-                     _context.Transactions.Add(new Transaction
-                    {
-                        UserId = previousBidder.Id,
-                        Amount = previousHighBid.Amount,
-                        Description = $"Refund outbid on '{auction.Title}'",
-                        TransactionType = "Refund",
-                        TransactionDate = DateTime.UtcNow,
-                        AuctionId = auctionId
-                    });
+                    UserId = previousBidder.Id,
+                    Amount = previousHighBid.Amount,
+                    Description = $"Refund outbid on '{auction.Title}'",
+                    TransactionType = "Refund",
+                    TransactionDate = DateTime.UtcNow,
+                    AuctionId = auctionId
+                });
 
-                    // NOTIFY PREVIOUS BIDDER
-                    await _notificationService.NotifyUserAsync(previousBidder.Id, 
-                        $"You have been outbid on '{auction.Title}'! Current price: {amount:C}", 
-                        $"/Auctions/Details/{auctionId}");
+                // NOTIFY PREVIOUS BIDDER
+                await _notificationService.NotifyUserAsync(previousBidder.Id, 
+                    $"You have been outbid on '{auction.Title}'! Current price: {amount:C}", 
+                    $"/Auctions/Details/{auctionId}");
 
-                    // REAL-TIME SIGNALR NOTIFICATION
-                    await _biddingNotificationService.NotifyOutbidAsync(previousBidder.Id, auctionId, auction.Title, amount);
-                }
+                // REAL-TIME SIGNALR NOTIFICATION
+                await _biddingNotificationService.NotifyOutbidAsync(previousBidder.Id, auctionId, auction.Title, amount);
             }
 
             var bid = new Bid
@@ -1469,11 +1478,17 @@ public class AuctionService : IAuctionService
         catch (DbUpdateConcurrencyException)
         {
             await dbTransaction.RollbackAsync();
-            return (false, "Concurrency error: The data was modified by another process. Please try again.");
+            return (false, "Another bid was placed while processing yours. Please refresh and try again.");
         }
-        catch (Exception)
+        catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("CK_ApplicationUser_WalletBalance_Positive") == true)
         {
             await dbTransaction.RollbackAsync();
+            return (false, "Insufficient funds. Please add money to your wallet.");
+        }
+        catch (Exception ex)
+        {
+            await dbTransaction.RollbackAsync();
+            _logger.LogError(ex, "Error placing bid for auction {AuctionId} by user {UserId}", auctionId, userId);
             return (false, "An error occurred while placing bid.");
         }
     }
@@ -1781,6 +1796,8 @@ public class AuctionService : IAuctionService
         var setting = await _context.SystemSettings.FirstOrDefaultAsync(s => s.Key == "CommissionRate");
         if (setting != null && decimal.TryParse(setting.Value, out decimal rate))
         {
+            if (rate < 0) rate = 0;
+            if (rate > 100) rate = 100;
             return rate / 100m;
         }
         return 0.05m; // Default 5%
@@ -1833,6 +1850,11 @@ public class AuctionService : IAuctionService
 
     public async Task<(bool Success, string Message)> MakePrivateOfferAsync(int auctionId, string buyerId, decimal amount)
     {
+        // Validate amount range
+        if (amount <= 0) return (false, "Offer amount must be greater than zero.");
+        if (amount < 1.00m) return (false, "Minimum offer amount is 1.00€.");
+        if (amount > 1000000m) return (false, "Maximum offer amount is 1,000,000€.");
+        
         var auction = await _context.Auctions.FindAsync(auctionId);
         if (auction == null || !auction.IsActive || auction.IsDutchAuction) 
             return (false, "This auction is not eligible for private offers.");
@@ -1995,6 +2017,13 @@ public class AuctionService : IAuctionService
             .FirstOrDefaultAsync(a => a.Id == auctionId);
 
         if (auction == null) return (false, "Auction not found.");
+        
+        // Validate auction is still active
+        if (!auction.IsActive || auction.EndTime <= DateTime.UtcNow)
+        {
+            return (false, "This auction has ended. Participation fee is no longer required.");
+        }
+        
         if (auction.SellerId == userId) return (false, "You are the seller.");
         if (!auction.ParticipationFee.HasValue || auction.ParticipationFee.Value <= 0) return (false, "This auction has no participation fee.");
         if (auction.Participants.Any(p => p.UserId == userId)) return (false, "You have already paid the fee.");
@@ -2112,6 +2141,7 @@ public class AuctionService : IAuctionService
 
     // --- Background Jobs (Hangfire) ---
 
+    [DisableConcurrentExecution(timeoutInSeconds: 60)]
     public async Task CloseExpiredAuctionsAsync()
     {
         var now = DateTime.UtcNow;
@@ -2175,6 +2205,7 @@ public class AuctionService : IAuctionService
         }
     }
 
+    [DisableConcurrentExecution(timeoutInSeconds: 120)]
     public async Task ReleaseEscrowFundsAsync()
     {
         // Logic to release funds after 7 days if not disputed
@@ -2229,6 +2260,7 @@ public class AuctionService : IAuctionService
         }
     }
 
+    [DisableConcurrentExecution(timeoutInSeconds: 60)]
     public async Task ProcessDutchAuctionsAsync()
     {
         var now = DateTime.UtcNow;

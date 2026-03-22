@@ -63,9 +63,9 @@ public class AuctionsController : AdminBaseController
             auction.IsSuspended = true;
             auction.IsActive = false;
 
-            // 2. Refund Highest Bidder if exists
+            // 2. Refund Highest Bidder if exists AND auction is not settled
             var highestBid = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault();
-            if (highestBid != null)
+            if (highestBid != null && !auction.IsSettled)
             {
                 var bidder = await _context.Users.FindAsync(highestBid.BidderId);
                 if (bidder != null)

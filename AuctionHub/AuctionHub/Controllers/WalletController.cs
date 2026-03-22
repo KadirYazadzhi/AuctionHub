@@ -4,6 +4,7 @@ using AuctionHub.Domain.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace AuctionHub.Controllers;
@@ -34,6 +35,7 @@ public class WalletController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("financial")]
     public async Task<IActionResult> AddFunds(decimal amount)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -55,6 +57,7 @@ public class WalletController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("financial")]
     public async Task<IActionResult> Withdraw(decimal amount)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);

@@ -220,6 +220,12 @@ public class UserService : IUserService
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
             if (user == null) return (false, "User not found.");
 
+            // Validate that final balance won't be negative
+            if (user.WalletBalance + amount < 0)
+            {
+                return (false, $"Cannot apply {amount:C}. Would result in negative balance. Current balance: {user.WalletBalance:C}");
+            }
+
             user.WalletBalance += amount;
             
             // Force update of RowVersion

@@ -34,9 +34,16 @@ public static class DbSeeder
 
         // 2. Seed Roles
         string adminRole = "Administrator";
+        string userRole = "User";
+
         if (!await roleManager.RoleExistsAsync(adminRole))
         {
             await roleManager.CreateAsync(new IdentityRole(adminRole));
+        }
+
+        if (!await roleManager.RoleExistsAsync(userRole))
+        {
+            await roleManager.CreateAsync(new IdentityRole(userRole));
         }
 
         // 3. Seed Admin User
