@@ -1056,8 +1056,6 @@ public class AuctionsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [HttpPost]
-    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Follow(string sellerId, Guid publicId)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
