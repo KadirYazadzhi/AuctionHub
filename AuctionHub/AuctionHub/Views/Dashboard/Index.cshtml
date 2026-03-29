@@ -182,7 +182,7 @@
                                     </div>
                                     <div class="text-end ms-3">
                                         <div class="fw-bold text-primary fs-5">@auction.CurrentPrice.ToString("C")</div>
-                                        <a asp-controller="Auctions" asp-action="Details" asp-route-id="@auction.Id" class="btn btn-sm btn-outline-primary rounded-pill px-3 mt-1 btn-hover-purple">Details</a>
+                                        <a asp-controller="Auctions" asp-action="Details" asp-route-id="@auction.PublicId" class="btn btn-sm btn-outline-primary rounded-pill px-3 mt-1 btn-hover-purple">Details</a>
                                     </div>
                                 </div>
                             }
@@ -247,7 +247,7 @@
                                     <span class="text-primary fw-bold">@auction.CurrentPrice.ToString("C")</span>
                                 </div>
                             </div>
-                            <a asp-controller="Auctions" asp-action="Details" asp-route-id="@auction.Id" class="btn btn-white shadow-sm rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; border: 1px solid var(--border-color);">
+                            <a asp-controller="Auctions" asp-action="Details" asp-route-id="@auction.PublicId" class="btn btn-white shadow-sm rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; border: 1px solid var(--border-color);">
                                 <i class="bi bi-chevron-right text-primary"></i>
                             </a>
                         </div>

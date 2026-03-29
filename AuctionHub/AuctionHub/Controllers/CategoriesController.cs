@@ -7,7 +7,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AuctionHub.Controllers;
 
-[Authorize(Roles = "Administrator")]
 public class CategoriesController : Controller
 {
     private readonly ICategoryService _categoryService;
@@ -17,20 +16,24 @@ public class CategoriesController : Controller
         _categoryService = categoryService;
     }
 
+    [AllowAnonymous]
     public async Task<IActionResult> Index()
     {
         return View(await _categoryService.GetAllAsync());
     }
 
+    [Authorize(Roles = "Administrator")]
     public IActionResult Create()
     {
         return View();
     }
 
     [HttpPost]
+    [Authorize(Roles = "Administrator")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(CategoryDto category)
     {
+// ... (rest of class)
         if (ModelState.IsValid)
         {
             await _categoryService.CreateAsync(category);
@@ -39,6 +42,7 @@ public class CategoriesController : Controller
         return View(category);
     }
 
+    [Authorize(Roles = "Administrator")]
     public async Task<IActionResult> Edit(int? id)
     {
         if (id == null) return NotFound();
@@ -48,6 +52,7 @@ public class CategoriesController : Controller
     }
 
     [HttpPost]
+    [Authorize(Roles = "Administrator")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(int id, CategoryDto category)
     {
@@ -61,6 +66,7 @@ public class CategoriesController : Controller
         return View(category);
     }
 
+    [Authorize(Roles = "Administrator")]
     public async Task<IActionResult> Delete(int? id)
     {
          if (id == null) return NotFound();
@@ -71,6 +77,7 @@ public class CategoriesController : Controller
     }
 
     [HttpPost, ActionName("Delete")]
+    [Authorize(Roles = "Administrator")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(int id)
     {

@@ -33,7 +33,7 @@ public class ReviewsController : Controller
         if (!isWinner && !isSeller)
         {
             TempData["Error"] = "Only the auction winner or the seller can leave a review.";
-            return RedirectToAction("Details", "Auctions", new { id = auctionId });
+            return RedirectToAction("DetailsById", "Auctions", new { id = auctionId });
         }
 
         // Check if already reviewed
@@ -41,7 +41,7 @@ public class ReviewsController : Controller
         if (!canReview)
         {
             TempData["Error"] = "You have already left a review for this auction.";
-            return RedirectToAction("Details", "Auctions", new { id = auctionId });
+            return RedirectToAction("DetailsById", "Auctions", new { id = auctionId });
         }
 
         var model = new ReviewDto
@@ -70,7 +70,7 @@ public class ReviewsController : Controller
         if (success)
         {
             TempData["Success"] = "Thank you for your feedback!";
-            return RedirectToAction("Details", "Auctions", new { id = model.AuctionId });
+            return RedirectToAction("DetailsById", "Auctions", new { id = model.AuctionId });
         }
 
         TempData["Error"] = "Could not submit review. Please ensure the auction is closed and you are either the seller or the winner.";

@@ -24,7 +24,31 @@ public class DecimalModelBinder : IModelBinder
         }
 
         // Replace comma with dot to standardize parsing
-        value = value.Replace(",", ".");
+        // If both . and , are present, assume the last one is the decimal separator
+        // and others are thousand separators.
+        
+        int lastComma = value.LastIndexOf(',');
+        int lastDot = value.LastIndexOf('.');
+        
+        if (lastComma > lastDot)
+        {
+            // Comma is the decimal separator. Remove all dots, and all commas except the last one.
+            string beforeLastComma = value.Substring(0, lastComma);
+            string afterLastComma = value.Substring(lastComma + 1);
+            value = beforeLastComma.Replace(".", "").Replace(",", "") + "." + afterLastComma;
+        }
+        else if (lastDot > lastComma)
+        {
+            // Dot is the decimal separator. Remove all commas, and all dots except the last one.
+            string beforeLastDot = value.Substring(0, lastDot);
+            string afterLastDot = value.Substring(lastDot + 1);
+            value = beforeLastDot.Replace(",", "").Replace(".", "") + "." + afterLastDot;
+        }
+        else
+        {
+            // No separators or just one type. Standard replacement.
+            value = value.Replace(",", ".");
+        }
 
         if (!decimal.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var result))
         {

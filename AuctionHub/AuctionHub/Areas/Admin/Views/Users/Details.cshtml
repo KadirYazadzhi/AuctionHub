@@ -77,7 +77,7 @@
                                             <h6 class="mb-0 fw-bold">@auction.Title</h6>
                                             <small class="text-muted">@auction.CurrentPrice.ToString("C") • @(auction.IsActive ? "Active" : "Closed")</small>
                                         </div>
-                                        <a asp-area="" asp-controller="Auctions" asp-action="Details" asp-route-id="@auction.Id" class="btn btn-sm btn-light rounded-pill ms-auto">View</a>
+                                        <a asp-area="" asp-controller="Auctions" asp-action="Details" asp-route-id="@auction.PublicId" class="btn btn-sm btn-light rounded-pill ms-auto">View</a>
                                     </div>
                                 }
                             </div>
