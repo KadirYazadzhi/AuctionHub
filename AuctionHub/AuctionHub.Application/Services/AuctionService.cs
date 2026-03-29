@@ -1003,7 +1003,11 @@ public class AuctionService : IAuctionService
                 auction.Images = imageList;
                 if (string.IsNullOrEmpty(auction.ImageUrl))
                 {
-                    auction.ImageUrl = imageList.First().Url;
+                    var firstImage = imageList.FirstOrDefault();
+                    if (firstImage != null)
+                    {
+                        auction.ImageUrl = firstImage.Url;
+                    }
                 }
             }
 
@@ -1139,7 +1143,15 @@ public class AuctionService : IAuctionService
         }
         else if (auction.Images.Any() && string.IsNullOrEmpty(auction.ImageUrl))
         {
-            auction.ImageUrl = auction.Images.First().Url;
+            var firstImg = auction.Images.FirstOrDefault();
+            if (firstImg != null)
+            {
+                auction.ImageUrl = firstImg.Url;
+            }
+            else
+            {
+                auction.ImageUrl = "/images/no-image.png";
+            }
         }
 
         auction.Title = model.Title;

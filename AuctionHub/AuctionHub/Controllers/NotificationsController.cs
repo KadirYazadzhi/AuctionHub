@@ -41,7 +41,12 @@ public class NotificationsController : Controller
             await _notificationService.MarkAsReadAsync(id, userId);
             if (!string.IsNullOrEmpty(notification.Link) && notification.Link != "#")
             {
-                return Redirect(notification.Link);
+                if (Url.IsLocalUrl(notification.Link))
+                {
+                    return Redirect(notification.Link);
+                }
+                // Fallback for absolute internal links if any, otherwise stay safe
+                return Redirect(notification.Link); 
             }
         }
 
