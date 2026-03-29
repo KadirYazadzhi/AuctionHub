@@ -1248,19 +1248,25 @@ public class AuctionService : IAuctionService
                 }
             }
 
-            // Rule 2: Decide whether to physically delete images from storage
-            List<string>? imagesToDelete = null;
-            bool isNeverActiveOrNoValue = auction.IsActive && auction.EndTime > DateTime.UtcNow;
-            if (isNeverActiveOrNoValue)
+            // ALWAYS delete images from Cloudinary when a user explicitly deletes the auction to save storage.
+            // (Since we already block deletion of auctions with bids, this is safe).
+            if (!string.IsNullOrEmpty(auction.ImageUrl))
             {
-                imagesToDelete = new List<string>();
-                if (!string.IsNullOrEmpty(auction.ImageUrl)) imagesToDelete.Add(auction.ImageUrl);
-                if (auction.Images.Any()) imagesToDelete.AddRange(auction.Images.Select(i => i.Url));
+                // We'll queue the PublicIds to be deleted after transaction commits
             }
+            
+            var publicIdsToDelete = auction.Images
+                .Where(i => !string.IsNullOrEmpty(i.PublicId))
+                .Select(i => i.PublicId)
+                .ToList();
 
-            // Perform Soft Delete
+            // Perform Soft Delete for the auction entity
             auction.IsDeleted = true;
             auction.IsActive = false;
+            
+            // Clear image references in DB so if restored, it doesn't point to broken Cloudinary links
+            auction.ImageUrl = "/images/no-image.png";
+            _context.AuctionImages.RemoveRange(auction.Images);
             
             _logger.LogInformation("Marking auction {PublicId} (DB ID: {Id}) as deleted", publicId, auction.Id);
             
@@ -1268,7 +1274,13 @@ public class AuctionService : IAuctionService
             await _context.SaveChangesAsync();
             await dbTransaction.CommitAsync();
             
-            _logger.LogInformation("Auction {PublicId} successfully deleted and transaction committed", publicId);
+            // Now physically delete from Cloudinary outside the DB transaction
+            foreach (var imgPublicId in publicIdsToDelete)
+            {
+                await _photoService.DeletePhotoAsync(imgPublicId);
+            }
+            
+            _logger.LogInformation("Auction {PublicId} successfully deleted, images purged, and transaction committed", publicId);
             
             // Detach the deleted auction from change tracker to ensure fresh queries
             _context.Entry(auction).State = EntityState.Detached;
@@ -1595,18 +1607,26 @@ public class AuctionService : IAuctionService
             .ToListAsync();
 
         if (!allActiveAutoBids.Any()) return;
+        
+        // Calculate the true minimum step needed right now
+        decimal currentMinStep = auction.MinIncrease;
+        if (auction.CurrentPrice >= 100.00m)
+        {
+            decimal dynamicStep = Math.Round(auction.CurrentPrice * 0.05m, 2);
+            if (dynamicStep > currentMinStep) currentMinStep = dynamicStep;
+        }
 
         // 2. Identify and deactivate bots that are now disqualified
         foreach (var bot in allActiveAutoBids)
         {
             // A. Limit exceeded
-            if (bot.MaxAmount < auction.CurrentPrice + auction.MinIncrease)
+            if (bot.MaxAmount < auction.CurrentPrice + currentMinStep)
             {
                 bot.IsActive = false;
                 // No need for notification here, usually implied by the bid history
             }
             // B. Insufficient Balance
-            else if (bot.User.WalletBalance < auction.CurrentPrice + auction.MinIncrease)
+            else if (bot.User.WalletBalance < auction.CurrentPrice + currentMinStep)
             {
                 bot.IsActive = false;
                 await _notificationService.NotifyUserAsync(bot.UserId, 
@@ -1631,27 +1651,23 @@ public class AuctionService : IAuctionService
         // It should be (highest challenger's limit + step) OR (manual bid + step)
         var challengers = allActiveAutoBids.Where(ab => ab.UserId != winnerAutoBid.UserId).ToList();
         decimal highestChallengerLimit = challengers.Any() ? challengers.Max(ab => ab.MaxAmount) : 0;
-        
-        // DYNAMIC MINIMUM STEP: 5% of current price for items over 100€
-        decimal currentMinStep = auction.MinIncrease;
-        if (auction.CurrentPrice >= 100.00m)
-        {
-            decimal dynamicStep = Math.Round(auction.CurrentPrice * 0.05m, 2);
-            if (dynamicStep > currentMinStep) currentMinStep = dynamicStep;
-        }
 
         // The price needs to beat both the manual bid AND any other bot's limit
         decimal baseToBeat = Math.Max(auction.CurrentPrice, highestChallengerLimit);
         decimal finalPrice = baseToBeat + currentMinStep;
 
-        // Cap the price at the winner's own limit
+        // If the calculated final price exceeds the winner's limit
         if (finalPrice > winnerAutoBid.MaxAmount)
         {
+            // They can only bid up to their max amount.
+            // However, this final bid MUST be at least the current auction price + the minimum step.
+            // Since we already disqualified bots that can't meet this basic requirement in Step 2,
+            // we know winnerAutoBid.MaxAmount >= auction.CurrentPrice + currentMinStep.
             finalPrice = winnerAutoBid.MaxAmount;
         }
 
-        // Final safety check: if for some reason the price didn't increase, force a step
-        if (finalPrice <= auction.CurrentPrice)
+        // Final safety check: if for some reason the price didn't increase properly, force a step
+        if (finalPrice < auction.CurrentPrice + currentMinStep)
         {
             finalPrice = auction.CurrentPrice + currentMinStep;
         }
@@ -2363,14 +2379,24 @@ public class AuctionService : IAuctionService
 
         foreach (var auction in dutchAuctions)
         {
-            if (auction.LastDutchDecrement.Value.AddMinutes(auction.DutchDecrementIntervalMinutes.Value) <= now)
+            var interval = auction.DutchDecrementIntervalMinutes.Value;
+            var timePassed = (now - auction.LastDutchDecrement.Value).TotalMinutes;
+
+            if (interval > 0 && timePassed >= interval)
             {
+                int intervalsMissed = (int)(timePassed / interval);
                 decimal minPrice = auction.ReservePrice ?? 0.01m;
+                
                 if (auction.CurrentPrice > minPrice)
                 {
-                    auction.CurrentPrice -= auction.DutchDecrementAmount ?? 0;
+                    decimal totalDecrement = (auction.DutchDecrementAmount ?? 0) * intervalsMissed;
+                    auction.CurrentPrice -= totalDecrement;
+                    
                     if (auction.CurrentPrice < minPrice) auction.CurrentPrice = minPrice;
-                    auction.LastDutchDecrement = now;
+                    
+                    // Advance the timer by the exact number of intervals missed to stay perfectly on schedule
+                    auction.LastDutchDecrement = auction.LastDutchDecrement.Value.AddMinutes(interval * intervalsMissed);
+                    
                     await _biddingNotificationService.NotifyNewBidAsync(auction.PublicId, "System", auction.CurrentPrice, now);
                 }
             }

@@ -15,7 +15,8 @@ public class ApplicationUser : IdentityUser
     public string? LastName { get; set; }
 
     [Column(TypeName = "decimal(18,2)")]
-    public decimal WalletBalance { get; set; } = 0.00m;
+    [ConcurrencyCheck]
+    public decimal WalletBalance { get; set; } = 0m;
 
     [StringLength(200)]
     public string? ProfilePictureUrl { get; set; }

@@ -427,14 +427,26 @@
                 }
             }
 
+            function escapeHtml(unsafe) {
+                return unsafe
+                     .replace(/&/g, "&amp;")
+                     .replace(/</g, "&lt;")
+                     .replace(/>/g, "&gt;")
+                     .replace(/"/g, "&quot;")
+                     .replace(/'/g, "&#039;");
+            }
+
             function appendMessage(msg) {
                 const isMe = msg.senderId === currentUserId;
                 const timeStr = new Date(msg.sentOn).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                const safeContent = escapeHtml(msg.content);
+                const safeSenderName = escapeHtml(msg.senderName || "");
+                
                 const html = `
                     <div class="message-row ${isMe ? 'me' : 'other'} animate-fade-in">
                         <div class="message-group">
-                            ${!isMe ? `<span class="sender-label">${msg.senderName}</span>` : ''}
-                            <div class="bubble shadow-sm">${msg.content}</div>
+                            ${!isMe ? `<span class="sender-label">${safeSenderName}</span>` : ''}
+                            <div class="bubble shadow-sm">${safeContent}</div>
                             <span class="time-label">${timeStr}</span>
                         </div>
                     </div>`;

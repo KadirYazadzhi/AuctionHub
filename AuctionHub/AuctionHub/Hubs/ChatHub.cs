@@ -32,8 +32,13 @@ public class ChatHub : Hub
         var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(userId)) return;
 
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null || await _userManager.IsLockedOutAsync(user) || user.IsShadowBanned) return;
+
+        var safeMessage = System.Net.WebUtility.HtmlEncode(message);
+
         // Save to Database
-        var savedMessage = await _chatService.SaveMessageAsync(userId, message, isGlobal: true);
+        var savedMessage = await _chatService.SaveMessageAsync(userId, safeMessage, isGlobal: true);
 
         // Broadcast to everyone in the Global Chat group
         await Clients.Group("GlobalChat").SendAsync("ReceiveGlobalMessage", savedMessage);
@@ -50,6 +55,9 @@ public class ChatHub : Hub
         var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(userId)) return;
 
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null || await _userManager.IsLockedOutAsync(user)) return;
+
         // Validate access before allowing to join
         bool canAccess = await _chatService.CanAccessPrivateChatAsync(auctionId, userId);
         if (canAccess)
@@ -63,12 +71,17 @@ public class ChatHub : Hub
         var senderId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(senderId)) return;
 
+        var sender = await _userManager.FindByIdAsync(senderId);
+        if (sender == null || await _userManager.IsLockedOutAsync(sender) || sender.IsShadowBanned) return;
+
         // Validate access before sending
         bool canAccess = await _chatService.CanAccessPrivateChatAsync(auctionId, senderId);
         if (!canAccess) return;
 
+        var safeMessage = System.Net.WebUtility.HtmlEncode(message);
+
         // Save to Database
-        var savedMessage = await _chatService.SaveMessageAsync(senderId, message, isGlobal: false, receiverId, auctionId);
+        var savedMessage = await _chatService.SaveMessageAsync(senderId, safeMessage, isGlobal: false, receiverId, auctionId);
 
         // Notify the receiver
         var sender = await _userManager.FindByIdAsync(senderId);

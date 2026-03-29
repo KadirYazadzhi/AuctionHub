@@ -25,6 +25,7 @@ public class Auction
 
     [Required]
     [Column(TypeName = "decimal(18,2)")]
+    [ConcurrencyCheck]
     public decimal CurrentPrice { get; set; }
 
     [Required]
