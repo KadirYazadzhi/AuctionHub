@@ -68,7 +68,13 @@ public class ChatController : Controller
             }
 
             var auction = await _auctionService.GetAuctionDetailsAsync(auctionId.Value, currentUserId);
-            if (auction == null) return NotFound();
+            if (auction == null)
+            {
+                // Fallback: If auction is deleted but messages exist, don't 404.
+                // Either show a limited view or redirect to global.
+                TempData["Error"] = "This auction listing is no longer available.";
+                return RedirectToAction(nameof(Index), new { global = true });
+            }
 
             string otherUserId = "";
             if (!string.IsNullOrEmpty(targetUserId))
