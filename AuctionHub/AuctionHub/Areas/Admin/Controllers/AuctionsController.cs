@@ -57,31 +57,35 @@ public class AuctionsController : AdminBaseController
     {
         var auction = await _context.Auctions
             .IgnoreQueryFilters()
+            .Include(a => a.Bids)
             .FirstOrDefaultAsync(a => a.Id == id);
 
         if (auction == null) return NotFound();
 
-        // FULL RESTORE: Re-activate and reset flags
+        // FULL RESET: Price to Start, Active again, No promotion
         auction.IsDeleted = false;
         auction.IsActive = true;
         auction.IsSuspended = false;
-        auction.IsPromoted = false; // Promotion is lost after deletion
+        auction.IsPromoted = false; 
+        auction.CurrentPrice = auction.StartPrice;
         
-        // Ensure EndTime is in the future (optional but recommended)
+        // Remove old bids since funds were already returned (prevents confusion)
+        _context.Bids.RemoveRange(auction.Bids);
+        
+        // Ensure EndTime is in the future
         if (auction.EndTime <= DateTime.UtcNow)
         {
-            // If it was already expired, give it 24 hours more to be visible
             auction.EndTime = DateTime.UtcNow.AddDays(1);
         }
 
         var adminId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (adminId != null)
         {
-            await _adminService.LogActionAsync(adminId, "Restore Auction", "Auction", id.ToString(), "Admin fully restored and reactivated auction");
+            await _adminService.LogActionAsync(adminId, "Restore Auction", "Auction", id.ToString(), "Admin fully restored and reset auction to StartPrice");
         }
 
         await _context.SaveChangesAsync();
-        TempData["Success"] = "Auction restored and reactivated successfully.";
+        TempData["Success"] = "Auction restored and reset to starting price.";
         
         return RedirectToAction(nameof(Index));
     }
@@ -92,14 +96,19 @@ public class AuctionsController : AdminBaseController
     {
         var auction = await _context.Auctions
             .IgnoreQueryFilters()
+            .Include(a => a.Bids)
             .FirstOrDefaultAsync(a => a.Id == id);
 
         if (auction == null) return NotFound();
 
-        // Reactivate and reset promotion
+        // Reactivate and reset everything
         auction.IsSuspended = false;
         auction.IsActive = true;
         auction.IsPromoted = false; 
+        auction.CurrentPrice = auction.StartPrice;
+
+        // Clear history of returned bids
+        _context.Bids.RemoveRange(auction.Bids);
         
         // Ensure end time is in the future
         if (auction.EndTime <= DateTime.UtcNow)
@@ -110,11 +119,11 @@ public class AuctionsController : AdminBaseController
         var adminId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (adminId != null)
         {
-            await _adminService.LogActionAsync(adminId, "Unsuspend Auction", "Auction", id.ToString(), "Admin lifted auction suspension");
+            await _adminService.LogActionAsync(adminId, "Unsuspend Auction", "Auction", id.ToString(), "Admin lifted suspension and reset to StartPrice");
         }
 
         await _context.SaveChangesAsync();
-        TempData["Success"] = "Auction unsuspended and reactivated.";
+        TempData["Success"] = "Auction reactivated and reset to starting price.";
         
         return RedirectToAction(nameof(Index));
     }
