@@ -1,4 +1,4 @@
-﻿@using Microsoft.AspNetCore.Antiforgery
+@using Microsoft.AspNetCore.Antiforgery
 @inject IAntiforgery Antiforgery
 @{
     var tokens = Antiforgery.GetAndStoreTokens(Context);
@@ -164,14 +164,16 @@
         icon.className = theme === 'dark' ? 'bi bi-moon-stars-fill' : 'bi bi-sun-fill';
     }
 
-    toggler.addEventListener('click', () => {
-        const currentTheme = document.documentElement.getAttribute('data-bs-theme');
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-        
-        document.documentElement.setAttribute('data-bs-theme', newTheme);
-        localStorage.setItem('theme', newTheme);
-        updateIcon(newTheme);
-    });
+    if (toggler) {
+        toggler.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-bs-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            document.documentElement.setAttribute('data-bs-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateIcon(newTheme);
+        });
+    }
 
     updateIcon(document.documentElement.getAttribute('data-bs-theme'));
 
@@ -185,17 +187,18 @@
                 if (response.ok) {
                     const count = await response.json();
                     const badge = document.getElementById('notificationBadge');
-                    if (count > 0) {
-                        badge.innerText = count > 99 ? '99+' : count;
-                        badge.classList.remove('d-none');
-                    } else {
-                        badge.classList.add('d-none');
+                    if (badge) {
+                        if (count > 0) {
+                            badge.innerText = count > 99 ? '99+' : count;
+                            badge.classList.remove('d-none');
+                        } else {
+                            badge.classList.add('d-none');
+                        }
                     }
                 }
             } catch (e) { console.error(e); }
         }
         
-        // Check immediately and then every 60 seconds
         checkNotifications();
         setInterval(checkNotifications, 60000);
         </text>
@@ -222,50 +225,47 @@
             .build();
 
         globalConnection.on("ReceiveOutbidNotification", function (auctionId, auctionTitle, newPrice) {
-            // auctionId is now a Guid string
-            showToast("Outbid Alert!", `Someone bid <strong>${newPrice}€</strong> on "${auctionTitle}". You're no longer the highest bidder!`, `/Auctions/Details/${auctionId}`, "bi-exclamation-triangle-fill", "bg-danger");
-            checkNotifications(); // Refresh badge
-        });
-
-        globalConnection.on("ReceiveNewBid", function (auctionId, bidder, amount) {
-            // Optional: Show toast for seller when someone bids
-            // Only if current user is the owner (this check would happen server-side usually)
+            showToast("Outbid Alert!", "Someone bid " + newPrice + "€ on \"" + auctionTitle + "\". You're no longer the highest bidder!", "/Auctions/Details/" + auctionId, "bi-exclamation-triangle-fill", "bg-danger");
+            if (typeof checkNotifications === 'function') checkNotifications();
         });
 
         globalConnection.start().catch(err => console.error(err.toString()));
+        </text>
     }
 
-    function showToast(title, message, link, icon = "bi-bell-fill", bgColor = "bg-primary", showButton = true) {
+    function showToast(title, message, link, icon, bgColor, showButton) {
+        if (!icon) icon = "bi-bell-fill";
+        if (!bgColor) bgColor = "bg-primary";
+        if (showButton === undefined) showButton = true;
+
         const container = document.getElementById('toast-container');
+        if (!container) return;
+
         const toastId = 'toast-' + Math.random().toString(36).substr(2, 9);
         
         let buttonHtml = '';
         if (showButton && link && link !== "#") {
-            buttonHtml = `
-                <div class="d-grid mt-3">
-                    <a href="${link}" class="btn btn-sm btn-light rounded-pill py-2 fw-bold shadow-sm">View Details</a>
-                </div>`;
+            buttonHtml = '<div class="d-grid mt-3"><a href="' + link + '" class="btn btn-sm btn-light rounded-pill py-2 fw-bold shadow-sm">View Details</a></div>';
         }
 
-        const html = `
-            <div id="${toastId}" class="toast border-0 shadow-lg rounded-4 overflow-hidden mb-3" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="8000">
-                <div class="toast-header ${bgColor} text-white border-0 py-3 px-4">
-                    <i class="bi ${icon} me-2"></i>
-                    <strong class="me-auto">${title}</strong>
-                    <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="toast" aria-label="Close"></button>
-                </div>
-                <div class="toast-body p-4 bg-white">
-                    <p class="mb-0 text-dark" style="font-size: 0.95rem;">${message}</p>
-                    ${buttonHtml}
-                </div>
-            </div>`;
+        const html = '<div id="' + toastId + '" class="toast border-0 shadow-lg rounded-4 overflow-hidden mb-3" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="8000">' +
+                '<div class="toast-header ' + bgColor + ' text-white border-0 py-3 px-4">' +
+                    '<i class="bi ' + icon + ' me-2"></i>' +
+                    '<strong class="me-auto">' + title + '</strong>' +
+                    '<button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="toast" aria-label="Close"></button>' +
+                '</div>' +
+                '<div class="toast-body p-4 bg-white">' +
+                    '<p class="mb-0 text-dark" style="font-size: 0.95rem;">' + message + '</p>' +
+                    buttonHtml +
+                '</div>' +
+            '</div>';
         
         container.insertAdjacentHTML('beforeend', html);
         const element = document.getElementById(toastId);
         const toast = new bootstrap.Toast(element);
         toast.show();
         
-        element.addEventListener('hidden.bs.toast', () => element.remove());
+        element.addEventListener('hidden.bs.toast', function() { element.remove(); });
     }
 
     // Auto-display system messages
@@ -307,23 +307,28 @@
     // Global Confirmation Logic
     document.addEventListener('DOMContentLoaded', function() {
         let currentFormToSubmit = null;
-        const confirmModal = new bootstrap.Modal(document.getElementById('confirmModal'));
-        const modalBody = document.getElementById('confirmModalBody');
-        const confirmBtn = document.getElementById('confirmModalBtn');
+        const confirmModalEl = document.getElementById('confirmModal');
+        if (confirmModalEl) {
+            const confirmModal = new bootstrap.Modal(confirmModalEl);
+            const modalBody = document.getElementById('confirmModalBody');
+            const confirmBtn = document.getElementById('confirmModalBtn');
 
-        window.showConfirm = function(message, form) {
-            currentFormToSubmit = form;
-            modalBody.innerHTML = message;
-            confirmModal.show();
-            return false;
-        };
+            window.showConfirm = function(message, form) {
+                currentFormToSubmit = form;
+                if (modalBody) modalBody.innerHTML = message;
+                confirmModal.show();
+                return false;
+            };
 
-        confirmBtn.addEventListener('click', function() {
-            if (currentFormToSubmit) {
-                currentFormToSubmit.submit();
+            if (confirmBtn) {
+                confirmBtn.addEventListener('click', function() {
+                    if (currentFormToSubmit) {
+                        currentFormToSubmit.submit();
+                    }
+                    confirmModal.hide();
+                });
             }
-            confirmModal.hide();
-        });
+        }
     });
 </script>
 
