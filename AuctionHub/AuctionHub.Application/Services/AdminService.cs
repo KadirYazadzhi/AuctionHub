@@ -19,18 +19,13 @@ public class AdminService : IAdminService
         var now = DateTime.UtcNow;
         var stats = new AdminDashboardStatsDto();
 
-        // 1. Total Revenue (Promotion fees + Commissions - Refunds)
+        // 1. Total Revenue (Promotion fees + Commissions)
+        // Note: AdminRefunds are typically returns of escrow or user-to-user funds, 
+        // they shouldn't be deducted from the site's EARNED revenue (fees/commissions).
         var revenueTypes = new[] { "Promotion", "Commission" };
         stats.TotalRevenue = await _context.Transactions
             .Where(t => revenueTypes.Contains(t.TransactionType))
             .SumAsync(t => t.Amount);
-
-        // Deduct potential admin refunds from revenue if they were taken from system balance
-        var totalRefunds = await _context.Transactions
-            .Where(t => t.TransactionType == "AdminRefund")
-            .SumAsync(t => t.Amount);
-        
-        stats.TotalRevenue -= totalRefunds;
 
         stats.DailyRevenue = await _context.Transactions
             .Where(t => revenueTypes.Contains(t.TransactionType) && t.TransactionDate >= now.Date)
