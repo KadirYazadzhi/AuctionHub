@@ -129,7 +129,7 @@ The project follows **Clean Architecture** principles, ensuring a strict separat
 | **Database** | MS SQL Server |
 | **Caching** | Redis (Distributed Cache) |
 | **Storage** | Cloudinary (Cloud Image API) |
-| **AI Moderation** | Local AI / Custom Analysis Service |
+| **AI Moderation** | Hugging Face (NSFW Image Detection) |
 | **Testing** | xUnit, Moq, FluentAssertions |
 
 ---
@@ -160,9 +160,9 @@ Cloudinary__ApiSecret="your_api_secret"
 # Required for distributed scaling and real-time performance
 Redis__Configuration="localhost:6379,password=your_redis_password"
 
-# --- AI Image Analysis ---
-# Set to 'Local' or 'Mock' based on your environment
-AI__Provider="Local"
+# --- AI Image Analysis (Hugging Face) ---
+# Get your free token at: https://huggingface.co/settings/tokens
+AI__HuggingFaceToken="your_hugging_face_token_here"
 ```
 
 ### 2. Standard Local Setup

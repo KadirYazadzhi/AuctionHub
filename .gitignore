@@ -21,6 +21,7 @@ sqlcmd_debug
 # Environment & Secrets 
 # ==========================================
 .env
+.env.example
 appsettings.Development.json
 
 # ==========================================

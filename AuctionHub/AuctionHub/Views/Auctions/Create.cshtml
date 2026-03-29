@@ -157,21 +157,72 @@
                                 </div>
 
                                 <!-- Dutch Auction Toggle -->
-                                <div class="card border-0 bg-info bg-opacity-10 rounded-4 p-4 mb-4">
-                                    <div class="form-check form-switch mb-3">
-                                        <input class="form-check-input fs-4" type="checkbox" asp-for="IsDutchAuction" id="dutchToggle">
-                                        <label class="form-check-label ms-2 fw-bold pt-1" for="dutchToggle">Make it a Dutch Auction</label>
-                                    </div>
-                                    <p class="text-muted small">In a Dutch Auction, the price starts high and drops over time. The first person to bid wins instantly.</p>
-                                    
-                                    <div id="dutchFields" class="row g-3 d-none">
-                                        <div class="col-md-6">
-                                            <label asp-for="DutchDecrementAmount" class="form-label fw-bold text-dark small">Price Drop Amount (€)</label>
-                                            <input asp-for="DutchDecrementAmount" class="form-control border-0 bg-white shadow-sm" type="number" step="0.01" placeholder="e.g. 5.00" />
+                                <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+                                    <div class="card-header bg-gradient bg-info bg-opacity-10 border-0 p-4">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-info bg-opacity-25 rounded-circle d-flex align-items-center justify-content-center me-3 flex-shrink-0" style="width: 56px; height: 56px;">
+                                                    <i class="bi bi-arrow-down-circle-fill text-info fs-4"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-1 fw-bold">Dutch Auction</h6>
+                                                    <p class="text-muted small mb-0">Price drops over time until someone bids</p>
+                                                </div>
+                                            </div>
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" role="switch" asp-for="IsDutchAuction" id="dutchToggle" style="width: 3rem; height: 1.5rem;">
+                                                <label class="form-check-label visually-hidden" for="dutchToggle">Enable Dutch Auction</label>
+                                            </div>
                                         </div>
-                                        <div class="col-md-6">
-                                            <label asp-for="DutchDecrementIntervalMinutes" class="form-label fw-bold text-dark small">Drop Interval (Minutes)</label>
-                                            <input asp-for="DutchDecrementIntervalMinutes" class="form-control border-0 bg-white shadow-sm" type="number" placeholder="e.g. 10" />
+                                    </div>
+                                    
+                                    <div id="dutchFields" class="card-body p-4 bg-light bg-opacity-50 d-none">
+                                        <div class="alert alert-info border-0 rounded-3 mb-4">
+                                            <i class="bi bi-info-circle-fill me-2"></i>
+                                            <small>In a Dutch Auction, the price starts at your Starting Price and automatically drops by the specified amount at each interval. The first bidder wins immediately.</small>
+                                        </div>
+                                        
+                                        <div class="row g-4">
+                                            <div class="col-md-6">
+                                                <label asp-for="DutchDecrementAmount" class="form-label fw-semibold text-dark mb-2">
+                                                    <i class="bi bi-currency-euro text-info me-1"></i>
+                                                    Price Drop Amount
+                                                </label>
+                                                <div class="input-group shadow-sm">
+                                                    <span class="input-group-text bg-white border-end-0">
+                                                        <i class="bi bi-dash-circle text-muted"></i>
+                                                    </span>
+                                                    <input asp-for="DutchDecrementAmount" class="form-control border-start-0 ps-0" type="number" step="0.01" min="0.01" placeholder="e.g., 5.00" />
+                                                    <span class="input-group-text bg-white border-start-0">€</span>
+                                                </div>
+                                                <small class="text-muted">How much the price drops each interval</small>
+                                            </div>
+                                            
+                                            <div class="col-md-6">
+                                                <label asp-for="DutchDecrementIntervalMinutes" class="form-label fw-semibold text-dark mb-2">
+                                                    <i class="bi bi-clock-fill text-info me-1"></i>
+                                                    Drop Interval
+                                                </label>
+                                                <div class="input-group shadow-sm">
+                                                    <span class="input-group-text bg-white border-end-0">
+                                                        <i class="bi bi-stopwatch text-muted"></i>
+                                                    </span>
+                                                    <input asp-for="DutchDecrementIntervalMinutes" class="form-control border-start-0 ps-0" type="number" min="1" placeholder="e.g., 10" />
+                                                    <span class="input-group-text bg-white border-start-0">min</span>
+                                                </div>
+                                                <small class="text-muted">How often the price drops</small>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mt-4 p-3 bg-white rounded-3 border border-info border-opacity-25">
+                                            <div class="d-flex align-items-start">
+                                                <i class="bi bi-lightbulb-fill text-warning fs-5 me-2 mt-1"></i>
+                                                <div>
+                                                    <strong class="d-block mb-1">Example:</strong>
+                                                    <small class="text-muted">Starting Price: €100 | Drop Amount: €5 | Interval: 10 minutes<br>
+                                                    Price drops to €95 after 10 min, €90 after 20 min, etc.</small>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -366,8 +417,12 @@
                 const defaultPos = [42.6977, 23.3219];
                 map = L.map('map').setView(defaultPos, 13);
                 
+                // Use OpenStreetMap standard tiles for better detail (shows neighborhoods/districts)
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '© OpenStreetMap'
+                    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                    subdomains: ['a', 'b', 'c'],
+                    maxZoom: 19,
+                    minZoom: 3
                 }).addTo(map);
 
                 marker = L.marker(defaultPos, { draggable: true }).addTo(map);
@@ -377,14 +432,47 @@
                     document.getElementById('inputLng').value = lng.toFixed(6);
                     
                     // Basic Reverse Geocoding via Nominatim (Free)
-                    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+                    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=en&addressdetails=1&namedetails=1`, {
+                        headers: {
+                            'User-Agent': 'AuctionHub/1.0'
+                        }
+                    })
                         .then(res => res.json())
                         .then(data => {
                             if (data.address) {
-                                document.getElementById('inputCity').value = data.address.city || data.address.town || data.address.village || "";
-                                document.getElementById('inputDistrict').value = data.address.suburb || data.address.neighbourhood || "";
+                                // Helper function to transliterate Bulgarian Cyrillic to Latin
+                                function transliterate(text) {
+                                    if (!text) return text;
+                                    const map = {
+                                        'А':'A','Б':'B','В':'V','Г':'G','Д':'D','Е':'E','Ж':'Zh','З':'Z','И':'I','Й':'Y',
+                                        'К':'K','Л':'L','М':'M','Н':'N','О':'O','П':'P','Р':'R','С':'S','Т':'T','У':'U',
+                                        'Ф':'F','Х':'H','Ц':'Ts','Ч':'Ch','Ш':'Sh','Щ':'Sht','Ъ':'A','Ь':'Y','Ю':'Yu','Я':'Ya',
+                                        'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ж':'zh','з':'z','и':'i','й':'y',
+                                        'к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t','у':'u',
+                                        'ф':'f','х':'h','ц':'ts','ч':'ch','ш':'sh','щ':'sht','ъ':'a','ь':'y','ю':'yu','я':'ya'
+                                    };
+                                    return text.split('').map(char => map[char] || char).join('');
+                                }
+                                
+                                // Prefer English names from address components
+                                let city = data.address.city || data.address.town || data.address.village || 
+                                            data.address.municipality || data.address.county || "";
+                                let district = data.address.suburb || data.address.neighbourhood || 
+                                                data.address.quarter || data.address.district || "";
+                                
+                                // Check if names contain Cyrillic characters and transliterate if needed
+                                if (/[А-Яа-я]/.test(city)) {
+                                    city = transliterate(city);
+                                }
+                                if (/[А-Яа-я]/.test(district)) {
+                                    district = transliterate(district);
+                                }
+                                
+                                document.getElementById('inputCity').value = city;
+                                document.getElementById('inputDistrict').value = district;
                             }
-                        });
+                        })
+                        .catch(err => console.error('Geocoding error:', err));
                 }
 
                 map.on('click', (e) => {
