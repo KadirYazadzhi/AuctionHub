@@ -135,15 +135,20 @@ public class ChatController : Controller
         // If no specific chat selected but sessions exist, pick the most recent one
         if (sessions.Any())
         {
-            var latest = sessions.First();
-            if (latest.IsGlobal)
+            var privateSessions = sessions.Where(s => !s.IsGlobal).ToList();
+            if (privateSessions.Any())
             {
-                return RedirectToAction(nameof(Index), new { global = true });
+                var latest = privateSessions.First();
+                // Safety check: only redirect if access is actually granted
+                bool canAccess = await _chatService.CanAccessPrivateChatAsync(latest.AuctionId!.Value, currentUserId);
+                if (canAccess)
+                {
+                    return RedirectToAction(nameof(Index), new { auctionId = latest.AuctionId, targetUserId = latest.OtherUserId });
+                }
             }
-            else
-            {
-                return RedirectToAction(nameof(Index), new { auctionId = latest.AuctionId, targetUserId = latest.OtherUserId });
-            }
+            
+            // Default to global if no accessible private sessions
+            return RedirectToAction(nameof(Index), new { global = true });
         }
 
         return View(new List<AuctionHub.Application.DTOs.ChatMessageDto>());

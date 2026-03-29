@@ -177,35 +177,38 @@ public class ChatService : IChatService
 
     public async Task<bool> CanAccessPrivateChatAsync(int auctionId, string userId)
     {
-        // 1. Check if user is Administrator (Admins have "Master Key" access)
+        // 1. Administrators always have access
         var isAdmin = await _context.UserRoles
             .Join(_context.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new { ur, r })
             .AnyAsync(x => x.ur.UserId == userId && x.r.Name == "Administrator");
 
         if (isAdmin) return true;
 
+        // 2. If there's already a message history between these parties for this auction, allow access
+        // This is crucial for Admin-initiated chats or support conversations.
+        var hasConversation = await _context.ChatMessages
+            .AnyAsync(m => m.AuctionId == auctionId && (m.SenderId == userId || m.ReceiverId == userId));
+        
+        if (hasConversation) return true;
+
+        // 3. Auction-based logic
         var auction = await _context.Auctions
             .Include(a => a.Bids)
             .FirstOrDefaultAsync(a => a.Id == auctionId);
 
         if (auction == null) return false;
         
-        // NEW: Always allow access if the user is a sender or receiver of any message in this auction
-        // This covers cases where an Admin initiates a chat with a user who isn't the seller or winner.
-        var hasParticipatedInConversation = await _context.ChatMessages
-            .AnyAsync(m => m.AuctionId == auctionId && (m.SenderId == userId || m.ReceiverId == userId));
+        // If no conversation yet, only allow starting one if:
+        // - User is the Seller
+        // - User is the Winner (and auction is closed)
         
-        if (hasParticipatedInConversation) return true;
-
-        // Regular chat logic: only available if auction is closed
-        if (auction.IsActive) return false;
-
-        // Is User the Seller?
         if (auction.SellerId == userId) return true;
 
-        // Is User the Winner (Highest Bidder)?
-        var highestBid = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault();
-        if (highestBid != null && highestBid.BidderId == userId) return true;
+        if (!auction.IsActive)
+        {
+            var highestBid = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault();
+            if (highestBid != null && highestBid.BidderId == userId) return true;
+        }
 
         return false;
     }
