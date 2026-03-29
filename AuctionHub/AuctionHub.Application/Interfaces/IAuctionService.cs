@@ -66,20 +66,20 @@ public interface IAuctionService
         string? status);
 
     Task<AuctionDetailsDto?> GetAuctionDetailsAsync(int id, string? currentUserId = null);
-    Task<AuctionDetailsDto?> GetAuctionDetailsByPublicIdAsync(Guid publicId, string? currentUserId = null);
+    Task<AuctionDetailsDto?> GetAuctionDetailsAsync(Guid publicId, string? currentUserId = null);
     Task<IEnumerable<CategoryDto>> GetCategoriesAsync();
     Task<(int AuctionId, string Message)> CreateAuctionAsync(AuctionFormDto model, string sellerId);
-    Task<(bool Success, string Message, string? OldImageUrl)> UpdateAuctionAsync(int id, AuctionFormDto model, string userId);
-    Task<(bool Success, string Message, IEnumerable<string>? ImageUrls)> DeleteAuctionAsync(int id, string userId);
-    Task<(bool Success, string Message)> ToggleWatchlistAsync(int auctionId, string userId);
+    Task<(bool Success, string Message, string? OldImageUrl)> UpdateAuctionAsync(Guid publicId, AuctionFormDto model, string userId);
+    Task<(bool Success, string Message, IEnumerable<string>? ImageUrls)> DeleteAuctionAsync(Guid publicId, string userId);
+    Task<(bool Success, string Message)> ToggleWatchlistAsync(Guid publicId, string userId);
     Task<(bool Success, string Message)> SetAutoBidAsync(int auctionId, string userId, decimal maxAmount);
     Task<(bool Success, string Message)> ConfirmDeliveryAsync(int auctionId, string userId);
     Task<(bool Success, string Message)> PromoteAuctionAsync(int auctionId, string userId);
     Task<(bool Success, string Message)> ReportAuctionAsync(int auctionId, string userId, string reason, string details);
     Task<IEnumerable<AuctionDto>> GetEndingSoonAuctionsAsync(int count, string? currentUserId = null);
-    Task<(bool Success, string Message)> CancelAuctionAsync(int auctionId, string userId);
+    Task<(bool Success, string Message)> CancelAuctionAsync(Guid publicId, string userId);
     Task<(bool Success, string Message)> DeactivateAutoBidAsync(int auctionId, string userId);
-    Task<(bool Success, string Message)> DisputeAuctionAsync(int auctionId, string userId);
+    Task<(bool Success, string Message)> DisputeAuctionAsync(Guid publicId, string userId);
     Task<SellerAnalyticsDto> GetSellerAnalyticsAsync(string userId);
     
     // --- Private Offers ---

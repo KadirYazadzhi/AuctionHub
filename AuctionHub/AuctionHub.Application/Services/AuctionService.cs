@@ -56,6 +56,7 @@ public class AuctionService : IAuctionService
 
         var query = _context.Auctions
             .Include(a => a.Category)
+            .Where(a => !a.IsDeleted) // Exclude deleted
             .Where(a => !adminIds.Contains(a.SellerId)) // Hide Admin auctions
             .AsQueryable();
 
@@ -130,7 +131,7 @@ public class AuctionService : IAuctionService
                 ImageUrl = a.ImageUrl,
                 CurrentPrice = a.CurrentPrice,
                 EndTime = a.EndTime,
-                Category = a.Category.Name,
+                Category = a.Category != null ? a.Category.Name : "General",
                 City = a.City,
                 Country = a.Country,
                 CategoryId = a.CategoryId,
@@ -187,7 +188,9 @@ public class AuctionService : IAuctionService
             ImageUrl = a.ImageUrl,
             CurrentPrice = a.CurrentPrice,
             EndTime = a.EndTime,
-            Category = a.Category.Name,
+            Category = a.Category != null ? a.Category.Name : "General",
+            City = a.City,
+            Country = a.Country,
             CategoryId = a.CategoryId,
             IsActive = a.IsActive,
             IsPromoted = a.IsPromoted,
@@ -242,7 +245,9 @@ public class AuctionService : IAuctionService
             ImageUrl = a.ImageUrl,
             CurrentPrice = a.CurrentPrice,
             EndTime = a.EndTime,
-            Category = a.Category.Name,
+            Category = a.Category != null ? a.Category.Name : "General",
+            City = a.City,
+            Country = a.Country,
             CategoryId = a.CategoryId,
             IsActive = a.IsActive,
             IsPromoted = a.IsPromoted,
@@ -298,7 +303,9 @@ public class AuctionService : IAuctionService
             ImageUrl = a.ImageUrl,
             CurrentPrice = a.CurrentPrice,
             EndTime = a.EndTime,
-            Category = a.Category.Name,
+            Category = a.Category != null ? a.Category.Name : "General",
+            City = a.City,
+            Country = a.Country,
             CategoryId = a.CategoryId,
             IsActive = a.IsActive,
             IsPromoted = a.IsPromoted,
@@ -357,7 +364,9 @@ public class AuctionService : IAuctionService
             ImageUrl = a.ImageUrl,
             CurrentPrice = a.CurrentPrice,
             EndTime = a.EndTime,
-            Category = a.Category.Name,
+            Category = a.Category != null ? a.Category.Name : "General",
+            City = a.City,
+            Country = a.Country,
             CategoryId = a.CategoryId,
             IsActive = a.IsActive,
             IsPromoted = a.IsPromoted,
@@ -394,7 +403,7 @@ public class AuctionService : IAuctionService
             .Include(a => a.Seller)
                 .ThenInclude(u => u.ReceivedReviews)
             .Include(a => a.Bids)
-            .Where(a => a.IsActive && a.EndTime > now && !adminIds.Contains(a.SellerId));
+            .Where(a => !a.IsDeleted && a.IsActive && a.EndTime > now && !adminIds.Contains(a.SellerId));
 
         if (currentUserId != null)
         {
@@ -413,7 +422,7 @@ public class AuctionService : IAuctionService
                 ImageUrl = a.ImageUrl,
                 CurrentPrice = a.CurrentPrice,
                 EndTime = a.EndTime,
-                Category = a.Category.Name,
+                Category = a.Category != null ? a.Category.Name : "General",
                 City = a.City,
                 Country = a.Country,
                 CategoryId = a.CategoryId,
@@ -512,11 +521,11 @@ public class AuctionService : IAuctionService
         }
     }
 
-    public async Task<(bool Success, string Message)> CancelAuctionAsync(int auctionId, string userId)
+    public async Task<(bool Success, string Message)> CancelAuctionAsync(Guid publicId, string userId)
     {
         var auction = await _context.Auctions
             .Include(a => a.Bids)
-            .FirstOrDefaultAsync(a => a.Id == auctionId);
+            .FirstOrDefaultAsync(a => a.PublicId == publicId);
 
         if (auction == null) return (false, "Auction not found.");
         if (auction.SellerId != userId) return (false, "You can only cancel your own auctions.");
@@ -542,11 +551,11 @@ public class AuctionService : IAuctionService
         return (true, "Auto-bid deactivated.");
     }
 
-    public async Task<(bool Success, string Message)> DisputeAuctionAsync(int auctionId, string userId)
+    public async Task<(bool Success, string Message)> DisputeAuctionAsync(Guid publicId, string userId)
     {
         var auction = await _context.Auctions
             .Include(a => a.Bids)
-            .FirstOrDefaultAsync(a => a.Id == auctionId);
+            .FirstOrDefaultAsync(a => a.PublicId == publicId);
 
         if (auction == null) return (false, "Auction not found.");
         if (auction.IsSettled) return (false, "Cannot dispute an auction after funds have been released.");
@@ -559,7 +568,7 @@ public class AuctionService : IAuctionService
         
         await _notificationService.NotifyUserAsync(auction.SellerId, 
             $"⚠️ A dispute has been opened for '{auction.Title}'. Escrow funds are frozen until resolved by an administrator.", 
-            $"/Auctions/Details/{auctionId}");
+            $"/Auctions/Details/{auction.Id}");
 
         await _context.SaveChangesAsync();
         return (true, "Dispute opened. Our team will review the transaction.");
@@ -728,7 +737,7 @@ public class AuctionService : IAuctionService
         return await MapToDetailsDtoAsync(auction, currentUserId);
     }
 
-    public async Task<AuctionDetailsDto?> GetAuctionDetailsByPublicIdAsync(Guid publicId, string? currentUserId = null)
+    public async Task<AuctionDetailsDto?> GetAuctionDetailsAsync(Guid publicId, string? currentUserId = null)
     {
         var auction = await _context.Auctions
             .Include(a => a.Category)
@@ -755,7 +764,7 @@ public class AuctionService : IAuctionService
 
     private async Task<AuctionDetailsDto?> MapToDetailsDtoAsync(Auction? auction, string? currentUserId)
     {
-        if (auction == null) return null;
+        if (auction == null || auction.IsDeleted) return null;
 
         // Fetch seller rating statistics
         var reviews = await _context.Reviews.Where(r => r.TargetUserId == auction.SellerId).ToListAsync();
@@ -998,11 +1007,22 @@ public class AuctionService : IAuctionService
                 }
             }
 
+            _context.Auctions.Add(auction);
+            await _context.SaveChangesAsync(); // Save first to generate Auction.Id
+
             // --- Handle Initial Promotion ---
             if (model.ShouldPromote)
             {
                 var user = await _context.Users.FindAsync(sellerId);
                 decimal promoFee = 5.00m;
+                
+                // Use Dynamic System Setting for Promotion Fee if exists
+                var feeSetting = await _context.SystemSettings.FirstOrDefaultAsync(s => s.Key == "PromotionFee");
+                if (feeSetting != null && decimal.TryParse(feeSetting.Value, out decimal parsedFee))
+                {
+                    promoFee = parsedFee >= 0 ? parsedFee : 0;
+                }
+
                 if (user != null && user.WalletBalance >= promoFee)
                 {
                     user.WalletBalance -= promoFee;
@@ -1013,17 +1033,19 @@ public class AuctionService : IAuctionService
                         Description = $"Promotion for new auction: '{auction.Title}'",
                         TransactionType = "Promotion",
                         TransactionDate = DateTime.UtcNow,
-                        AuctionId = auction.Id
+                        AuctionId = auction.Id // Now Id is populated
                     });
+                    
+                    auction.IsPromoted = true;
+                    await _context.SaveChangesAsync(); // Save transaction and promotion status
                 }
                 else
                 {
-                    auction.IsPromoted = false; // Insufficient funds, silently fail promotion but create auction
+                    auction.IsPromoted = false; // Insufficient funds
+                    await _context.SaveChangesAsync();
                 }
             }
 
-            _context.Auctions.Add(auction);
-            await _context.SaveChangesAsync();
             await transaction.CommitAsync();
 
             // --- Social: Notify Followers ---
@@ -1049,12 +1071,12 @@ public class AuctionService : IAuctionService
     }
 
 
-    public async Task<(bool Success, string Message, string? OldImageUrl)> UpdateAuctionAsync(int id, AuctionFormDto model, string userId)
+    public async Task<(bool Success, string Message, string? OldImageUrl)> UpdateAuctionAsync(Guid publicId, AuctionFormDto model, string userId)
     {
         var auction = await _context.Auctions
             .Include(a => a.Bids)
             .Include(a => a.Images)
-            .FirstOrDefaultAsync(a => a.Id == id);
+            .FirstOrDefaultAsync(a => a.PublicId == publicId);
 
         if (auction == null) return (false, "Auction not found.", null);
         if (auction.SellerId != userId) return (false, "Forbidden.", null);
@@ -1145,76 +1167,122 @@ public class AuctionService : IAuctionService
         return (true, "Auction updated successfully.", oldImageUrl);
     }
 
-    public async Task<(bool Success, string Message, IEnumerable<string>? ImageUrls)> DeleteAuctionAsync(int id, string userId)
+    public async Task<(bool Success, string Message, IEnumerable<string>? ImageUrls)> DeleteAuctionAsync(Guid publicId, string userId)
     {
+        _logger.LogInformation("DeleteAuctionAsync called for auction {PublicId} by user {UserId}", publicId, userId);
+        
         // Use IgnoreQueryFilters to find the auction even if it was already soft-deleted
         var auction = await _context.Auctions
             .IgnoreQueryFilters()
             .Include(a => a.Bids)
                 .ThenInclude(b => b.Bidder)
             .Include(a => a.Images)
-            .FirstOrDefaultAsync(a => a.Id == id);
+            .FirstOrDefaultAsync(a => a.PublicId == publicId);
 
-        if (auction == null) return (false, "Auction not found.", null);
-        if (auction.SellerId != userId) return (false, "Forbidden.", null);
-        
-        // Rule 1: Decide on refund if there are bids
-        if (auction.Bids.Any()) 
+        if (auction == null)
         {
-            var latestBid = auction.Bids.OrderByDescending(b => b.Amount).First();
-            var bidder = latestBid.Bidder;
-
-            if (bidder != null)
+            _logger.LogWarning("Auction {PublicId} not found", publicId);
+            return (false, "Auction not found.", null);
+        }
+        if (auction.IsDeleted)
+        {
+            _logger.LogWarning("Auction {PublicId} is already deleted", publicId);
+            return (false, "This auction has already been deleted.", null);
+        }
+        if (auction.SellerId != userId)
+        {
+            _logger.LogWarning("User {UserId} tried to delete auction {PublicId} owned by {OwnerId}", userId, publicId, auction.SellerId);
+            return (false, "Forbidden.", null);
+        }
+        
+        using var dbTransaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            
+            // Rule 1: Decide on refund if there are bids
+            if (auction.Bids.Any()) 
             {
-                // Refund the user
-                bidder.WalletBalance += latestBid.Amount;
-                _context.Transactions.Add(new Transaction
+                var latestBid = auction.Bids.OrderByDescending(b => b.Amount).First();
+                var bidder = latestBid.Bidder;
+
+                if (bidder != null)
                 {
-                    UserId = bidder.Id,
-                    Amount = latestBid.Amount,
-                    Description = $"Refund: Auction '{auction.Title}' was deleted by the seller.",
-                    TransactionType = "Refund",
-                    TransactionDate = DateTime.UtcNow,
-                    AuctionId = id
-                });
+                    // Refund the user
+                    bidder.WalletBalance += latestBid.Amount;
+                    _context.Transactions.Add(new Transaction
+                    {
+                        UserId = bidder.Id,
+                        Amount = latestBid.Amount,
+                        Description = $"Refund: Auction '{auction.Title}' was deleted by the seller.",
+                        TransactionType = "Refund",
+                        TransactionDate = DateTime.UtcNow,
+                        AuctionId = auction.Id
+                    });
 
-                await _notificationService.NotifyUserAsync(bidder.Id, 
-                    $"⚠️ The auction for '{auction.Title}' was deleted by the seller. Your bid of {latestBid.Amount:C} has been refunded to your wallet.", 
-                    "/Wallet");
+                    await _notificationService.NotifyUserAsync(bidder.Id, 
+                        $"⚠️ The auction for '{auction.Title}' was deleted by the seller. Your bid of {latestBid.Amount:C} has been refunded to your wallet.", 
+                        "/Wallet");
+                }
             }
-            else
+
+            // Rule 2: Decide whether to physically delete images from storage
+            List<string>? imagesToDelete = null;
+            bool isNeverActiveOrNoValue = auction.IsActive && auction.EndTime > DateTime.UtcNow;
+            if (isNeverActiveOrNoValue)
             {
-                _logger.LogWarning($"Bidder {latestBid.BidderId} not found while refunding bid {latestBid.Id} for deleted auction {auction.Id}.");
+                imagesToDelete = new List<string>();
+                if (!string.IsNullOrEmpty(auction.ImageUrl)) imagesToDelete.Add(auction.ImageUrl);
+                if (auction.Images.Any()) imagesToDelete.AddRange(auction.Images.Select(i => i.Url));
             }
-        }
 
-        // Rule 2: Decide whether to physically delete images from storage
-        // We ONLY physically delete images if the auction was ACTIVE and had NO bids (i.e., a mistake or unwanted listing)
-        // If it ended naturally without bids, we keep the images for the user's history/audit.
-        List<string>? imagesToDelete = null;
-        
-        bool isNeverActiveOrNoValue = auction.IsActive && auction.EndTime > DateTime.UtcNow;
-        if (isNeverActiveOrNoValue)
+            // Perform Soft Delete
+            auction.IsDeleted = true;
+            auction.IsActive = false;
+            
+            _logger.LogInformation("Marking auction {PublicId} (DB ID: {Id}) as deleted", publicId, auction.Id);
+            
+            // No need to call Update - EF is already tracking changes
+            await _context.SaveChangesAsync();
+            await dbTransaction.CommitAsync();
+            
+            _logger.LogInformation("Auction {PublicId} successfully deleted and transaction committed", publicId);
+            
+            // Detach the deleted auction from change tracker to ensure fresh queries
+            _context.Entry(auction).State = EntityState.Detached;
+
+            // Invalidate ending soon caches
+            try 
+            {
+                await _cache.RemoveAsync("ending_soon_4_anonymous");
+                await _cache.RemoveAsync("ending_soon_8_anonymous");
+                await _cache.RemoveAsync($"ending_soon_4_{userId}");
+                await _cache.RemoveAsync($"ending_soon_8_{userId}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to clear cache during auction deletion.");
+            }
+
+            string message = imagesToDelete != null ? "Auction and images deleted successfully." : "Auction archived successfully. Images preserved in history.";
+            return (true, message, imagesToDelete);
+        }
+        catch (Exception ex)
         {
-            imagesToDelete = new List<string>();
-            if (!string.IsNullOrEmpty(auction.ImageUrl)) imagesToDelete.Add(auction.ImageUrl);
-            if (auction.Images.Any()) imagesToDelete.AddRange(auction.Images.Select(i => i.Url));
+            await dbTransaction.RollbackAsync();
+            _logger.LogError(ex, "Failed to delete auction {PublicId}", publicId);
+            return (false, "An internal error occurred during deletion.", null);
         }
-
-        // Perform Soft Delete
-        auction.IsDeleted = true;
-        auction.IsActive = false;
-        
-        await _context.SaveChangesAsync();
-
-        string message = imagesToDelete != null ? "Auction and images deleted successfully." : "Auction archived successfully. Images preserved in history.";
-        return (true, message, imagesToDelete);
     }
 
-    public async Task<(bool Success, string Message)> ToggleWatchlistAsync(int auctionId, string userId)
+    public async Task<(bool Success, string Message)> ToggleWatchlistAsync(Guid publicId, string userId)
     {
+        var auction = await _context.Auctions
+            .FirstOrDefaultAsync(a => a.PublicId == publicId);
+
+        if (auction == null) return (false, "Auction not found.");
+
         var existingItem = await _context.Watchlist
-            .FirstOrDefaultAsync(w => w.AuctionId == auctionId && w.UserId == userId);
+            .FirstOrDefaultAsync(w => w.AuctionId == auction.Id && w.UserId == userId);
 
         if (existingItem != null)
         {
@@ -1226,7 +1294,7 @@ public class AuctionService : IAuctionService
         {
             var watchItem = new AuctionWatchlist
             {
-                AuctionId = auctionId,
+                AuctionId = auction.Id,
                 UserId = userId,
                 AddedOn = DateTime.UtcNow
             };
@@ -1238,6 +1306,9 @@ public class AuctionService : IAuctionService
 
     private IQueryable<Auction> ApplyFilters(IQueryable<Auction> query, string? searchTerm, int? categoryId, decimal? minPrice, decimal? maxPrice, string? status)
     {
+        // Force exclusion of deleted auctions
+        query = query.Where(a => !a.IsDeleted);
+
         // Status Filtering
         if (status == "active")
         {

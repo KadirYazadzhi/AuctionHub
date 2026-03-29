@@ -98,7 +98,7 @@ public class AuctionsController : Controller
     public async Task<IActionResult> Details(Guid id)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var auction = await _auctionService.GetAuctionDetailsByPublicIdAsync(id, currentUserId);
+        var auction = await _auctionService.GetAuctionDetailsAsync(id, currentUserId);
 
         if (auction == null)
         {
@@ -141,6 +141,11 @@ public class AuctionsController : Controller
             IsWinning = auction.IsWinning,
             WinnerId = auction.WinnerId,
             CurrentAutoBidLimit = auction.CurrentAutoBidLimit,
+            Country = auction.Country,
+            City = auction.City,
+            District = auction.District,
+            Latitude = auction.Latitude,
+            Longitude = auction.Longitude,
             Bids = auction.Bids
                 .Select(b => new BidViewModel
                 {
@@ -154,13 +159,22 @@ public class AuctionsController : Controller
             NewBidAmount = auction.CurrentPrice + auction.MinIncrease
         };
 
-        // Check if user can leave a review
         if (currentUserId != null)
         {
             ViewBag.CanLeaveReview = await _reviewService.CanReviewAsync(auction.Id, currentUserId);
         }
 
         return View(model);
+    }
+
+    [AllowAnonymous]
+    [HttpGet]
+    public async Task<IActionResult> DetailsById(int id)
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var auction = await _auctionService.GetAuctionDetailsAsync(id, currentUserId);
+        if (auction == null) return NotFound();
+        return RedirectToAction(nameof(Details), new { id = auction.PublicId });
     }
 
     [HttpPost]
@@ -489,8 +503,7 @@ public class AuctionsController : Controller
     }
 
     [HttpGet]
-    [HttpGet]
-    public async Task<IActionResult> Edit(int id)
+    public async Task<IActionResult> Edit(Guid id)
     {
         var auction = await _auctionService.GetAuctionDetailsAsync(id);
 
@@ -529,7 +542,7 @@ public class AuctionsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, AuctionFormModel model)
+    public async Task<IActionResult> Edit(Guid id, AuctionFormModel model)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (currentUserId == null) return Challenge();
@@ -626,7 +639,7 @@ public class AuctionsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(Guid id)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (currentUserId == null) return Challenge();
@@ -642,14 +655,14 @@ public class AuctionsController : Controller
                     DeleteImage(url);
                 }
             }
-            TempData["Success"] = result.Message;
-            return RedirectToAction(nameof(Index));
+            TempData["Success"] = "Auction deleted successfully.";
+            return RedirectToAction(nameof(MyAuctions));
         }
         else
         {
             if (result.Message == "Forbidden.") return Forbid();
             TempData["Error"] = result.Message;
-            return RedirectToAction(nameof(Details), new { id = id });
+            return RedirectToAction(nameof(MyAuctions));
         }
     }
 
@@ -718,7 +731,12 @@ public class AuctionsController : Controller
             DutchDecrementIntervalMinutes = model.DutchDecrementIntervalMinutes,
             EndTime = model.EndTime,
             CategoryId = model.CategoryId,
-            ShouldPromote = model.ShouldPromote
+            ShouldPromote = model.ShouldPromote,
+            Country = model.Country,
+            City = model.City,
+            District = model.District,
+            Latitude = model.Latitude,
+            Longitude = model.Longitude
         };
 
         // Process File Streams
@@ -762,7 +780,7 @@ public class AuctionsController : Controller
         if (auctionId > 0)
         {
             TempData["Success"] = "Your auction is live!";
-            return RedirectToAction(nameof(Details), new { id = auctionId });
+            return RedirectToAction(nameof(DetailsById), new { id = auctionId });
         }
         
         if (auctionId == -1)
@@ -782,7 +800,7 @@ public class AuctionsController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> ToggleWatchlist(int id)
+    public async Task<IActionResult> ToggleWatchlist(Guid id)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (currentUserId == null) return Challenge();
@@ -918,7 +936,7 @@ public class AuctionsController : Controller
     [HttpPost]
     [Authorize]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Cancel(int id)
+    public async Task<IActionResult> Cancel(Guid id)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (currentUserId == null) return Challenge();
@@ -946,13 +964,14 @@ public class AuctionsController : Controller
         if (result.Success) TempData["Success"] = result.Message;
         else TempData["Error"] = result.Message;
 
-        return RedirectToAction(nameof(Details), new { id });
+        var auction = await _auctionService.GetAuctionDetailsAsync(id);
+        return RedirectToAction(nameof(Details), new { id = auction?.PublicId });
     }
 
     [HttpPost]
     [Authorize]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Dispute(int id)
+    public async Task<IActionResult> Dispute(Guid id)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (currentUserId == null) return Challenge();

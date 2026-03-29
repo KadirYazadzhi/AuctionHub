@@ -64,7 +64,17 @@
             </div>
             <h5 class="card-title fw-bold mb-1 text-truncate">@Model.Title</h5>
             <div class="mb-3">
-                <small class="text-muted"><i class="bi bi-geo-alt-fill me-1"></i> @Model.City, @Model.Country</small>
+                <small class="text-muted">
+                    <i class="bi bi-geo-alt-fill me-1"></i> 
+                    @if (!string.IsNullOrEmpty(Model.City) && !string.IsNullOrEmpty(Model.Country))
+                    {
+                        <text>@Model.City, @Model.Country</text>
+                    }
+                    else
+                    {
+                        <text>@(Model.City ?? Model.Country ?? "Location N/A")</text>
+                    }
+                </small>
             </div>
             
             <div class="d-flex justify-content-between align-items-end mb-3">

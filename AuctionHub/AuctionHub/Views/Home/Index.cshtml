@@ -108,11 +108,14 @@
                     <div class="col">
                         <partial name="_AuctionCardPartial" model="new AuctionHub.Models.ViewModels.AuctionListViewModel { 
                             Id = auction.Id, 
+                            PublicId = auction.PublicId,
                             Title = auction.Title, 
                             ImageUrl = auction.ImageUrl, 
                             CurrentPrice = auction.CurrentPrice, 
                             EndTime = auction.EndTime, 
                             Category = auction.Category,
+                            City = auction.City,
+                            Country = auction.Country,
                             SellerName = auction.SellerName,
                             SellerId = auction.SellerId,
                             IsPromoted = auction.IsPromoted,

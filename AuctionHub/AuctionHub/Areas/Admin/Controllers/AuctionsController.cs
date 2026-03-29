@@ -29,11 +29,14 @@ public class AuctionsController : AdminBaseController
             .Select(a => new AuctionListViewModel
             {
                 Id = a.Id,
+                PublicId = a.PublicId,
                 Title = a.Title,
                 ImageUrl = a.ImageUrl,
                 CurrentPrice = a.CurrentPrice,
                 EndTime = a.EndTime,
-                Category = a.Category.Name,
+                Category = a.Category != null ? a.Category.Name : "General",
+                City = a.City,
+                Country = a.Country,
                 IsActive = a.IsActive,
                 IsPromoted = a.IsPromoted,
                 IsSuspended = a.IsSuspended,
