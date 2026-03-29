@@ -80,6 +80,9 @@ public class ChatHub : Hub
         // Send to the specific private group
         await Clients.Group($"PrivateChat_Auction_{auctionId}").SendAsync("ReceivePrivateMessage", savedMessage);
         
+        var auction = await _chatService.GetAuctionByIdAsync(auctionId);
+        var auctionPublicId = auction?.PublicId.ToString() ?? auctionId.ToString();
+
         await _notificationService.NotifyUserAsync(receiverId, 
             $"✉️ New message from {senderName}: \"{(message.Length > 50 ? message.Substring(0, 47) + "..." : message)}\"", 
             $"/Chat/Index?auctionId={auctionId}&targetUserId={senderId}");

@@ -510,7 +510,7 @@ public class AuctionService : IAuctionService
 
             await _notificationService.NotifyUserAsync(auction.SellerId, 
                 $"💰 Payment for '{auction.Title}' released: {finalSellerAmount:C} (Commission: {commissionAmount:C}).", 
-                $"/Auctions/Details/{auctionId}");
+                $"/Auctions/Details/{auction.PublicId}");
 
             return (true, $"Delivery confirmed! {finalSellerAmount:C} released to your wallet.");
         }
@@ -568,7 +568,7 @@ public class AuctionService : IAuctionService
         
         await _notificationService.NotifyUserAsync(auction.SellerId, 
             $"⚠️ A dispute has been opened for '{auction.Title}'. Escrow funds are frozen until resolved by an administrator.", 
-            $"/Auctions/Details/{auction.Id}");
+            $"/Auctions/Details/{auction.PublicId}");
 
         await _context.SaveChangesAsync();
         return (true, "Dispute opened. Our team will review the transaction.");
@@ -1058,7 +1058,7 @@ public class AuctionService : IAuctionService
             {
                 await _notificationService.NotifyUserAsync(followerId, 
                     $"📢 A seller you follow just listed a new item: '{auction.Title}'", 
-                    $"/Auctions/Details/{auction.Id}");
+                    $"/Auctions/Details/{auction.PublicId}");
             }
 
             return (auction.Id, "Success");
@@ -1489,10 +1489,10 @@ public class AuctionService : IAuctionService
                 // NOTIFY PREVIOUS BIDDER
                 await _notificationService.NotifyUserAsync(previousBidder.Id, 
                     $"You have been outbid on '{auction.Title}'! Current price: {amount:C}", 
-                    $"/Auctions/Details/{auctionId}");
+                    $"/Auctions/Details/{auction.PublicId}");
 
                 // REAL-TIME SIGNALR NOTIFICATION
-                await _biddingNotificationService.NotifyOutbidAsync(previousBidder.Id, auctionId, auction.Title, amount);
+                await _biddingNotificationService.NotifyOutbidAsync(previousBidder.Id, auction.PublicId, auction.Title, amount);
             }
 
             var bid = new Bid
@@ -1515,12 +1515,12 @@ public class AuctionService : IAuctionService
             }
 
             // Notify SignalR for the MANUAL bid immediately
-            await _biddingNotificationService.NotifyNewBidAsync(auctionId, currentUser.DisplayName ?? currentUser.UserName ?? "Unknown", amount, bid.BidTime);
+            await _biddingNotificationService.NotifyNewBidAsync(auction.PublicId, currentUser.DisplayName ?? currentUser.UserName ?? "Unknown", amount, bid.BidTime);
 
             // NOTIFY WATCHERS (Only adds to context, doesn't save yet)
             await _notificationService.NotifyAllWatchersAsync(auctionId, 
                 $"New bid on watched item '{auction.Title}': {amount:C}", 
-                $"/Auctions/Details/{auctionId}",
+                $"/Auctions/Details/{auction.PublicId}",
                 excludeUserId: userId);
 
             if ((auction.BuyItNowPrice.HasValue && amount >= auction.BuyItNowPrice.Value) || auction.IsDutchAuction)
@@ -1530,7 +1530,7 @@ public class AuctionService : IAuctionService
                 
                 await _notificationService.NotifyAllWatchersAsync(auctionId, 
                     $"Auction '{auction.Title}' has ended.", 
-                    $"/Auctions/Details/{auctionId}");
+                    $"/Auctions/Details/{auction.PublicId}");
             }
 
             // --- Auto-Bidding Logic (Calculates everything in memory) ---
@@ -1656,7 +1656,7 @@ public class AuctionService : IAuctionService
         // Notify Winner (Optional but good UX)
         await _notificationService.NotifyUserAsync(autoUser.Id, 
             $"🤖 Your auto-bidder placed a leading bid of {finalPrice:C} on '{auction.Title}'!", 
-            $"/Auctions/Details/{auction.Id}");
+            $"/Auctions/Details/{auction.PublicId}");
 
         // B. Refund Previous High Bidder (the one from PlaceBidAsync)
         var prevBid = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault();
@@ -1678,10 +1678,10 @@ public class AuctionService : IAuctionService
                 // Notify (Notifications will be saved when the main transaction commits)
                 await _notificationService.NotifyUserAsync(prevUser.Id, 
                     $"An auto-bidder outbid you on '{auction.Title}'! Current price: {finalPrice:C}", 
-                    $"/Auctions/Details/{auction.Id}");
+                    $"/Auctions/Details/{auction.PublicId}");
 
                 // REAL-TIME SIGNALR NOTIFICATION
-                await _biddingNotificationService.NotifyOutbidAsync(prevUser.Id, auction.Id, auction.Title, finalPrice);
+                await _biddingNotificationService.NotifyOutbidAsync(prevUser.Id, auction.PublicId, auction.Title, finalPrice);
             }
         }
 
@@ -1712,7 +1712,7 @@ public class AuctionService : IAuctionService
         }
 
         // 5. Final UI Sync (SignalR is usually safe to call, but we do it once)
-        await _biddingNotificationService.NotifyNewBidAsync(auction.Id, autoUser.DisplayName ?? autoUser.UserName ?? "Auto-bidder", finalPrice, newBid.BidTime);
+        await _biddingNotificationService.NotifyNewBidAsync(auction.PublicId, autoUser.DisplayName ?? autoUser.UserName ?? "Auto-bidder", finalPrice, newBid.BidTime);
     }
 
     public async Task<(bool Success, string Message)> BuyItNowAsync(int auctionId, string userId)
@@ -1813,7 +1813,7 @@ public class AuctionService : IAuctionService
                      // NOTIFY PREVIOUS BIDDER
                     await _notificationService.NotifyUserAsync(previousBidder.Id, 
                         $"Item '{auction.Title}' was purchased via Buy It Now. Your bid has been refunded.", 
-                        $"/Auctions/Details/{auctionId}");
+                        $"/Auctions/Details/{auction.PublicId}");
                 }
             }
 
@@ -1846,7 +1846,7 @@ public class AuctionService : IAuctionService
             // NOTIFY WATCHERS
             await _notificationService.NotifyAllWatchersAsync(auctionId, 
                 $"Item '{auction.Title}' was sold for {price:C}!", 
-                $"/Auctions/Details/{auctionId}",
+                $"/Auctions/Details/{auction.PublicId}",
                 excludeUserId: userId);
 
             await _context.SaveChangesAsync();
@@ -1907,7 +1907,7 @@ public class AuctionService : IAuctionService
 
             await _notificationService.NotifyUserAsync(offer.BuyerId, 
                 $"Your private offer of {offer.Amount:C} for '{offer.Auction.Title}' was rejected.", 
-                $"/Auctions/Details/{offer.AuctionId}");
+                $"/Auctions/Details/{offer.Auction.PublicId}");
 
             return (true, "Offer rejected.");
         }
@@ -1969,7 +1969,7 @@ public class AuctionService : IAuctionService
 
             await _notificationService.NotifyUserAsync(auction.SellerId, 
                 $"You have received a new private offer of {amount:C} for '{auction.Title}'.", 
-                $"/Auctions/Details/{auctionId}");
+                $"/Auctions/Details/{auction.PublicId}");
 
             return (true, "Offer sent successfully.");
         }
@@ -2069,7 +2069,7 @@ public class AuctionService : IAuctionService
 
             await _notificationService.NotifyUserAsync(offer.BuyerId, 
                 $"🎉 Your private offer of {offer.Amount:C} for '{auction.Title}' was ACCEPTED! Please confirm receipt upon delivery.", 
-                $"/Auctions/Details/{auction.Id}");
+                $"/Auctions/Details/{auction.PublicId}");
 
             return (true, "Offer accepted. Item sold!");
         }
@@ -2245,8 +2245,8 @@ public class AuctionService : IAuctionService
                             AuctionId = auction.Id
                         });
 
-                        await _notificationService.NotifyUserAsync(winningBid.BidderId, $"🎉 You won: '{auction.Title}'!", $"/Auctions/Details/{auction.Id}");
-                        await _notificationService.NotifyUserAsync(auction.SellerId, $"💰 Sold: '{auction.Title}' to {winningBid.Bidder.DisplayName}!", $"/Auctions/Details/{auction.Id}");
+                        await _notificationService.NotifyUserAsync(winningBid.BidderId, $"🎉 You won: '{auction.Title}'!", $"/Auctions/Details/{auction.PublicId}");
+                        await _notificationService.NotifyUserAsync(auction.SellerId, $"💰 Sold: '{auction.Title}' to {winningBid.Bidder.DisplayName}!", $"/Auctions/Details/{auction.PublicId}");
                     }
                     else
                     {
@@ -2348,7 +2348,7 @@ public class AuctionService : IAuctionService
                     auction.CurrentPrice -= auction.DutchDecrementAmount ?? 0;
                     if (auction.CurrentPrice < minPrice) auction.CurrentPrice = minPrice;
                     auction.LastDutchDecrement = now;
-                    await _biddingNotificationService.NotifyNewBidAsync(auction.Id, "System", auction.CurrentPrice, now);
+                    await _biddingNotificationService.NotifyNewBidAsync(auction.PublicId, "System", auction.CurrentPrice, now);
                 }
             }
         }

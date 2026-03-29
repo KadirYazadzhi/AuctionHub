@@ -44,6 +44,7 @@
                             <form asp-action="@(ViewBag.IsFollowing ? "Unfollow" : "Follow")" method="post" class="ms-2">
                                 <input type="hidden" name="sellerId" value="@ViewBag.TargetUserId" />
                                 <input type="hidden" name="publicId" value="@ViewBag.TargetUserPublicId" />
+                                <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
                                 <button type="submit" class="btn @(ViewBag.IsFollowing ? "btn-outline-danger" : "btn-primary") rounded-pill px-4 shadow-sm fw-bold">
                                     <i class="bi @(ViewBag.IsFollowing ? "bi-person-dash-fill" : "bi-person-plus-fill") me-2"></i>
                                     @(ViewBag.IsFollowing ? "Unfollow" : "Follow")

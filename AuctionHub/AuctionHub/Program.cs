@@ -148,6 +148,12 @@ builder.Services.AddRateLimiter(options => {
         opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
         opt.QueueLimit = 5;
     });
+    options.AddFixedWindowLimiter("financial", opt => {
+        opt.PermitLimit = 10; // Allow 10 financial operations per window
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 3;
+    });
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 

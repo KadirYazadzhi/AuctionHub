@@ -5,6 +5,6 @@ namespace AuctionHub.Application.Interfaces;
 
 public interface IBiddingNotificationService
 {
-    Task NotifyNewBidAsync(int auctionId, string bidderName, decimal amount, DateTime bidTime);
-    Task NotifyOutbidAsync(string userId, int auctionId, string auctionTitle, decimal newPrice);
+    Task NotifyNewBidAsync(Guid auctionId, string bidderName, decimal amount, DateTime bidTime);
+    Task NotifyOutbidAsync(string userId, Guid auctionId, string auctionTitle, decimal newPrice);
 }

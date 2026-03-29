@@ -27,6 +27,27 @@ public class NotificationsController : Controller
         return View(notifications);
     }
 
+    [HttpGet]
+    public async Task<IActionResult> RedirectToLink(int id)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId == null) return Challenge();
+
+        var notifications = await _notificationService.GetUserNotificationsAsync(userId);
+        var notification = notifications.FirstOrDefault(n => n.Id == id);
+
+        if (notification != null)
+        {
+            await _notificationService.MarkAsReadAsync(id, userId);
+            if (!string.IsNullOrEmpty(notification.Link) && notification.Link != "#")
+            {
+                return Redirect(notification.Link);
+            }
+        }
+
+        return RedirectToAction(nameof(Index));
+    }
+
     [HttpPost]
     public async Task<IActionResult> MarkRead(int id)
     {

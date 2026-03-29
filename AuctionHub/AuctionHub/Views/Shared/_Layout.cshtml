@@ -222,6 +222,7 @@
             .build();
 
         globalConnection.on("ReceiveOutbidNotification", function (auctionId, auctionTitle, newPrice) {
+            // auctionId is now a Guid string
             showToast("Outbid Alert!", `Someone bid <strong>${newPrice}€</strong> on "${auctionTitle}". You're no longer the highest bidder!`, `/Auctions/Details/${auctionId}`, "bi-exclamation-triangle-fill", "bg-danger");
             checkNotifications(); // Refresh badge
         });

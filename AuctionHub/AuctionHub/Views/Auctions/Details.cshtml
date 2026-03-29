@@ -86,7 +86,7 @@
                     }
                     else
                     {
-                        <div class="alert alert-light border rounded-4 p-4 text-center mb-5">
+                        <div class="alert alert-light alert-permanent border rounded-4 p-4 text-center mb-5">
                             <p class="mb-0 text-muted small">Please <a asp-area="Identity" asp-page="/Account/Login" class="fw-bold text-primary">log in</a> to participate in the discussion.</p>
                         </div>
                     }
@@ -183,26 +183,21 @@
                         
                         @if (User.Identity?.IsAuthenticated == true && Model.SellerId != User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
                         {
-                            <div class="ms-3">
+                            <div class="ms-auto d-flex gap-2 align-items-center">
                                 <form asp-action="@(ViewBag.IsFollowing ? "Unfollow" : "Follow")" method="post">
                                     <input type="hidden" name="sellerId" value="@Model.SellerId" />
                                     <input type="hidden" name="publicId" value="@Model.PublicId" />
-                                    <button type="submit" class="btn btn-sm @(ViewBag.IsFollowing ? "btn-light" : "btn-outline-primary") rounded-pill px-3 fw-bold">
-                                        <i class="bi @(ViewBag.IsFollowing ? "bi-person-check-fill" : "bi-person-plus") me-1"></i>
-                                        @(ViewBag.IsFollowing ? "Following" : "Follow")
+                                    <button type="submit" class="btn @(ViewBag.IsFollowing ? "btn-success" : "btn-outline-primary") action-btn-circle shadow-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="@(ViewBag.IsFollowing ? "Following" : "Follow")">
+                                        <i class="bi @(ViewBag.IsFollowing ? "bi-person-check-fill" : "bi-person-plus")"></i>
                                     </button>
                                 </form>
-                            </div>
-                        }
-
-                        @if (User.Identity?.IsAuthenticated == true && Model.SellerId != User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
-                        {
-                            <div class="ms-auto d-flex gap-2">
-                                <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#reportModal">
-                                    <i class="bi bi-flag me-1"></i> Report
+                                
+                                <button type="button" class="btn btn-outline-danger action-btn-circle shadow-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Report" onclick="setTimeout(() => { document.querySelector('[data-bs-target=\'#reportModal\']').click(); }, 100);" data-report-modal="#reportModal">
+                                    <i class="bi bi-flag"></i>
                                 </button>
-                                <a asp-controller="Chat" asp-action="Index" asp-route-auctionId="@Model.Id" asp-route-targetUserId="@Model.SellerId" class="btn btn-primary btn-sm rounded-pill px-4 shadow-sm hover-lift">
-                                    <i class="bi bi-chat-fill me-1"></i> Message
+                                
+                                <a asp-controller="Chat" asp-action="Index" asp-route-auctionId="@Model.Id" asp-route-targetUserId="@Model.SellerId" class="btn btn-primary action-btn-circle shadow-sm hover-lift" data-bs-toggle="tooltip" data-bs-placement="top" title="Message">
+                                    <i class="bi bi-chat-fill"></i>
                                 </a>
                             </div>
                         }
@@ -210,53 +205,74 @@
                         @if (User.Identity?.IsAuthenticated == true && Model.SellerId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
                         {
                             <div class="ms-auto d-flex gap-2 action-buttons-container">
-                                <a asp-action="Edit" asp-route-id="@Model.PublicId" class="btn btn-sm btn-outline-warning rounded-circle d-flex align-items-center justify-content-center shadow-sm p-0 action-btn-circle" title="Edit">
+                                <a asp-action="Edit" asp-route-id="@Model.PublicId" class="btn btn-outline-warning action-btn-circle shadow-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit">
                                     <i class="bi bi-pencil-square"></i>
                                 </a>
                                 @if (!Model.Bids.Any() && Model.IsActive)
                                 {
                                     <form asp-action="Cancel" asp-route-id="@Model.PublicId" method="post" onsubmit="return confirm('Are you sure you want to cancel this auction?');" class="d-inline">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center shadow-sm btn-action-responsive" title="Cancel">
+                                        <button type="submit" class="btn btn-outline-danger action-btn-circle shadow-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Cancel">
                                             <i class="bi bi-x-circle"></i>
-                                            <span class="ms-2 d-none d-lg-inline">Cancel</span>
                                         </button>
                                     </form>
                                 }
                                 <form asp-action="Delete" asp-route-id="@Model.PublicId" method="post" onsubmit="return confirm('Are you sure?');" class="d-inline">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center shadow-sm btn-action-responsive" title="Delete">
+                                    <button type="submit" class="btn btn-outline-danger action-btn-circle shadow-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete">
                                         <i class="bi bi-trash"></i>
-                                        <span class="ms-2 d-none d-lg-inline">Delete</span>
                                     </button>
                                 </form>
                             </div>
                         }
 
                         <style>
+                            /* All action buttons are always circular with icons only */
                             .action-btn-circle {
-                                width: 38px;
-                                height: 38px;
-                                min-width: 38px;
-                            }
-                            
-                            .btn-action-responsive {
-                                border-radius: 50rem; /* Pill by default */
-                                height: 38px;
-                                padding: 0.25rem 1rem;
+                                width: 42px;
+                                height: 42px;
+                                min-width: 42px;
+                                border-radius: 50%;
+                                display: inline-flex;
+                                align-items: center;
+                                justify-content: center;
+                                padding: 0;
                                 transition: all 0.2s ease;
                             }
-
-                            @@media (max-width: 991.98px) {
-                                .btn-action-responsive {
-                                    width: 38px !important;
-                                    height: 38px !important;
-                                    padding: 0 !important;
-                                    border-radius: 50% !important;
-                                }
-                                .btn-action-responsive i {
-                                    margin: 0 !important;
-                                }
+                            
+                            .action-btn-circle i {
+                                margin: 0;
+                                font-size: 1.1rem;
+                            }
+                            
+                            .action-btn-circle:hover {
+                                transform: translateY(-2px);
                             }
                         </style>
+                        
+                        <script>
+                            document.addEventListener('DOMContentLoaded', function() {
+                                // Initialize all tooltips
+                                var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                                var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                                    return new bootstrap.Tooltip(tooltipTriggerEl);
+                                });
+                                
+                                // Handle Report button - show modal when clicked
+                                var reportBtn = document.querySelector('[data-report-modal]');
+                                if (reportBtn) {
+                                    reportBtn.addEventListener('click', function(e) {
+                                        // Hide tooltip before showing modal
+                                        var tooltip = bootstrap.Tooltip.getInstance(this);
+                                        if (tooltip) {
+                                            tooltip.hide();
+                                        }
+                                        // Show modal
+                                        var modalId = this.getAttribute('data-report-modal');
+                                        var modal = new bootstrap.Modal(document.querySelector(modalId));
+                                        modal.show();
+                                    });
+                                }
+                            });
+                        </script>
                     </div>
 
                     <!-- Location Data -->
@@ -780,7 +796,7 @@
                             <span class="input-group-text bg-light border-0 ps-4 text-primary fw-bold">€</span>
                             <input type="text" name="offerAmount" class="form-control bg-light border-0 py-3" placeholder="0.00" oninput="this.value = this.value.replace(/[^0-9,.]/g, '').replace('.', ',')" inputmode="decimal" required>
                         </div>
-                        <div class="alert alert-warning border-0 rounded-4 small p-3 d-flex align-items-center mb-4">
+                        <div class="alert alert-warning alert-permanent border-0 rounded-4 small p-3 d-flex align-items-center mb-4">
                             <i class="bi bi-info-circle-fill me-2 fs-5"></i>
                             <div>These funds will be temporarily held from your wallet. They will be refunded if the seller rejects your offer.</div>
                         </div>

@@ -203,7 +203,9 @@ public class AuctionsController : Controller
             TempData["Error"] = "Could not submit review. Please ensure you are the winner and the auction is closed.";
         }
 
-        return RedirectToAction(nameof(Details), new { id = auctionId });
+        // Get auction PublicId for redirect
+        var auction = await _auctionService.GetAuctionDetailsAsync(auctionId, currentUserId);
+        return RedirectToAction(nameof(Details), new { id = auction?.PublicId ?? Guid.Empty });
     }
 
     [HttpPost]
@@ -955,17 +957,19 @@ public class AuctionsController : Controller
     [HttpPost]
     [Authorize]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeactivateAutoBid(int id)
+    public async Task<IActionResult> DeactivateAutoBid(Guid id)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (currentUserId == null) return Challenge();
 
-        var result = await _auctionService.DeactivateAutoBidAsync(id, currentUserId);
+        var auction = await _auctionService.GetAuctionDetailsAsync(id, currentUserId);
+        if (auction == null) return NotFound();
+
+        var result = await _auctionService.DeactivateAutoBidAsync(auction.Id, currentUserId);
         if (result.Success) TempData["Success"] = result.Message;
         else TempData["Error"] = result.Message;
 
-        var auction = await _auctionService.GetAuctionDetailsAsync(id);
-        return RedirectToAction(nameof(Details), new { id = auction?.PublicId });
+        return RedirectToAction(nameof(Details), new { id = id });
     }
 
     [HttpPost]
@@ -1006,7 +1010,9 @@ public class AuctionsController : Controller
         if (result.Success) TempData["Success"] = result.Message;
         else TempData["Error"] = result.Message;
 
-        return RedirectToAction(nameof(Details), new { id = auctionId });
+        // Get auction PublicId for redirect
+        var auction = await _auctionService.GetAuctionDetailsAsync(auctionId, currentUserId);
+        return RedirectToAction(nameof(Details), new { id = auction?.PublicId ?? Guid.Empty });
     }
 
     [HttpPost]
@@ -1021,7 +1027,9 @@ public class AuctionsController : Controller
         if (result.Success) TempData["Success"] = result.Message;
         else TempData["Error"] = result.Message;
 
-        return RedirectToAction(nameof(Details), new { id = auctionId });
+        // Get auction PublicId for redirect
+        var auction = await _auctionService.GetAuctionDetailsAsync(auctionId, currentUserId);
+        return RedirectToAction(nameof(Details), new { id = auction?.PublicId ?? Guid.Empty });
     }
 
     [HttpPost]
@@ -1036,7 +1044,9 @@ public class AuctionsController : Controller
         if (result.Success) TempData["Success"] = result.Message;
         else TempData["Error"] = result.Message;
 
-        return RedirectToAction(nameof(Details), new { id = auctionId });
+        // Get auction PublicId for redirect
+        var auction = await _auctionService.GetAuctionDetailsAsync(auctionId, currentUserId);
+        return RedirectToAction(nameof(Details), new { id = auction?.PublicId ?? Guid.Empty });
     }
 
     [HttpPost]
@@ -1051,12 +1061,14 @@ public class AuctionsController : Controller
         if (result.Success) TempData["Success"] = result.Message;
         else TempData["Error"] = result.Message;
 
-        return RedirectToAction(nameof(Details), new { id = auctionId });
+        // Get auction PublicId for redirect
+        var auction = await _auctionService.GetAuctionDetailsAsync(auctionId, currentUserId);
+        return RedirectToAction(nameof(Details), new { id = auction?.PublicId ?? Guid.Empty });
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Follow(string sellerId, Guid publicId)
+    public async Task<IActionResult> Follow(string sellerId, Guid publicId, string? returnUrl = null)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (currentUserId == null) return Challenge();
@@ -1066,12 +1078,19 @@ public class AuctionsController : Controller
         if (result.Success) TempData["Success"] = result.Message;
         else TempData["Error"] = result.Message;
 
+        // If called from UserAuctions page, redirect back there
+        // Otherwise redirect to auction Details page
+        if (!string.IsNullOrEmpty(returnUrl) && returnUrl.Contains("/UserAuctions/"))
+        {
+            return Redirect(returnUrl);
+        }
+        
         return RedirectToAction(nameof(Details), new { id = publicId });
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Unfollow(string sellerId, Guid publicId)
+    public async Task<IActionResult> Unfollow(string sellerId, Guid publicId, string? returnUrl = null)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (currentUserId == null) return Challenge();
@@ -1081,6 +1100,13 @@ public class AuctionsController : Controller
         if (result.Success) TempData["Success"] = result.Message;
         else TempData["Error"] = result.Message;
 
+        // If called from UserAuctions page, redirect back there
+        // Otherwise redirect to auction Details page
+        if (!string.IsNullOrEmpty(returnUrl) && returnUrl.Contains("/UserAuctions/"))
+        {
+            return Redirect(returnUrl);
+        }
+        
         return RedirectToAction(nameof(Details), new { id = publicId });
     }
 
@@ -1102,6 +1128,8 @@ public class AuctionsController : Controller
             TempData["Error"] = result.Message;
         }
 
-        return RedirectToAction(nameof(Details), new { id = auctionId });
+        // Get auction PublicId for redirect
+        var auction = await _auctionService.GetAuctionDetailsAsync(auctionId, currentUserId);
+        return RedirectToAction(nameof(Details), new { id = auction?.PublicId ?? Guid.Empty });
     }
 }

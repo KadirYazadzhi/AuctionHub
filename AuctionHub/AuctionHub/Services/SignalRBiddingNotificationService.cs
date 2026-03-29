@@ -15,7 +15,7 @@ public class SignalRBiddingNotificationService : IBiddingNotificationService
         _hubContext = hubContext;
     }
 
-    public async Task NotifyNewBidAsync(int auctionId, string bidderName, decimal amount, DateTime bidTime)
+    public async Task NotifyNewBidAsync(Guid auctionId, string bidderName, decimal amount, DateTime bidTime)
     {
         string groupName = $"Auction_{auctionId}";
         await _hubContext.Clients.Group(groupName).SendAsync("ReceiveNewBid", amount, bidderName, bidTime.ToString("o"));
@@ -24,7 +24,7 @@ public class SignalRBiddingNotificationService : IBiddingNotificationService
         await _hubContext.Clients.All.SendAsync("ReceivePriceUpdate", auctionId, amount);
     }
 
-    public async Task NotifyOutbidAsync(string userId, int auctionId, string auctionTitle, decimal newPrice)
+    public async Task NotifyOutbidAsync(string userId, Guid auctionId, string auctionTitle, decimal newPrice)
     {
         // SignalR by default uses NameIdentifier (UserId) for Clients.User()
         await _hubContext.Clients.User(userId).SendAsync("ReceiveOutbidNotification", auctionId, auctionTitle, newPrice);

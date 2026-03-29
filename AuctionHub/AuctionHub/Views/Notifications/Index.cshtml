@@ -29,7 +29,7 @@
         <div class="list-group rounded-4 shadow-sm border-0 overflow-hidden">
             @foreach (var notification in Model)
             {
-                <a href="@(notification.Link ?? "#")" class="list-group-item list-group-item-action p-4 border-0 border-bottom @(notification.IsRead ? "bg-white" : "bg-primary-subtle")">
+                <a asp-action="RedirectToLink" asp-route-id="@notification.Id" class="list-group-item list-group-item-action p-4 border-0 border-bottom @(notification.IsRead ? "bg-white" : "bg-primary-subtle")">
                     <div class="d-flex w-100 justify-content-between align-items-center">
                         <div class="d-flex align-items-center gap-3">
                             <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 @(notification.IsRead ? "bg-light text-muted" : "bg-primary text-white")" style="width: 42px; height: 42px;">
