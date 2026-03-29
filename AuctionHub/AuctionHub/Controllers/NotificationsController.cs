@@ -41,13 +41,19 @@ public class NotificationsController : Controller
             await _notificationService.MarkAsReadAsync(id, userId);
             if (!string.IsNullOrEmpty(notification.Link) && notification.Link != "#")
             {
-                if (Url.IsLocalUrl(notification.Link))
+                var link = notification.Link;
+                if (!link.StartsWith("/") && !link.StartsWith("http"))
                 {
-                    return Redirect(notification.Link);
+                    link = "/" + link;
                 }
-                // Fallback for absolute internal links if any, otherwise stay safe
-                return Redirect(notification.Link); 
+                
+                return Redirect(link); 
             }
+            TempData["Error"] = "Notification link is empty or invalid.";
+        }
+        else
+        {
+            TempData["Error"] = $"Notification with ID {id} not found.";
         }
 
         return RedirectToAction(nameof(Index));

@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AuctionHub.Controllers;
 
 [Authorize]
+[Route("[controller]")]
 public class ChatController : Controller
 {
     private readonly IChatService _chatService;
@@ -21,18 +22,27 @@ public class ChatController : Controller
         _userManager = userManager;
     }
 
+    [HttpGet]
+    [Route("Index/{publicId?}")]
+    [Route("{publicId?}")]
     public async Task<IActionResult> Index(int? auctionId = null, string? targetUserId = null, bool global = false, Guid? publicId = null)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (currentUserId == null) return Challenge();
 
         // If we got a publicId (modern link), convert it to internal id
-        if (publicId.HasValue && !auctionId.HasValue)
+        if (publicId.HasValue && publicId != Guid.Empty)
         {
             var auctionDto = await _auctionService.GetAuctionDetailsAsync(publicId.Value, currentUserId);
             if (auctionDto != null)
             {
                 auctionId = auctionDto.Id;
+            }
+            else
+            {
+                // If auction not found by PublicId, log this and maybe fallback to global
+                TempData["Error"] = "The auction associated with this chat could not be found.";
+                return RedirectToAction(nameof(Index), new { global = true });
             }
         }
 
