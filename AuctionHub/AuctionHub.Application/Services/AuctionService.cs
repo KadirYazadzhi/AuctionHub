@@ -1298,8 +1298,7 @@ public class AuctionService : IAuctionService
                 _logger.LogWarning(ex, "Failed to clear cache during auction deletion.");
             }
 
-            string message = imagesToDelete != null ? "Auction and images deleted successfully." : "Auction archived successfully. Images preserved in history.";
-            return (true, message, imagesToDelete);
+            return (true, "Auction and images deleted successfully.", null);
         }
         catch (Exception ex)
         {
@@ -2379,6 +2378,8 @@ public class AuctionService : IAuctionService
 
         foreach (var auction in dutchAuctions)
         {
+            if (!auction.DutchDecrementIntervalMinutes.HasValue || !auction.LastDutchDecrement.HasValue) continue;
+
             var interval = auction.DutchDecrementIntervalMinutes.Value;
             var timePassed = (now - auction.LastDutchDecrement.Value).TotalMinutes;
 

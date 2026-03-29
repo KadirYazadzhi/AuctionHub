@@ -84,7 +84,6 @@ public class ChatHub : Hub
         var savedMessage = await _chatService.SaveMessageAsync(senderId, safeMessage, isGlobal: false, receiverId, auctionId);
 
         // Notify the receiver
-        var sender = await _userManager.FindByIdAsync(senderId);
         var senderName = sender?.DisplayName ?? "Someone";
         
         // Add avatar to the DTO for the receiver

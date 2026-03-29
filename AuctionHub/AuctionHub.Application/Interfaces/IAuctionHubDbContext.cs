@@ -9,6 +9,7 @@ namespace AuctionHub.Application.Interfaces;
 public interface IAuctionHubDbContext
 {
     DbSet<Auction> Auctions { get; set; }
+    DbSet<AuctionImage> AuctionImages { get; set; }
     DbSet<Category> Categories { get; set; }
     DbSet<Bid> Bids { get; set; }
     DbSet<Transaction> Transactions { get; set; }
