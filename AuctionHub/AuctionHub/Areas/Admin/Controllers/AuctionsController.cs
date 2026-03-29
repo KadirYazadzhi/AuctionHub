@@ -96,8 +96,10 @@ public class AuctionsController : AdminBaseController
 
         if (auction == null) return NotFound();
 
+        // Reactivate and reset promotion
         auction.IsSuspended = false;
-        auction.IsActive = true; // Reactive the auction
+        auction.IsActive = true;
+        auction.IsPromoted = false; 
         
         // Ensure end time is in the future
         if (auction.EndTime <= DateTime.UtcNow)
