@@ -21,10 +21,20 @@ public class ChatController : Controller
         _userManager = userManager;
     }
 
-    public async Task<IActionResult> Index(int? auctionId = null, string? targetUserId = null, bool global = false)
+    public async Task<IActionResult> Index(int? auctionId = null, string? targetUserId = null, bool global = false, Guid? publicId = null)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (currentUserId == null) return Challenge();
+
+        // If we got a publicId (modern link), convert it to internal id
+        if (publicId.HasValue && !auctionId.HasValue)
+        {
+            var auctionDto = await _auctionService.GetAuctionDetailsAsync(publicId.Value, currentUserId);
+            if (auctionDto != null)
+            {
+                auctionId = auctionDto.Id;
+            }
+        }
 
         var sessions = await _chatService.GetUserChatSessionsAsync(currentUserId);
         var sessionsList = sessions.ToList();

@@ -81,10 +81,10 @@ public class ChatHub : Hub
         await Clients.Group($"PrivateChat_Auction_{auctionId}").SendAsync("ReceivePrivateMessage", savedMessage);
         
         var auction = await _chatService.GetAuctionByIdAsync(auctionId);
-        var auctionPublicId = auction?.PublicId.ToString() ?? auctionId.ToString();
+        string queryParam = auction != null ? $"publicId={auction.PublicId}" : $"auctionId={auctionId}";
 
         await _notificationService.NotifyUserAsync(receiverId, 
             $"✉️ New message from {senderName}: \"{(message.Length > 50 ? message.Substring(0, 47) + "..." : message)}\"", 
-            $"/Chat/Index?auctionId={auctionId}&targetUserId={senderId}");
+            $"/Chat/Index?{queryParam}&targetUserId={senderId}");
     }
 }
