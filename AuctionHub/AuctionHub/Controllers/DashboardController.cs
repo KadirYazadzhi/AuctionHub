@@ -43,6 +43,15 @@ public class DashboardController : Controller
         if (userId == null) return Challenge();
 
         var analytics = await _auctionService.GetSellerAnalyticsAsync(userId);
+        if (analytics == null)
+        {
+            analytics = new SellerAnalyticsDto
+            {
+                PersonalActivity = new List<DailyActivityDto>(),
+                SalesSummary = new List<TransactionDto>(),
+                TopPerformers = new List<AuctionDto>()
+            };
+        }
         return View(analytics);
     }
 }

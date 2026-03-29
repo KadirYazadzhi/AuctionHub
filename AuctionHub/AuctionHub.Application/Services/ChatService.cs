@@ -202,4 +202,25 @@ public class ChatService : IChatService
 
         return false;
     }
+
+    public async Task<AuctionDto?> GetAuctionByIdAsync(int auctionId)
+    {
+        var auction = await _context.Auctions
+            .Include(a => a.Category)
+            .FirstOrDefaultAsync(a => a.Id == auctionId);
+
+        if (auction == null) return null;
+
+        return new AuctionDto
+        {
+            Id = auction.Id,
+            PublicId = auction.PublicId,
+            Title = auction.Title,
+            ImageUrl = auction.ImageUrl,
+            CurrentPrice = auction.CurrentPrice,
+            EndTime = auction.EndTime,
+            Category = auction.Category?.Name ?? "General",
+            IsActive = auction.IsActive
+        };
+    }
 }

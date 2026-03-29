@@ -2,8 +2,9 @@
 @using System.Text.Json
 @{
     ViewData["Title"] = "My Dashboard";
-    var activityLabels = Model.PersonalActivity.Select(d => d.Date.ToString("MMM dd")).ToList();
-    var activityData = Model.PersonalActivity.Select(d => d.BidCount).ToList();
+    var activityList = Model.PersonalActivity ?? new List<AuctionHub.Application.DTOs.DailyActivityDto>();
+    var activityLabels = activityList.Select(d => d.Date.ToString("MMM dd")).ToList();
+    var activityData = activityList.Select(d => d.BidCount).ToList();
 }
 
 <div class="container py-5 animate-fade-up">

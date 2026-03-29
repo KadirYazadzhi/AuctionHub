@@ -1,6 +1,7 @@
-@model IEnumerable<AuctionHub.Application.DTOs.UserDetailsDto>
+@model AuctionHub.Domain.Models.PaginatedList<AuctionHub.Application.DTOs.UserDetailsDto>
 @{
     ViewData["Title"] = "Manage Users";
+    var currentSearch = Context.Request.Query["searchTerm"];
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4 animate-fade-up">
@@ -9,7 +10,7 @@
         <p class="text-muted">View, manage, and moderate user accounts.</p>
     </div>
     <form class="d-flex gap-2" method="get">
-        <input type="text" name="searchTerm" class="form-control rounded-pill px-4" placeholder="Search users..." value="@Context.Request.Query["searchTerm"]" />
+        <input type="text" name="searchTerm" class="form-control rounded-pill px-4" placeholder="Search users..." value="@currentSearch" />
         <button type="submit" class="btn btn-primary rounded-pill px-4">Search</button>
     </form>
 </div>
@@ -85,3 +86,20 @@
         </div>
     </div>
 </div>
+
+@if (Model.TotalPages > 1)
+{
+    <nav class="mt-5 d-flex justify-content-center">
+        <ul class="pagination shadow-sm rounded-pill overflow-hidden">
+            <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")">
+                <a class="page-link border-0 px-4" asp-route-pageNumber="@(Model.PageIndex - 1)" asp-route-searchTerm="@currentSearch">Previous</a>
+            </li>
+            <li class="page-item disabled">
+                <span class="page-link border-0 px-4 bg-light text-dark">Page @Model.PageIndex of @Model.TotalPages</span>
+            </li>
+            <li class="page-item @(Model.HasNextPage ? "" : "disabled")">
+                <a class="page-link border-0 px-4" asp-route-pageNumber="@(Model.PageIndex + 1)" asp-route-searchTerm="@currentSearch">Next</a>
+            </li>
+        </ul>
+    </nav>
+}

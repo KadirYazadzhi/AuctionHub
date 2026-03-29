@@ -44,6 +44,39 @@ public class UserService : IUserService
         }).ToListAsync();
     }
 
+    public async Task<PaginatedList<UserDetailsDto>> GetPaginatedAsync(string? searchTerm, int pageIndex, int pageSize)
+    {
+        var query = _userManager.Users.AsQueryable();
+
+        if (!string.IsNullOrEmpty(searchTerm))
+        {
+            query = query.Where(u => (u.Email != null && u.Email.Contains(searchTerm)) || 
+                                     (u.UserName != null && u.UserName.Contains(searchTerm)) || 
+                                     (u.FirstName != null && u.FirstName.Contains(searchTerm)) || 
+                                     (u.LastName != null && u.LastName.Contains(searchTerm)));
+        }
+
+        var count = await query.CountAsync();
+        var items = await query
+            .Skip((pageIndex - 1) * pageSize)
+            .Take(pageSize)
+            .Select(u => new UserDetailsDto
+            {
+                Id = u.Id,
+                UserName = u.UserName ?? u.Email ?? "Unknown",
+                Email = u.Email ?? "",
+                FirstName = u.FirstName,
+                LastName = u.LastName,
+                ProfilePictureUrl = u.ProfilePictureUrl,
+                AboutMe = u.AboutMe,
+                DisplayName = u.UserName ?? u.Email ?? "Unknown",
+                WalletBalance = u.WalletBalance,
+                LockoutEnd = u.LockoutEnd
+            }).ToListAsync();
+
+        return new PaginatedList<UserDetailsDto>(items, count, pageIndex, pageSize);
+    }
+
     public async Task<UserDetailsDto?> GetByIdAsync(string id)
     {
         var user = await _context.Users

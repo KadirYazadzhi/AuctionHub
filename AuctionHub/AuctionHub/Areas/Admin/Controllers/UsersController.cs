@@ -18,9 +18,10 @@ public class UsersController : AdminBaseController
         _adminService = adminService;
     }
 
-    public async Task<IActionResult> Index(string? searchTerm)
+    public async Task<IActionResult> Index(string? searchTerm, int? pageNumber)
     {
-        var users = await _userService.GetAllAsync(searchTerm);
+        int pageSize = 10;
+        var users = await _userService.GetPaginatedAsync(searchTerm, pageNumber ?? 1, pageSize);
         return View(users);
     }
 

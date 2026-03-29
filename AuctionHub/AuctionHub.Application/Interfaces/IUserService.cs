@@ -5,6 +5,7 @@ namespace AuctionHub.Application.Interfaces;
 public interface IUserService
 {
     Task<IEnumerable<UserDetailsDto>> GetAllAsync(string? searchTerm);
+    Task<PaginatedList<UserDetailsDto>> GetPaginatedAsync(string? searchTerm, int pageIndex, int pageSize);
     Task<UserDetailsDto?> GetByIdAsync(string id);
     Task<UserDetailsDto?> GetByUsernameAsync(string username);
     Task<UserDetailsDto?> GetByPublicIdAsync(Guid publicId);
