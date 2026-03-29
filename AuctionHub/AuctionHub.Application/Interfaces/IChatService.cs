@@ -11,4 +11,5 @@ public interface IChatService
     Task<bool> CanAccessPrivateChatAsync(int auctionId, string userId);
     Task<AuctionDto?> GetAuctionByIdAsync(int auctionId);
     Task<ChatMessageDto?> GetLastMessageForSessionAsync(int auctionId, string userId);
+    Task<bool> DeleteChatAsync(int auctionId, string userId);
 }

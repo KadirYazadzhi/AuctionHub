@@ -46,7 +46,13 @@
                             </td>
                             <td class="fw-bold admin-price-value">@item.CurrentPrice.ToString("C")</td>
                             <td>
-                                @if (item.IsActive && item.EndTime > DateTime.UtcNow)
+                                @if (item.IsDeleted)
+                                {
+                                    <span class="badge bg-dark text-white rounded-pill px-3 shadow-sm">
+                                        <i class="bi bi-trash-fill me-1"></i> Deleted
+                                    </span>
+                                }
+                                else if (item.IsActive && item.EndTime > DateTime.UtcNow)
                                 {
                                     <span class="badge bg-success-subtle text-success rounded-pill px-3">Active</span>
                                 }
@@ -65,7 +71,15 @@
                                        class="btn btn-sm btn-outline-primary rounded-pill" title="View">
                                         <i class="bi bi-eye-fill"></i>
                                     </a>
-                                    @if (!item.IsSuspended)
+                                    @if (item.IsDeleted)
+                                    {
+                                        <form asp-area="Admin" asp-action="Restore" asp-route-id="@item.Id" method="post" onsubmit="return confirm('Restore this deleted auction to its previous state?');">
+                                            <button type="submit" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm" title="Restore">
+                                                <i class="bi bi-arrow-counterclockwise"></i> Restore
+                                            </button>
+                                        </form>
+                                    }
+                                    else if (!item.IsSuspended)
                                     {
                                         <form asp-area="Admin" asp-action="Delete" asp-route-id="@item.Id" method="post" onsubmit="return confirm('ADMIN WARNING: This will SUSPEND the auction and refund all bids. Continue?');">
                                             <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3 shadow-sm" title="Suspend">

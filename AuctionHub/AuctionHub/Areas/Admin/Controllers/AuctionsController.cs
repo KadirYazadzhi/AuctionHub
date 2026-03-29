@@ -23,6 +23,7 @@ public class AuctionsController : AdminBaseController
     public async Task<IActionResult> Index()
     {
         var auctions = await _context.Auctions
+            .IgnoreQueryFilters() // SHOW EVERYTHING
             .Include(a => a.Category)
             .Include(a => a.Seller)
             .OrderByDescending(a => a.CreatedOn)
@@ -40,6 +41,7 @@ public class AuctionsController : AdminBaseController
                 IsActive = a.IsActive,
                 IsPromoted = a.IsPromoted,
                 IsSuspended = a.IsSuspended,
+                IsDeleted = a.IsDeleted,
                 SellerName = a.Seller.UserName ?? a.Seller.Email ?? "Unknown",
                 SellerId = a.SellerId,
                 WinnerId = a.Bids.OrderByDescending(b => b.Amount).Select(b => b.BidderId).FirstOrDefault()
@@ -50,6 +52,31 @@ public class AuctionsController : AdminBaseController
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Restore(int id)
+    {
+        var auction = await _context.Auctions
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(a => a.Id == id);
+
+        if (auction == null) return NotFound();
+
+        auction.IsDeleted = false;
+        
+        var adminId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (adminId != null)
+        {
+            await _adminService.LogActionAsync(adminId, "Restore Auction", "Auction", id.ToString(), "Admin restored deleted auction");
+        }
+
+        await _context.SaveChangesAsync();
+        TempData["Success"] = "Auction restored successfully.";
+        
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
     {
         var auction = await _context.Auctions

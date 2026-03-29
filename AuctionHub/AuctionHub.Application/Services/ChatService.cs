@@ -31,7 +31,7 @@ public class ChatService : IChatService
                 SentOn = m.SentOn,
                 IsGlobal = true
             })
-            .OrderBy(m => m.SentOn) // Return chronological order for UI
+            .OrderBy(m => m.SentOn)
             .ToListAsync();
     }
 
@@ -45,26 +45,13 @@ public class ChatService : IChatService
             .OrderByDescending(m => m.SentOn)
             .FirstOrDefaultAsync();
 
-        if (lastGlobalMessage != null)
+        sessions.Add(new ChatSessionDto
         {
-            sessions.Add(new ChatSessionDto
-            {
-                IsGlobal = true,
-                LastMessage = lastGlobalMessage.Content,
-                LastMessageTime = lastGlobalMessage.SentOn,
-                OtherUserName = "Global Chat"
-            });
-        }
-        else
-        {
-            sessions.Add(new ChatSessionDto
-            {
-                IsGlobal = true,
-                LastMessage = "No messages yet.",
-                LastMessageTime = DateTime.MinValue,
-                OtherUserName = "Global Chat"
-            });
-        }
+            IsGlobal = true,
+            LastMessage = lastGlobalMessage?.Content ?? "No messages yet.",
+            LastMessageTime = lastGlobalMessage?.SentOn ?? DateTime.MinValue,
+            OtherUserName = "Global Chat"
+        });
 
         // 2. Private Chat Sessions
         var privateMessages = await _context.ChatMessages
@@ -72,6 +59,7 @@ public class ChatService : IChatService
             .Include(m => m.Sender)
             .Include(m => m.Receiver)
             .Where(m => !m.IsGlobal && (m.SenderId == userId || m.ReceiverId == userId))
+            .Where(m => (m.SenderId == userId && !m.IsHiddenForSender) || (m.ReceiverId == userId && !m.IsHiddenForReceiver))
             .ToListAsync();
 
         var groupedPrivateSessions = privateMessages
@@ -98,7 +86,6 @@ public class ChatService : IChatService
             });
 
         sessions.AddRange(groupedPrivateSessions);
-
         return sessions.OrderByDescending(s => s.LastMessageTime).ToList();
     }
 
@@ -108,6 +95,7 @@ public class ChatService : IChatService
             .Where(m => m.AuctionId == auctionId && !m.IsGlobal &&
                         ((m.SenderId == userId1 && m.ReceiverId == userId2) ||
                          (m.SenderId == userId2 && m.ReceiverId == userId1)))
+            .Where(m => (m.SenderId == userId1 && !m.IsHiddenForSender) || (m.ReceiverId == userId1 && !m.IsHiddenForReceiver))
             .OrderByDescending(m => m.SentOn)
             .Take(50)
             .Select(m => new ChatMessageDto
@@ -117,7 +105,7 @@ public class ChatService : IChatService
                 SenderName = m.Sender.DisplayName ?? m.Sender.UserName ?? "Unknown",
                 SenderAvatar = m.Sender.ProfilePictureUrl,
                 ReceiverId = m.ReceiverId,
-                ReceiverName = m.Receiver!.DisplayName ?? m.Receiver.UserName ?? "Unknown",
+                ReceiverName = m.Receiver != null ? (m.Receiver.DisplayName ?? m.Receiver.UserName ?? "Unknown") : "Unknown",
                 AuctionId = m.AuctionId,
                 Content = m.Content,
                 SentOn = m.SentOn,
@@ -129,15 +117,8 @@ public class ChatService : IChatService
 
     public async Task<ChatMessageDto> SaveMessageAsync(string senderId, string content, bool isGlobal, string? receiverId = null, int? auctionId = null)
     {
-        if (string.IsNullOrWhiteSpace(content))
-        {
-            throw new ArgumentException("Message content cannot be empty.");
-        }
-
-        if (content.Length > 1000)
-        {
-            content = content.Substring(0, 1000); // Truncate to prevent DB overflow
-        }
+        if (string.IsNullOrWhiteSpace(content)) throw new ArgumentException("Message content cannot be empty.");
+        if (content.Length > 1000) content = content.Substring(0, 1000);
 
         var msg = new ChatMessage
         {
@@ -146,19 +127,16 @@ public class ChatService : IChatService
             IsGlobal = isGlobal,
             ReceiverId = receiverId,
             AuctionId = auctionId,
-            SentOn = DateTime.UtcNow
+            SentOn = DateTime.UtcNow,
+            IsHiddenForSender = false,
+            IsHiddenForReceiver = false
         };
 
         _context.ChatMessages.Add(msg);
         await _context.SaveChangesAsync();
 
-        // Fetch sender/receiver details for the DTO
         var sender = await _context.Users.FindAsync(senderId);
-        ApplicationUser? receiver = null;
-        if (receiverId != null)
-        {
-            receiver = await _context.Users.FindAsync(receiverId);
-        }
+        var receiver = receiverId != null ? await _context.Users.FindAsync(receiverId) : null;
 
         return new ChatMessageDto
         {
@@ -177,33 +155,21 @@ public class ChatService : IChatService
 
     public async Task<bool> CanAccessPrivateChatAsync(int auctionId, string userId)
     {
-        // 1. Administrators always have access
         var isAdmin = await _context.UserRoles
             .Join(_context.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new { ur, r })
             .AnyAsync(x => x.ur.UserId == userId && x.r.Name == "Administrator");
 
         if (isAdmin) return true;
 
-        // 2. If there's already a message history between these parties for this auction, allow access
-        // This is crucial for Admin-initiated chats or support conversations.
         var hasConversation = await _context.ChatMessages
             .AnyAsync(m => m.AuctionId == auctionId && (m.SenderId == userId || m.ReceiverId == userId));
         
         if (hasConversation) return true;
 
-        // 3. Auction-based logic
-        var auction = await _context.Auctions
-            .Include(a => a.Bids)
-            .FirstOrDefaultAsync(a => a.Id == auctionId);
-
+        var auction = await _context.Auctions.Include(a => a.Bids).FirstOrDefaultAsync(a => a.Id == auctionId);
         if (auction == null) return false;
         
-        // If no conversation yet, only allow starting one if:
-        // - User is the Seller
-        // - User is the Winner (and auction is closed)
-        
         if (auction.SellerId == userId) return true;
-
         if (!auction.IsActive)
         {
             var highestBid = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault();
@@ -215,10 +181,7 @@ public class ChatService : IChatService
 
     public async Task<AuctionDto?> GetAuctionByIdAsync(int auctionId)
     {
-        var auction = await _context.Auctions
-            .Include(a => a.Category)
-            .FirstOrDefaultAsync(a => a.Id == auctionId);
-
+        var auction = await _context.Auctions.Include(a => a.Category).FirstOrDefaultAsync(a => a.Id == auctionId);
         if (auction == null) return null;
 
         return new AuctionDto
@@ -242,15 +205,24 @@ public class ChatService : IChatService
             .FirstOrDefaultAsync();
 
         if (msg == null) return null;
+        return new ChatMessageDto { Id = msg.Id, SenderId = msg.SenderId, ReceiverId = msg.ReceiverId, AuctionId = msg.AuctionId, Content = msg.Content, SentOn = msg.SentOn };
+    }
 
-        return new ChatMessageDto
+    public async Task<bool> DeleteChatAsync(int auctionId, string userId)
+    {
+        var messages = await _context.ChatMessages
+            .Where(m => m.AuctionId == auctionId && (m.SenderId == userId || m.ReceiverId == userId))
+            .ToListAsync();
+
+        if (!messages.Any()) return false;
+
+        foreach (var m in messages)
         {
-            Id = msg.Id,
-            SenderId = msg.SenderId,
-            ReceiverId = msg.ReceiverId,
-            AuctionId = msg.AuctionId,
-            Content = msg.Content,
-            SentOn = msg.SentOn
-        };
+            if (m.SenderId == userId) m.IsHiddenForSender = true;
+            else if (m.ReceiverId == userId) m.IsHiddenForReceiver = true;
+        }
+
+        await _context.SaveChangesAsync();
+        return true;
     }
 }

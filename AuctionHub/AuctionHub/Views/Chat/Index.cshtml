@@ -116,15 +116,28 @@
                             </div>
                         }
                     </div>
-                    <div class="d-flex gap-2">
+                    <div class="d-flex gap-2 align-items-center">
                         @if (activeChatType == "Private")
                         {
                             <a asp-controller="Auctions" asp-action="DetailsById" asp-route-id="@auctionId" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold d-none d-sm-inline-block">
                                 View Listing
                             </a>
+                            <form asp-action="DeleteChat" asp-route-auctionId="@auctionId" method="post" onsubmit="return confirm('Are you sure you want to delete this conversation for yourself?');">
+                                <button type="submit" class="btn btn-outline-danger btn-sm rounded-circle p-0 d-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;" title="Delete Conversation">
+                                    <i class="bi bi-trash3-fill"></i>
+                                </button>
+                            </form>
                         }
                     </div>
                 </header>
+
+                @if (activeChatType == "Private" && (ViewBag.IsArchived == true))
+                {
+                    <div class="bg-warning-subtle text-warning-emphasis px-4 py-2 small d-flex align-items-center border-bottom">
+                        <i class="bi bi-archive-fill me-2"></i>
+                        <span>This auction has ended or was deleted. Messaging is disabled.</span>
+                    </div>
+                }
 
                 <!-- Messages -->
                 <div class="messages-container flex-grow-1 overflow-auto p-4 custom-scrollbar" id="chat-messages">
@@ -156,15 +169,24 @@
                 </div>
 
                 <!-- Footer / Input -->
-                <footer class="chat-footer">
-                    <form id="chat-form" class="mx-auto" style="max-width: 850px;">
-                        <div class="input-pill-wrapper shadow-lg">
-                            <input type="text" id="chat-input" class="form-control" placeholder="Type your message..." required autocomplete="off" />
-                            <button type="submit" class="btn btn-primary send-btn">
-                                <i class="bi bi-send-fill"></i>
-                            </button>
+                <footer class="chat-footer p-4">
+                    @if (ViewBag.IsArchived == true)
+                    {
+                        <div class="alert alert-light border rounded-pill mb-0 text-center py-2 shadow-sm animate-fade-in mx-auto" style="max-width: 850px;">
+                            <span class="text-muted"><i class="bi bi-lock-fill me-2 text-warning"></i>This conversation is archived and read-only</span>
                         </div>
-                    </form>
+                    }
+                    else
+                    {
+                        <form id="chat-form" class="mx-auto" style="max-width: 850px;">
+                            <div class="input-pill-wrapper shadow-lg">
+                                <input type="text" id="chat-input" class="form-control" placeholder="Type your message..." required autocomplete="off" />
+                                <button type="submit" class="btn btn-primary send-btn">
+                                    <i class="bi bi-send-fill"></i>
+                                </button>
+                            </div>
+                        </form>
+                    }
                 </footer>
             }
             else

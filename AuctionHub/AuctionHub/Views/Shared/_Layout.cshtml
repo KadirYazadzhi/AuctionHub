@@ -15,6 +15,57 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css"/>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true"/>
+    <style>
+        /* Modern Toast Styling */
+        .toast-container {
+            z-index: 3000 !important;
+        }
+        
+        .modern-toast {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px) saturate(180%);
+            -webkit-backdrop-filter: blur(12px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px !important;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1), 0 5px 15px rgba(0,0,0,0.05) !important;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform: translateX(120%);
+            opacity: 0;
+        }
+        
+        .modern-toast.showing {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        
+        .modern-toast.hiding {
+            transform: translateX(120%) scale(0.9);
+            opacity: 0;
+        }
+
+        .toast-glow-success { border-left: 6px solid #2ec4b6 !important; }
+        .toast-glow-danger { border-left: 6px solid #e71d36 !important; }
+        .toast-glow-primary { border-left: 6px solid #4361ee !important; }
+
+        .toast-icon-circle {
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        @@keyframes toast-in {
+            from { transform: translateY(-20px) scale(0.9); opacity: 0; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        
+        .animate-toast {
+            animation: toast-in 0.5s ease forwards;
+        }
+    </style>
     <script>
         (function() {
             const theme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
@@ -225,7 +276,7 @@
             .build();
 
         globalConnection.on("ReceiveOutbidNotification", function (auctionId, auctionTitle, newPrice) {
-            showToast("Outbid Alert!", "Someone bid " + newPrice + "€ on \"" + auctionTitle + "\". You're no longer the highest bidder!", "/Auctions/Details/" + auctionId, "bi-exclamation-triangle-fill", "bg-danger");
+            showToast("Outbid Alert!", "Someone bid " + newPrice + "€ on \"" + auctionTitle + "\". You're no longer the highest bidder!", "/Auctions/Details/" + auctionId, "bi-exclamation-triangle-fill", "danger");
             if (typeof checkNotifications === 'function') checkNotifications();
         });
 
@@ -233,30 +284,43 @@
         </text>
     }
 
-    function showToast(title, message, link, icon, bgColor, showButton) {
-        if (!icon) icon = "bi-bell-fill";
-        if (!bgColor) bgColor = "bg-primary";
+    function showToast(title, message, link, type, showButton) {
+        // If an alert is already visible on the page (meaning TempData was already rendered by the View)
+        // we skip showing the duplicate toast.
+        const existingAlerts = document.querySelectorAll('.alert');
+        if (existingAlerts.length > 0) return;
+
+        if (!type) type = "primary";
         if (showButton === undefined) showButton = true;
 
         const container = document.getElementById('toast-container');
         if (!container) return;
 
         const toastId = 'toast-' + Math.random().toString(36).substr(2, 9);
+        const glowClass = 'toast-glow-' + type;
+        const bgIcon = 'bg-' + type;
+        const iconName = type === 'success' ? 'bi-check-lg' : (type === 'danger' ? 'bi-exclamation-triangle' : 'bi-info-circle');
         
         let buttonHtml = '';
         if (showButton && link && link !== "#") {
-            buttonHtml = '<div class="d-grid mt-3"><a href="' + link + '" class="btn btn-sm btn-light rounded-pill py-2 fw-bold shadow-sm">View Details</a></div>';
+            buttonHtml = '<div class="mt-3"><a href="' + link + '" class="btn btn-sm btn-dark rounded-pill px-3 fw-bold small">View Listing</a></div>';
         }
 
-        const html = '<div id="' + toastId + '" class="toast border-0 shadow-lg rounded-4 overflow-hidden mb-3" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="8000">' +
-                '<div class="toast-header ' + bgColor + ' text-white border-0 py-3 px-4">' +
-                    '<i class="bi ' + icon + ' me-2"></i>' +
-                    '<strong class="me-auto">' + title + '</strong>' +
-                    '<button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="toast" aria-label="Close"></button>' +
-                '</div>' +
-                '<div class="toast-body p-4 bg-white">' +
-                    '<p class="mb-0 text-dark" style="font-size: 0.95rem;">' + message + '</p>' +
-                    buttonHtml +
+        const html = '<div id="' + toastId + '" class="toast modern-toast border-0 ' + glowClass + ' mb-3" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="6000">' +
+                '<div class="toast-body p-4">' +
+                    '<div class="d-flex align-items-start gap-3">' +
+                        '<div class="toast-icon-circle ' + bgIcon + ' text-white shadow-sm">' +
+                            '<i class="bi ' + iconName + ' fs-5"></i>' +
+                        '</div>' +
+                        '<div class="flex-grow-1">' +
+                            '<div class="d-flex justify-content-between align-items-center mb-1">' +
+                                '<strong class="text-dark">' + title + '</strong>' +
+                                '<button type="button" class="btn-close btn-close-dark small shadow-none" style="font-size: 0.7rem;" data-bs-dismiss="toast" aria-label="Close"></button>' +
+                            '</div>' +
+                            '<p class="mb-0 text-muted small" style="line-height: 1.4;">' + message + '</p>' +
+                            buttonHtml +
+                        '</div>' +
+                    '</div>' +
                 '</div>' +
             '</div>';
         
@@ -272,17 +336,17 @@
     document.addEventListener('DOMContentLoaded', function() {
         @if (TempData["Success"] != null)
         {
-            <text>showToast("Success!", "@TempData["Success"]", "#", "bi-check-circle-fill", "bg-success", false);</text>
+            <text>showToast("Action Successful", "@TempData["Success"]", "#", "success", false);</text>
         }
         @if (TempData["Error"] != null)
         {
-            <text>showToast("Error", "@TempData["Error"]", "#", "bi-exclamation-triangle-fill", "bg-danger", false);</text>
+            <text>showToast("System Alert", "@TempData["Error"]", "#", "danger", false);</text>
         }
     });
 </script>
 
 <!-- Global Toast Container -->
-<div id="toast-container" class="toast-container position-fixed top-0 end-0 p-4" style="z-index: 2000;"></div>
+<div id="toast-container" class="toast-container position-fixed top-0 end-0 p-4"></div>
 
 <!-- Global Action Confirmation Modal -->
 <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">

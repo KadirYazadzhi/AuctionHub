@@ -15,6 +15,7 @@ public class AuctionListViewModel
     public bool IsActive { get; set; }
     public bool IsPromoted { get; set; }
     public bool IsSuspended { get; set; }
+    public bool IsDeleted { get; set; }
     
     public string SellerName { get; set; } = null!;
     public string SellerId { get; set; } = null!;

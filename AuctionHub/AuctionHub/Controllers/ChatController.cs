@@ -35,19 +35,13 @@ public class ChatController : Controller
             {
                 auctionId = auctionDto.Id;
             }
-            else
-            {
-                // If auction not found by PublicId, log this and maybe fallback to global
-                TempData["Error"] = "The auction associated with this chat could not be found.";
-                return RedirectToAction(nameof(Index), new { global = true });
-            }
         }
 
         var sessions = await _chatService.GetUserChatSessionsAsync(currentUserId);
         var sessionsList = sessions.ToList();
 
-        // Determine active chat
-        if (global || (auctionId == null && targetUserId == null && !sessionsList.Any()))
+        // Determine active chat - DEFAULT to Global if no specific private chat is requested
+        if (global || (auctionId == null && targetUserId == null))
         {
             ViewBag.Sessions = sessionsList;
             ViewBag.ActiveChatType = "Global";
@@ -57,23 +51,25 @@ public class ChatController : Controller
 
         if (auctionId.HasValue)
         {
+            // ... (rest of the private chat logic stays the same)
             // Trying to access a private chat
             bool canAccess = await _chatService.CanAccessPrivateChatAsync(auctionId.Value, currentUserId);
             if (!canAccess)
             {
                 TempData["Error"] = "You do not have permission to access this chat.";
-                string? referer = Request.Headers["Referer"].ToString();
-                if (!string.IsNullOrEmpty(referer)) return Redirect(referer);
                 return RedirectToAction(nameof(Index), new { global = true });
             }
 
             var auction = await _auctionService.GetAuctionDetailsAsync(auctionId.Value, currentUserId);
             if (auction == null)
             {
-                // Fallback: If auction is deleted but messages exist, don't 404.
-                // Either show a limited view or redirect to global.
-                TempData["Error"] = "This auction listing is no longer available.";
-                return RedirectToAction(nameof(Index), new { global = true });
+                ViewBag.IsArchived = true;
+                ViewBag.AuctionTitle = "Archived Auction";
+            }
+            else
+            {
+                ViewBag.IsArchived = !auction.IsActive;
+                ViewBag.AuctionTitle = auction.Title;
             }
 
             string otherUserId = "";
@@ -83,15 +79,13 @@ public class ChatController : Controller
             }
             else
             {
-                // Try to find the last person this user talked to regarding this auction
                 var lastMessage = await _chatService.GetLastMessageForSessionAsync(auctionId.Value, currentUserId);
                 if (lastMessage != null)
                 {
                     otherUserId = lastMessage.SenderId == currentUserId ? (lastMessage.ReceiverId ?? "") : lastMessage.SenderId;
                 }
                 
-                // Fallback to traditional seller/winner logic if no messages yet
-                if (string.IsNullOrEmpty(otherUserId))
+                if (string.IsNullOrEmpty(otherUserId) && auction != null)
                 {
                     otherUserId = currentUserId == auction.SellerId ? (auction.WinnerId ?? "") : auction.SellerId;
                 }
@@ -100,23 +94,21 @@ public class ChatController : Controller
             if (string.IsNullOrEmpty(otherUserId))
             {
                 TempData["Error"] = "The other party is not available for chat yet.";
-                string? referer = Request.Headers["Referer"].ToString();
-                if (!string.IsNullOrEmpty(referer)) return Redirect(referer);
                 return RedirectToAction(nameof(Index), new { global = true });
             }
 
-            // Ensure this session is in the sidebar even if it has no messages
+            // Ensure this session is in the sidebar
             if (!sessionsList.Any(s => s.AuctionId == auctionId && s.OtherUserId == otherUserId))
             {
                 var otherUserObj = await _userManager.FindByIdAsync(otherUserId);
                 sessionsList.Add(new AuctionHub.Application.DTOs.ChatSessionDto
                 {
                     AuctionId = auctionId,
-                    AuctionTitle = auction.Title,
+                    AuctionTitle = auction?.Title ?? "Archived Auction",
                     OtherUserId = otherUserId,
                     OtherUserName = otherUserObj?.DisplayName ?? "User",
                     OtherUserAvatar = otherUserObj?.ProfilePictureUrl,
-                    LastMessage = "Starting conversation...",
+                    LastMessage = "Archived conversation",
                     LastMessageTime = DateTime.UtcNow
                 });
             }
@@ -128,7 +120,6 @@ public class ChatController : Controller
             
             ViewBag.ActiveChatType = "Private";
             ViewBag.AuctionId = auctionId.Value;
-            ViewBag.AuctionTitle = auction.Title;
             ViewBag.OtherUserId = otherUserId;
             ViewBag.OtherUserName = otherUser?.DisplayName ?? otherUser?.UserName ?? "User";
             ViewBag.CurrentUserId = currentUserId;
@@ -138,25 +129,30 @@ public class ChatController : Controller
 
         ViewBag.Sessions = sessionsList;
 
-        // If no specific chat selected but sessions exist, pick the most recent one
-        if (sessions.Any())
+        // If we reach here and no specific chat is active, just return an empty global-like state or redirect to global
+        // Since we already handled the default Global at the beginning, this part can just return the global view if all else fails
+        ViewBag.ActiveChatType = "Global";
+        var fallbackMessages = await _chatService.GetGlobalMessagesAsync();
+        return View(fallbackMessages);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteChat(int auctionId)
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (currentUserId == null) return Challenge();
+
+        var success = await _chatService.DeleteChatAsync(auctionId, currentUserId);
+        if (success)
         {
-            var privateSessions = sessions.Where(s => !s.IsGlobal).ToList();
-            if (privateSessions.Any())
-            {
-                var latest = privateSessions.First();
-                // Safety check: only redirect if access is actually granted
-                bool canAccess = await _chatService.CanAccessPrivateChatAsync(latest.AuctionId!.Value, currentUserId);
-                if (canAccess)
-                {
-                    return RedirectToAction(nameof(Index), new { auctionId = latest.AuctionId, targetUserId = latest.OtherUserId });
-                }
-            }
-            
-            // Default to global if no accessible private sessions
-            return RedirectToAction(nameof(Index), new { global = true });
+            TempData["Success"] = "Conversation deleted successfully.";
+        }
+        else
+        {
+            TempData["Error"] = "Could not delete conversation.";
         }
 
-        return View(new List<AuctionHub.Application.DTOs.ChatMessageDto>());
+        return RedirectToAction(nameof(Index), new { global = true });
     }
 }

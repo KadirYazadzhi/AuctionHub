@@ -31,4 +31,8 @@ public class ChatMessage
     public DateTime SentOn { get; set; } = DateTime.UtcNow;
 
     public bool IsGlobal { get; set; } = true;
+
+    // Track visibility for each participant independently
+    public bool IsHiddenForSender { get; set; } = false;
+    public bool IsHiddenForReceiver { get; set; } = false;
 }
