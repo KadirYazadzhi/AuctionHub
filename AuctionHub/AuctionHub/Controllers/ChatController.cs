@@ -45,6 +45,8 @@ public class ChatController : Controller
             if (!canAccess)
             {
                 TempData["Error"] = "You do not have permission to access this chat.";
+                string? referer = Request.Headers["Referer"].ToString();
+                if (!string.IsNullOrEmpty(referer)) return Redirect(referer);
                 return RedirectToAction(nameof(Index), new { global = true });
             }
 
@@ -64,6 +66,8 @@ public class ChatController : Controller
             if (string.IsNullOrEmpty(otherUserId))
             {
                 TempData["Error"] = "The other party is not available for chat yet.";
+                string? referer = Request.Headers["Referer"].ToString();
+                if (!string.IsNullOrEmpty(referer)) return Redirect(referer);
                 return RedirectToAction(nameof(Index), new { global = true });
             }
 

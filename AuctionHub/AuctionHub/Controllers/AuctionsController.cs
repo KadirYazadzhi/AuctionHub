@@ -1056,6 +1056,8 @@ public class AuctionsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Follow(string sellerId, Guid publicId)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -1066,7 +1068,7 @@ public class AuctionsController : Controller
         if (result.Success) TempData["Success"] = result.Message;
         else TempData["Error"] = result.Message;
 
-        return RedirectToAction(nameof(UserAuctions), new { id = publicId });
+        return RedirectToAction(nameof(Details), new { id = publicId });
     }
 
     [HttpPost]
@@ -1081,7 +1083,7 @@ public class AuctionsController : Controller
         if (result.Success) TempData["Success"] = result.Message;
         else TempData["Error"] = result.Message;
 
-        return RedirectToAction(nameof(UserAuctions), new { id = publicId });
+        return RedirectToAction(nameof(Details), new { id = publicId });
     }
 
     [HttpPost]

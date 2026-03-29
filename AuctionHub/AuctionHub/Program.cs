@@ -142,6 +142,12 @@ builder.Services.AddAntiforgery(options => options.HeaderName = "X-XSRF-TOKEN");
 
 builder.Services.AddRateLimiter(options => {
     options.AddFixedWindowLimiter("fixed", opt => { opt.PermitLimit = 10; opt.Window = TimeSpan.FromMinutes(1); });
+    options.AddFixedWindowLimiter("bidding", opt => {
+        opt.PermitLimit = 20; // Allow 20 bidding-related operations per window
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 5;
+    });
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 
