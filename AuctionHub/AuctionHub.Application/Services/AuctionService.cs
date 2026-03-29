@@ -1206,33 +1206,41 @@ public class AuctionService : IAuctionService
             _logger.LogWarning("User {UserId} tried to delete auction {PublicId} owned by {OwnerId}", userId, publicId, auction.SellerId);
             return (false, "Forbidden.", null);
         }
+
+        // NEW RULE: If there are bids, the seller CANNOT delete the auction.
+        // They must contact support/admin to cancel it with a valid reason.
+        if (auction.Bids.Any())
+        {
+            return (false, "You cannot delete an auction that has active bids. Please contact support if you need to cancel it.", null);
+        }
         
         using var dbTransaction = await _context.Database.BeginTransactionAsync();
         try
         {
-            
-            // Rule 1: Decide on refund if there are bids
-            if (auction.Bids.Any()) 
-            {
-                var latestBid = auction.Bids.OrderByDescending(b => b.Amount).First();
-                var bidder = latestBid.Bidder;
+            // Refund all pending private offers
+            var pendingOffers = await _context.PrivateOffers
+                .Where(o => o.AuctionId == auction.Id && o.Status == "Pending")
+                .ToListAsync();
 
-                if (bidder != null)
+            foreach (var offer in pendingOffers)
+            {
+                offer.Status = "Cancelled";
+                var buyer = await _context.Users.FindAsync(offer.BuyerId);
+                if (buyer != null)
                 {
-                    // Refund the user
-                    bidder.WalletBalance += latestBid.Amount;
+                    buyer.WalletBalance += offer.Amount;
                     _context.Transactions.Add(new Transaction
                     {
-                        UserId = bidder.Id,
-                        Amount = latestBid.Amount,
-                        Description = $"Refund: Auction '{auction.Title}' was deleted by the seller.",
-                        TransactionType = "Refund",
+                        UserId = buyer.Id,
+                        Amount = offer.Amount,
+                        Description = $"Refund: Private offer on '{auction.Title}' was cancelled because the auction was deleted.",
+                        TransactionType = "OfferRefund",
                         TransactionDate = DateTime.UtcNow,
                         AuctionId = auction.Id
                     });
 
-                    await _notificationService.NotifyUserAsync(bidder.Id, 
-                        $"⚠️ The auction for '{auction.Title}' was deleted by the seller. Your bid of {latestBid.Amount:C} has been refunded to your wallet.", 
+                    await _notificationService.NotifyUserAsync(buyer.Id, 
+                        $"⚠️ Your private offer for '{auction.Title}' was cancelled and funds were refunded.", 
                         "/Wallet");
                 }
             }
