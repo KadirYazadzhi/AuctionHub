@@ -141,10 +141,15 @@ public class UserService : IUserService
     {
         var transactions = _context.Transactions.Where(t => t.UserId == user.Id).ToList();
         
-        var totalSpent = transactions.Where(t => t.TransactionType == "Purchase" || t.TransactionType == "Bid").Sum(t => t.Amount);
-        var refunds = transactions.Where(t => t.TransactionType == "Refund").Sum(t => t.Amount);
+        // Define which types contribute to "Spent"
+        var expenseTypes = new[] { "Purchase", "Bid", "OfferHold", "Promotion", "Withdraw", "AdminPenalty" };
+        var totalSpent = transactions.Where(t => expenseTypes.Contains(t.TransactionType)).Sum(t => t.Amount);
         
-        var totalEarned = transactions.Where(t => t.TransactionType == "Sale").Sum(t => t.Amount);
+        // Define which types are "Returns" or "Refunds"
+        var refundTypes = new[] { "Refund", "Outbid", "OfferRefund" };
+        var refunds = transactions.Where(t => refundTypes.Contains(t.TransactionType)).Sum(t => t.Amount);
+        
+        var totalEarned = transactions.Where(t => t.TransactionType == "Sale" || t.TransactionType == "AdminBonus" || t.TransactionType == "Deposit").Sum(t => t.Amount);
         
         var activeBidsCount = user.MyBids
             .Where(b => b.Auction.IsActive && b.Auction.EndTime > DateTime.UtcNow)
