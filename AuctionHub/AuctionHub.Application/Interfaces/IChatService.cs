@@ -10,4 +10,5 @@ public interface IChatService
     Task<ChatMessageDto> SaveMessageAsync(string senderId, string content, bool isGlobal, string? receiverId = null, int? auctionId = null);
     Task<bool> CanAccessPrivateChatAsync(int auctionId, string userId);
     Task<AuctionDto?> GetAuctionByIdAsync(int auctionId);
+    Task<ChatMessageDto?> GetLastMessageForSessionAsync(int auctionId, string userId);
 }

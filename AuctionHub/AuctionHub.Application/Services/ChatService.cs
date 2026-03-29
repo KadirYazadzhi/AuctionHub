@@ -190,7 +190,14 @@ public class ChatService : IChatService
 
         if (auction == null) return false;
         
-        // Chat is only available if auction is closed
+        // NEW: Always allow access if the user is a sender or receiver of any message in this auction
+        // This covers cases where an Admin initiates a chat with a user who isn't the seller or winner.
+        var hasParticipatedInConversation = await _context.ChatMessages
+            .AnyAsync(m => m.AuctionId == auctionId && (m.SenderId == userId || m.ReceiverId == userId));
+        
+        if (hasParticipatedInConversation) return true;
+
+        // Regular chat logic: only available if auction is closed
         if (auction.IsActive) return false;
 
         // Is User the Seller?
@@ -221,6 +228,26 @@ public class ChatService : IChatService
             EndTime = auction.EndTime,
             Category = auction.Category?.Name ?? "General",
             IsActive = auction.IsActive
+        };
+    }
+
+    public async Task<ChatMessageDto?> GetLastMessageForSessionAsync(int auctionId, string userId)
+    {
+        var msg = await _context.ChatMessages
+            .Where(m => m.AuctionId == auctionId && (m.SenderId == userId || m.ReceiverId == userId))
+            .OrderByDescending(m => m.SentOn)
+            .FirstOrDefaultAsync();
+
+        if (msg == null) return null;
+
+        return new ChatMessageDto
+        {
+            Id = msg.Id,
+            SenderId = msg.SenderId,
+            ReceiverId = msg.ReceiverId,
+            AuctionId = msg.AuctionId,
+            Content = msg.Content,
+            SentOn = msg.SentOn
         };
     }
 }

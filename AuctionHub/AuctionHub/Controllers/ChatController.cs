@@ -73,14 +73,25 @@ public class ChatController : Controller
             var auction = await _auctionService.GetAuctionDetailsAsync(auctionId.Value, currentUserId);
             if (auction == null) return NotFound();
 
-            string otherUserId;
+            string otherUserId = "";
             if (!string.IsNullOrEmpty(targetUserId))
             {
                 otherUserId = targetUserId;
             }
             else
             {
-                otherUserId = currentUserId == auction.SellerId ? (auction.WinnerId ?? "") : auction.SellerId;
+                // Try to find the last person this user talked to regarding this auction
+                var lastMessage = await _chatService.GetLastMessageForSessionAsync(auctionId.Value, currentUserId);
+                if (lastMessage != null)
+                {
+                    otherUserId = lastMessage.SenderId == currentUserId ? (lastMessage.ReceiverId ?? "") : lastMessage.SenderId;
+                }
+                
+                // Fallback to traditional seller/winner logic if no messages yet
+                if (string.IsNullOrEmpty(otherUserId))
+                {
+                    otherUserId = currentUserId == auction.SellerId ? (auction.WinnerId ?? "") : auction.SellerId;
+                }
             }
 
             if (string.IsNullOrEmpty(otherUserId))
