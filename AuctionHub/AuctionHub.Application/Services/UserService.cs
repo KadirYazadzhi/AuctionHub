@@ -156,23 +156,23 @@ public class UserService : IUserService
             IsShadowBanned = user.IsShadowBanned,
             AverageRating = user.AverageRating,
             IsTopSeller = user.IsTopSeller,
-            FollowersCount = user.Followers.Count,
-            FollowingCount = user.Following.Count,
+            FollowersCount = user.Followers?.Count ?? 0,
+            FollowingCount = user.Following?.Count ?? 0,
 
-            Followers = user.Followers.Select(f => new FollowerDto
+            Followers = (user.Followers ?? new List<UserFollower>()).Select(f => new FollowerDto
             {
                 Id = f.FollowerId,
-                PublicId = f.Follower.PublicId,
-                DisplayName = f.Follower.DisplayName,
-                ProfilePictureUrl = f.Follower.ProfilePictureUrl
+                PublicId = f.Follower?.PublicId ?? Guid.Empty,
+                DisplayName = f.Follower?.DisplayName ?? f.Follower?.UserName ?? "Unknown",
+                ProfilePictureUrl = f.Follower?.ProfilePictureUrl
             }).ToList(),
 
-            Following = user.Following.Select(f => new FollowerDto
+            Following = (user.Following ?? new List<UserFollower>()).Select(f => new FollowerDto
             {
                 Id = f.SellerId,
-                PublicId = f.Seller.PublicId,
-                DisplayName = f.Seller.DisplayName,
-                ProfilePictureUrl = f.Seller.ProfilePictureUrl
+                PublicId = f.Seller?.PublicId ?? Guid.Empty,
+                DisplayName = f.Seller?.DisplayName ?? f.Seller?.UserName ?? "Unknown",
+                ProfilePictureUrl = f.Seller?.ProfilePictureUrl
             }).ToList(),
             
             ActiveBidsCount = activeBidsCount,
@@ -181,17 +181,17 @@ public class UserService : IUserService
             WinRate = Math.Round(winRate, 1),
             PersonalActivity = personalActivity,
 
-            Reviews = user.ReceivedReviews.OrderByDescending(r => r.CreatedOn).Select(r => new ReviewDto
+            Reviews = (user.ReceivedReviews ?? new List<Review>()).OrderByDescending(r => r.CreatedOn).Select(r => new ReviewDto
             {
                 Id = r.Id,
-                ReviewerName = r.Reviewer.FirstName != null ? $"{r.Reviewer.FirstName} {r.Reviewer.LastName}" : r.Reviewer.UserName!,
+                ReviewerName = r.Reviewer != null ? (r.Reviewer.FirstName != null ? $"{r.Reviewer.FirstName} {r.Reviewer.LastName}" : r.Reviewer.UserName!) : "Unknown",
                 ReviewerId = r.ReviewerId,
                 Rating = r.Rating,
                 Comment = r.Comment,
                 CreatedOn = r.CreatedOn,
-                AuctionTitle = r.Auction.Title
+                AuctionTitle = r.Auction?.Title ?? "Unknown Auction"
             }).ToList(),
-            Auctions = user.MyAuctions.Select(a => new AuctionDto
+            Auctions = (user.MyAuctions ?? new List<Auction>()).Select(a => new AuctionDto
             {
                 Id = a.Id,
                 PublicId = a.PublicId,
@@ -199,15 +199,15 @@ public class UserService : IUserService
                 ImageUrl = a.ImageUrl,
                 CurrentPrice = a.CurrentPrice,
                 EndTime = a.EndTime,
-                Category = a.Category.Name,
+                Category = a.Category?.Name ?? "General",
                 IsActive = a.IsActive
             }).ToList(),
-            Bids = user.MyBids.Select(b => new BidDto
+            Bids = (user.MyBids ?? new List<Bid>()).Select(b => new BidDto
             {
                 Amount = b.Amount,
                 BidTime = b.BidTime,
                 Bidder = user.UserName ?? user.Email ?? "Unknown",
-                AuctionTitle = b.Auction.Title
+                AuctionTitle = b.Auction?.Title ?? "Unknown Auction"
             }).ToList()
         };
     }

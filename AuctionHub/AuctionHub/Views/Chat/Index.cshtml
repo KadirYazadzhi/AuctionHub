@@ -110,7 +110,7 @@
                             </div>
                             <div class="d-flex flex-column justify-content-center">
                                 <h6 class="fw-bold text-main mb-0" style="line-height: 1.2;">@otherUserName</h6>
-                                <a asp-controller="Auctions" asp-action="Details" asp-route-id="@auctionId" class="smallest text-primary text-decoration-none hover-underline fw-bold">
+                                <a asp-controller="Auctions" asp-action="DetailsById" asp-route-id="@auctionId" class="smallest text-primary text-decoration-none hover-underline fw-bold">
                                     <i class="bi bi-hammer me-1"></i> @auctionTitle
                                 </a>
                             </div>
@@ -119,7 +119,7 @@
                     <div class="d-flex gap-2">
                         @if (activeChatType == "Private")
                         {
-                            <a asp-controller="Auctions" asp-action="Details" asp-route-id="@auctionId" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold d-none d-sm-inline-block">
+                            <a asp-controller="Auctions" asp-action="DetailsById" asp-route-id="@auctionId" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold d-none d-sm-inline-block">
                                 View Listing
                             </a>
                         }

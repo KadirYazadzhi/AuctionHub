@@ -429,9 +429,11 @@ public class AuctionsController : Controller
 
     [AllowAnonymous]
     [HttpGet]
-    public async Task<IActionResult> UserAuctions(Guid id, string? searchTerm, int? categoryId, string? sortOrder, int? pageNumber, decimal? minPrice, decimal? maxPrice, string? status = "active")
+    public async Task<IActionResult> UserAuctions(string username, string? searchTerm, int? categoryId, string? sortOrder, int? pageNumber, decimal? minPrice, decimal? maxPrice, string? status = "active")
     {
-        var user = await _userService.GetByPublicIdAsync(id);
+        if (string.IsNullOrEmpty(username)) return NotFound();
+        
+        var user = await _userService.GetByUsernameAsync(username);
         if (user == null) return NotFound();
 
         // Check if target user is an Admin

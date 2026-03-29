@@ -77,7 +77,7 @@
                         <div class="d-flex gap-4 overflow-auto pb-2 custom-scrollbar">
                             @foreach (var seller in Model.Following)
                             {
-                                <a asp-controller="Auctions" asp-action="UserAuctions" asp-route-id="@seller.PublicId" class="text-decoration-none text-center group-hover" style="min-width: 100px;">
+                                <a asp-controller="Auctions" asp-action="UserAuctions" asp-route-username="@seller.DisplayName" class="text-decoration-none text-center group-hover" style="min-width: 100px;">
                                     <div class="avatar-md bg-light rounded-circle mx-auto mb-2 overflow-hidden shadow-sm border border-2 border-white transition-all hover-border-primary" style="width: 64px; height: 64px;">
                                         @if (!string.IsNullOrEmpty(seller.ProfilePictureUrl))
                                         {

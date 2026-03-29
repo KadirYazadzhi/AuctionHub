@@ -17,6 +17,7 @@ public class ChatService : IChatService
     public async Task<IEnumerable<ChatMessageDto>> GetGlobalMessagesAsync(int limit = 50)
     {
         return await _context.ChatMessages
+            .Include(m => m.Sender)
             .Where(m => m.IsGlobal)
             .OrderByDescending(m => m.SentOn)
             .Take(limit)
@@ -24,8 +25,8 @@ public class ChatService : IChatService
             {
                 Id = m.Id,
                 SenderId = m.SenderId,
-                SenderName = m.Sender.DisplayName ?? m.Sender.UserName ?? "Unknown",
-                SenderAvatar = m.Sender.ProfilePictureUrl,
+                SenderName = m.Sender != null ? (m.Sender.DisplayName ?? m.Sender.UserName ?? "Unknown") : "Unknown",
+                SenderAvatar = m.Sender != null ? m.Sender.ProfilePictureUrl : null,
                 Content = m.Content,
                 SentOn = m.SentOn,
                 IsGlobal = true
@@ -87,9 +88,9 @@ public class ChatService : IChatService
                 {
                     IsGlobal = false,
                     AuctionId = g.Key.AuctionId,
-                    AuctionTitle = lastMsg.Auction?.Title ?? "Unknown Auction",
+                    AuctionTitle = lastMsg.Auction != null ? (lastMsg.Auction.Title ?? "Unknown Auction") : "Unknown Auction",
                     OtherUserId = g.Key.OtherUserId,
-                    OtherUserName = otherUser?.DisplayName ?? otherUser?.UserName ?? "Unknown User",
+                    OtherUserName = otherUser != null ? (otherUser.DisplayName ?? otherUser.UserName ?? "Unknown User") : "Unknown User",
                     OtherUserAvatar = otherUser?.ProfilePictureUrl,
                     LastMessage = lastMsg.Content,
                     LastMessageTime = lastMsg.SentOn
