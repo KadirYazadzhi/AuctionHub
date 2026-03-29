@@ -106,6 +106,12 @@ public class AuctionsController : Controller
             return NotFound();
         }
 
+        // Safety check: If auction is soft-deleted, only allow Administrators to view it
+        if (auction.IsDeleted && !User.IsInRole("Administrator"))
+        {
+            return NotFound();
+        }
+
         ViewBag.IsFollowing = currentUserId != null && await _userService.IsFollowingAsync(currentUserId, auction.SellerId);
 
         var model = new AuctionDetailsViewModel

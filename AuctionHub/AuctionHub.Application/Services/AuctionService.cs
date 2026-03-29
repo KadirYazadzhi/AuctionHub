@@ -722,6 +722,7 @@ public class AuctionService : IAuctionService
     public async Task<AuctionDetailsDto?> GetAuctionDetailsAsync(int id, string? currentUserId = null)
     {
         var auction = await _context.Auctions
+            .IgnoreQueryFilters()
             .Include(a => a.Category)
             .Include(a => a.Seller)
             .Include(a => a.Images)
@@ -740,6 +741,7 @@ public class AuctionService : IAuctionService
     public async Task<AuctionDetailsDto?> GetAuctionDetailsAsync(Guid publicId, string? currentUserId = null)
     {
         var auction = await _context.Auctions
+            .IgnoreQueryFilters()
             .Include(a => a.Category)
             .Include(a => a.Seller)
             .Include(a => a.Images)
