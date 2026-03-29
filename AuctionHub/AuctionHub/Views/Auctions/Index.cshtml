@@ -66,21 +66,26 @@
 
                         <!-- Location & Distance -->
                         <div class="mb-4">
-                            <label class="form-label small text-uppercase text-muted fw-bold d-flex justify-content-between">
-                                Location & Distance
-                                <div class="form-check form-switch small">
-                                    <input class="form-check-input" type="checkbox" id="enableLocation" @(ViewData["MaxDistance"] != null ? "checked" : "")>
-                                </div>
-                            </label>
+                            <label class="form-label small text-uppercase text-muted fw-bold mb-2">Location & Distance</label>
                             
+                            <div id="locationDisabledUI" class="@(ViewData["MaxDistance"] != null ? "d-none" : "")">
+                                <button type="button" class="btn btn-outline-primary btn-sm rounded-pill w-100 py-2" id="btnEnableLocation">
+                                    <i class="bi bi-geo-alt-fill me-1"></i> Use My Location
+                                </button>
+                                <p class="text-muted smallest mt-2 mb-0"><i class="bi bi-info-circle me-1"></i> Finds auctions near you.</p>
+                            </div>
+
                             <div id="locationFilterUI" class="@(ViewData["MaxDistance"] != null ? "" : "d-none")">
-                                <input type="range" name="maxDistance" class="form-range" min="1" max="100" value="@(ViewData["MaxDistance"] ?? 20)" id="distanceRange">
-                                <div class="d-flex justify-content-between small text-muted mb-2">
-                                    <span>Radius: <span id="radiusVal">@(ViewData["MaxDistance"] ?? 20)</span> km</span>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="small fw-bold">Radius: <span id="radiusVal" class="text-primary">@(ViewData["MaxDistance"] ?? 20)</span> km</span>
+                                    <button type="button" class="btn btn-link btn-sm text-danger p-0 text-decoration-none" id="btnClearLocation">Clear</button>
                                 </div>
-                                <div id="filterMap" class="rounded-3 border mb-2" style="height: 150px;"></div>
+                                <input type="range" name="maxDistance" class="form-range" min="1" max="100" value="@(ViewData["MaxDistance"] ?? 20)" id="distanceRange">
+                                
+                                <div id="filterMap" class="rounded-3 border mb-2 shadow-sm" style="height: 120px; z-index: 1;"></div>
                                 <input type="hidden" name="latitude" id="filterLat" value="@ViewData["Latitude"]" />
                                 <input type="hidden" name="longitude" id="filterLng" value="@ViewData["Longitude"]" />
+                                <p class="text-muted smallest"><i class="bi bi-cursor-fill me-1"></i> Drag marker to change center</p>
                             </div>
                         </div>
                         
@@ -170,31 +175,120 @@
 
 @section Scripts {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@@1.9.4/dist/leaflet.js"></script>
     <script>
-        const connection = new signalR.HubConnectionBuilder()
-            .withUrl("/hubs/bidding")
-            .withAutomaticReconnect()
-            .build();
+        document.addEventListener('DOMContentLoaded', function() {
+            // --- Location Logic ---
+            const btnEnable = document.getElementById('btnEnableLocation');
+            const btnClear = document.getElementById('btnClearLocation');
+            const disabledUI = document.getElementById('locationDisabledUI');
+            const filterUI = document.getElementById('locationFilterUI');
+            const distanceRange = document.getElementById('distanceRange');
+            const radiusVal = document.getElementById('radiusVal');
+            const filterLat = document.getElementById('filterLat');
+            const filterLng = document.getElementById('filterLng');
+            
+            let map, marker, circle;
 
-        connection.on("ReceivePriceUpdate", function (auctionId, newPrice) {
-            const priceElement = document.getElementById(`price-${auctionId}`);
-            if (priceElement) {
-                // Update price text using browser locale
-                const formattedPrice = new Intl.NumberFormat('bg-BG', { style: 'currency', currency: 'EUR' }).format(newPrice);
-                priceElement.innerText = formattedPrice;
-                
-                // Visual feedback (flash green)
-                priceElement.classList.add('text-success');
-                priceElement.style.transition = 'all 0.3s';
-                priceElement.style.transform = 'scale(1.1)';
-                
-                setTimeout(() => {
-                    priceElement.classList.remove('text-success');
-                    priceElement.style.transform = 'scale(1)';
-                }, 1000);
+            function initFilterMap(lat, lng, radius) {
+                if (!map) {
+                    map = L.map('filterMap', { zoomControl: false }).setView([lat, lng], 10);
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                        attribution: '© CARTO'
+                    }).addTo(map);
+                    
+                    marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+                    circle = L.circle([lat, lng], {
+                        radius: radius * 1000,
+                        color: '#4361ee',
+                        fillColor: '#4361ee',
+                        fillOpacity: 0.15,
+                        weight: 2
+                    }).addTo(map);
+
+                    marker.on('drag', function(e) {
+                        const newPos = e.target.getLatLng();
+                        circle.setLatLng(newPos);
+                        filterLat.value = newPos.lat.toFixed(6);
+                        filterLng.value = newPos.lng.toFixed(6);
+                    });
+                } else {
+                    map.setView([lat, lng]);
+                    marker.setLatLng([lat, lng]);
+                    circle.setLatLng([lat, lng]);
+                    circle.setRadius(radius * 1000);
+                }
             }
-        });
 
-        connection.start().catch(err => console.error(err.toString()));
+            btnEnable.addEventListener('click', function() {
+                if (navigator.geolocation) {
+                    btnEnable.disabled = true;
+                    btnEnable.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Locating...';
+                    
+                    navigator.geolocation.getCurrentPosition(pos => {
+                        const lat = pos.coords.latitude;
+                        const lng = pos.coords.longitude;
+                        filterLat.value = lat;
+                        filterLng.value = lng;
+                        
+                        disabledUI.classList.add('d-none');
+                        filterUI.classList.remove('d-none');
+                        
+                        initFilterMap(lat, lng, parseInt(distanceRange.value));
+                        setTimeout(() => map.invalidateSize(), 200);
+                    }, err => {
+                        alert("Geolocation failed: " + err.message);
+                        btnEnable.disabled = false;
+                        btnEnable.innerHTML = '<i class="bi bi-geo-alt-fill me-1"></i> Use My Location';
+                    });
+                }
+            });
+
+            btnClear.addEventListener('click', function() {
+                filterLat.value = '';
+                filterLng.value = '';
+                // Setting distance to null isn't directly possible on the range input, 
+                // but we hide the UI so the backend won't get lat/lng.
+                filterUI.classList.add('d-none');
+                disabledUI.classList.remove('d-none');
+                btnEnable.disabled = false;
+                btnEnable.innerHTML = '<i class="bi bi-geo-alt-fill me-1"></i> Use My Location';
+            });
+
+            distanceRange.addEventListener('input', function() {
+                const val = this.value;
+                radiusVal.innerText = val;
+                if (circle) circle.setRadius(val * 1000);
+            });
+
+            // Re-init if coming back with data
+            if (filterLat.value && filterLng.value) {
+                initFilterMap(parseFloat(filterLat.value), parseFloat(filterLng.value), parseInt(distanceRange.value));
+            }
+
+            // --- SignalR Logic ---
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/hubs/bidding")
+                .withAutomaticReconnect()
+                .build();
+
+            connection.on("ReceivePriceUpdate", function (auctionId, newPrice) {
+                const priceElement = document.getElementById(`price-${auctionId}`);
+                if (priceElement) {
+                    const formattedPrice = new Intl.NumberFormat('bg-BG', { style: 'currency', currency: 'EUR' }).format(newPrice);
+                    priceElement.innerText = formattedPrice;
+                    priceElement.classList.add('text-success');
+                    priceElement.style.transition = 'all 0.3s';
+                    priceElement.style.transform = 'scale(1.1)';
+                    setTimeout(() => {
+                        priceElement.classList.remove('text-success');
+                        priceElement.style.transform = 'scale(1)';
+                    }, 1000);
+                }
+            });
+
+            connection.start().catch(err => console.error(err.toString()));
+        });
     </script>
 }
