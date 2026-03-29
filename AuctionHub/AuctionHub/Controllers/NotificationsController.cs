@@ -11,10 +11,12 @@ namespace AuctionHub.Controllers;
 public class NotificationsController : Controller
 {
     private readonly INotificationService _notificationService;
+    private readonly IAuctionHubDbContext _context;
 
-    public NotificationsController(INotificationService notificationService)
+    public NotificationsController(INotificationService notificationService, IAuctionHubDbContext context)
     {
         _notificationService = notificationService;
+        _context = context;
     }
 
     public async Task<IActionResult> Index()
@@ -45,6 +47,21 @@ public class NotificationsController : Controller
                 if (!link.StartsWith("/") && !link.StartsWith("http"))
                 {
                     link = "/" + link;
+                }
+
+                // INTELLIGENT FALLBACK: Fix old integer-based links /Auctions/Details/123
+                if (link.Contains("/Auctions/Details/"))
+                {
+                    var parts = link.Split('/');
+                    var lastPart = parts.Last();
+                    if (int.TryParse(lastPart, out int oldId))
+                    {
+                        var auction = await _context.Auctions.FindAsync(oldId);
+                        if (auction != null)
+                        {
+                            link = $"/Auctions/Details/{auction.PublicId}";
+                        }
+                    }
                 }
                 
                 return Redirect(link); 
