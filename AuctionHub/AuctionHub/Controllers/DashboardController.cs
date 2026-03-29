@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using AuctionHub.Application.Interfaces;
+using AuctionHub.Application.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -45,12 +46,7 @@ public class DashboardController : Controller
         var analytics = await _auctionService.GetSellerAnalyticsAsync(userId);
         if (analytics == null)
         {
-            analytics = new SellerAnalyticsDto
-            {
-                PersonalActivity = new List<DailyActivityDto>(),
-                SalesSummary = new List<TransactionDto>(),
-                TopPerformers = new List<AuctionDto>()
-            };
+            analytics = new SellerAnalyticsDto();
         }
         return View(analytics);
     }

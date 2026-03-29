@@ -1,4 +1,5 @@
 using AuctionHub.Application.DTOs;
+using AuctionHub.Domain.Models;
 
 namespace AuctionHub.Application.Interfaces;
 
