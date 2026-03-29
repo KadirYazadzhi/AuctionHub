@@ -61,16 +61,27 @@ public class AuctionsController : AdminBaseController
 
         if (auction == null) return NotFound();
 
+        // FULL RESTORE: Re-activate and reset flags
         auction.IsDeleted = false;
+        auction.IsActive = true;
+        auction.IsSuspended = false;
+        auction.IsPromoted = false; // Promotion is lost after deletion
         
+        // Ensure EndTime is in the future (optional but recommended)
+        if (auction.EndTime <= DateTime.UtcNow)
+        {
+            // If it was already expired, give it 24 hours more to be visible
+            auction.EndTime = DateTime.UtcNow.AddDays(1);
+        }
+
         var adminId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (adminId != null)
         {
-            await _adminService.LogActionAsync(adminId, "Restore Auction", "Auction", id.ToString(), "Admin restored deleted auction");
+            await _adminService.LogActionAsync(adminId, "Restore Auction", "Auction", id.ToString(), "Admin fully restored and reactivated auction");
         }
 
         await _context.SaveChangesAsync();
-        TempData["Success"] = "Auction restored successfully.";
+        TempData["Success"] = "Auction restored and reactivated successfully.";
         
         return RedirectToAction(nameof(Index));
     }

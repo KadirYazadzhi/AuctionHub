@@ -43,6 +43,7 @@ public class AuctionDetailsDto
     public bool IsSettled { get; set; }
     public bool IsDisputed { get; set; }
     public bool IsSuspended { get; set; }
+    public bool IsDeleted { get; set; }
     public bool IsWatched { get; set; }
     public bool? IsWinning { get; set; }
     public decimal? CurrentAutoBidLimit { get; set; }

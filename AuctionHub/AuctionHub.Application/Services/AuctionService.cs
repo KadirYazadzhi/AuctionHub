@@ -766,7 +766,7 @@ public class AuctionService : IAuctionService
 
     private async Task<AuctionDetailsDto?> MapToDetailsDtoAsync(Auction? auction, string? currentUserId)
     {
-        if (auction == null || auction.IsDeleted) return null;
+        if (auction == null) return null;
 
         // Fetch seller rating statistics
         var reviews = await _context.Reviews.Where(r => r.TargetUserId == auction.SellerId).ToListAsync();
@@ -825,6 +825,7 @@ public class AuctionService : IAuctionService
             IsSettled = auction.IsSettled,
             IsDisputed = auction.IsDisputed,
             IsSuspended = auction.IsSuspended,
+            IsDeleted = auction.IsDeleted,
             IsWatched = isWatched,
             IsWinning = currentUserId != null && auction.Bids.Any(b => b.BidderId == currentUserId) 
                 ? auction.Bids.OrderByDescending(b => b.Amount).First().BidderId == currentUserId 
