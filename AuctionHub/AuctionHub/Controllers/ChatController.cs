@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Mvc;
 namespace AuctionHub.Controllers;
 
 [Authorize]
-[Route("[controller]")]
 public class ChatController : Controller
 {
     private readonly IChatService _chatService;
@@ -23,8 +22,6 @@ public class ChatController : Controller
     }
 
     [HttpGet]
-    [Route("Index/{publicId?}")]
-    [Route("{publicId?}")]
     public async Task<IActionResult> Index(int? auctionId = null, string? targetUserId = null, bool global = false, Guid? publicId = null)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
