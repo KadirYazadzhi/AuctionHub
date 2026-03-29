@@ -79,7 +79,15 @@
                                             </button>
                                         </form>
                                     }
-                                    else if (!item.IsSuspended)
+                                    else if (item.IsSuspended)
+                                    {
+                                        <form asp-area="Admin" asp-action="Unsuspend" asp-route-id="@item.Id" method="post" onsubmit="return confirm('LIFT SUSPENSION: This will make the auction active again. Continue?');">
+                                            <button type="submit" class="btn btn-sm btn-info text-white rounded-pill px-3 shadow-sm" title="Unsuspend">
+                                                <i class="bi bi-check-circle-fill"></i> Unsuspend
+                                            </button>
+                                        </form>
+                                    }
+                                    else
                                     {
                                         <form asp-area="Admin" asp-action="Delete" asp-route-id="@item.Id" method="post" onsubmit="return confirm('ADMIN WARNING: This will SUSPEND the auction and refund all bids. Continue?');">
                                             <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3 shadow-sm" title="Suspend">

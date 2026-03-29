@@ -88,6 +88,37 @@ public class AuctionsController : AdminBaseController
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Unsuspend(int id)
+    {
+        var auction = await _context.Auctions
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(a => a.Id == id);
+
+        if (auction == null) return NotFound();
+
+        auction.IsSuspended = false;
+        auction.IsActive = true; // Reactive the auction
+        
+        // Ensure end time is in the future
+        if (auction.EndTime <= DateTime.UtcNow)
+        {
+            auction.EndTime = DateTime.UtcNow.AddDays(1);
+        }
+
+        var adminId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (adminId != null)
+        {
+            await _adminService.LogActionAsync(adminId, "Unsuspend Auction", "Auction", id.ToString(), "Admin lifted auction suspension");
+        }
+
+        await _context.SaveChangesAsync();
+        TempData["Success"] = "Auction unsuspended and reactivated.";
+        
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
     {
         var auction = await _context.Auctions
