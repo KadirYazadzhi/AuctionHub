@@ -72,6 +72,7 @@
             document.documentElement.setAttribute('data-bs-theme', theme);
         })();
     </script>
+    @await RenderSectionAsync("Head", required: false)
 </head>
 <body class="d-flex flex-column min-vh-100">
 <header>

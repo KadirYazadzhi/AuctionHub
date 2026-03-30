@@ -97,4 +97,5 @@ public interface IAuctionService
     Task CloseExpiredAuctionsAsync();
     Task ReleaseEscrowFundsAsync();
     Task ProcessDutchAuctionsAsync();
+    Task CleanupInactiveAuctionsAsync();
 }

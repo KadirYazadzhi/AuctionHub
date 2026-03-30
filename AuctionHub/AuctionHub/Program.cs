@@ -117,11 +117,17 @@ builder.Services.AddStackExchangeRedisCache(options => {
 
 // Identity and External Authentication
 builder.Services.AddDefaultIdentity<ApplicationUser>(options => {
-    options.SignIn.RequireConfirmedAccount = false; // Changed to false for easier testing
+    options.SignIn.RequireConfirmedAccount = true; // MANDATORY EMAIL VERIFICATION
     options.Password.RequiredLength = 8;
 })
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<AuctionHubDbContext>();
+
+// Session Security: Force logout if security stamp changes (e.g. password change)
+builder.Services.Configure<SecurityStampValidatorOptions>(options =>
+{
+    options.ValidationInterval = TimeSpan.Zero;
+});
 
 builder.Services.AddAuthentication()
     .AddGoogle(googleOptions => {
@@ -200,6 +206,7 @@ using (var scope = app.Services.CreateScope())
     recurringJobManager.AddOrUpdate<IAuctionService>("AuctionCleanup", service => service.CloseExpiredAuctionsAsync(), Cron.Minutely);
     recurringJobManager.AddOrUpdate<IAuctionService>("EscrowRelease", service => service.ReleaseEscrowFundsAsync(), Cron.Hourly);
     recurringJobManager.AddOrUpdate<IAuctionService>("DutchAuctionDrop", service => service.ProcessDutchAuctionsAsync(), Cron.Minutely);
+    recurringJobManager.AddOrUpdate<IAuctionService>("InactiveAuctionCleanup", service => service.CleanupInactiveAuctionsAsync(), Cron.Daily);
 
     // 4. Identity Fixes
     var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();

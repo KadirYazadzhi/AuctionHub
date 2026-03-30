@@ -1,7 +1,14 @@
+@using Microsoft.Extensions.Configuration
+@inject IConfiguration Configuration
 @page
 @model RegisterModel
 @{
     ViewData["Title"] = "Register";
+    var siteKey = Configuration["GoogleReCaptcha:SiteKey"];
+}
+
+@section Head {
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 }
 
 <div class="container">
@@ -67,6 +74,10 @@
                                 <span asp-validation-for="Input.Password" class="text-danger small d-block"></span>
                                 <span asp-validation-for="Input.ConfirmPassword" class="text-danger small d-block"></span>
                             </div>
+                        </div>
+
+                        <div class="mb-4 d-flex justify-content-center">
+                            <div class="g-recaptcha" data-sitekey="@siteKey"></div>
                         </div>
 
                         <button id="registerSubmit" type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-bold shadow-sm hover-lift">Create Account</button>

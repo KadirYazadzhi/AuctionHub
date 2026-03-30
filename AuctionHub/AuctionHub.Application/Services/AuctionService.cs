@@ -687,7 +687,24 @@ public class AuctionService : IAuctionService
             _context.UserReports.Add(report);
             await _context.SaveChangesAsync();
 
-            return (true, "Your report has been submitted. Our team will review it shortly.");
+            // --- Automated Moderation ---
+            var reportsCount = await _context.UserReports
+                .CountAsync(r => r.ReportedAuctionId == auctionId && !r.IsResolved);
+
+            if (reportsCount >= 5 && !auction.IsSuspended)
+            {
+                auction.IsSuspended = true;
+                auction.IsActive = false;
+                await _context.SaveChangesAsync();
+
+                await _notificationService.NotifyUserAsync(auction.SellerId, 
+                    $"⚠️ Your auction '{auction.Title}' has been automatically suspended due to multiple user reports. Our team is investigating.", 
+                    "#");
+                
+                _logger.LogWarning($"Auction {auctionId} auto-suspended due to {reportsCount} reports.");
+            }
+
+            return (true, "Your report has been submitted. For safety, this item may be temporarily hidden if multiple reports are received.");
         }
         catch (Exception)
         {
@@ -2500,5 +2517,20 @@ public class AuctionService : IAuctionService
             }
         }
         await _context.SaveChangesAsync();
+    public async Task CleanupInactiveAuctionsAsync()
+    {
+        var threshold = DateTime.UtcNow.AddHours(-48);
+        var oldInactiveAuctions = await _context.Auctions
+            .IgnoreQueryFilters()
+            .Where(a => !a.IsActive && !a.IsDeleted && a.CreatedOn <= threshold)
+            .Where(a => !_context.Bids.Any(b => b.AuctionId == a.Id))
+            .ToListAsync();
+
+        if (oldInactiveAuctions.Any())
+        {
+            _context.Auctions.RemoveRange(oldInactiveAuctions);
+            await _context.SaveChangesAsync();
+            _logger.LogInformation($"Cleaned up {oldInactiveAuctions.Count} junk auctions.");
+        }
     }
 }

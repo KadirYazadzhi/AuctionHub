@@ -18,18 +18,21 @@ namespace AuctionHub.Areas.Identity.Pages.Account
         private readonly IUserStore<ApplicationUser> _userStore;
         private readonly IUserEmailStore<ApplicationUser> _emailStore;
         private readonly ILogger<RegisterModel> _logger;
+        private readonly IConfiguration _configuration;
 
         public RegisterModel(
             UserManager<ApplicationUser> userManager,
             IUserStore<ApplicationUser> userStore,
             SignInManager<ApplicationUser> signInManager,
-            ILogger<RegisterModel> logger)
+            ILogger<RegisterModel> logger,
+            IConfiguration configuration)
         {
             _userManager = userManager;
             _userStore = userStore;
             _emailStore = GetEmailStore();
             _signInManager = signInManager;
             _logger = logger;
+            _configuration = configuration;
         }
 
         [BindProperty]
@@ -84,6 +87,17 @@ namespace AuctionHub.Areas.Identity.Pages.Account
         {
             returnUrl ??= Url.Content("~/");
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
+
+            // reCAPTCHA Validation
+            var captchaResponse = Request.Form["g-recaptcha-response"];
+            var secretKey = _configuration["GoogleReCaptcha:SecretKey"];
+            var isCaptchaValid = await CheckReCaptchaAsync(captchaResponse, secretKey);
+
+            if (!isCaptchaValid)
+            {
+                ModelState.AddModelError(string.Empty, "reCAPTCHA validation failed. Please prove you are human.");
+            }
+
             if (ModelState.IsValid)
             {
                 var user = CreateUser();
@@ -117,8 +131,29 @@ namespace AuctionHub.Areas.Identity.Pages.Account
                     });
                     await context.SaveChangesAsync();
 
-                    await _signInManager.SignInAsync(user, isPersistent: false);
-                    return LocalRedirect(returnUrl);
+                    // Email Confirmation Logic
+                    var userId = await _userManager.GetUserIdAsync(user);
+                    var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                    code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+                    var callbackUrl = Url.Page(
+                        "/Account/ConfirmEmail",
+                        pageHandler: null,
+                        values: new { area = "Identity", userId = userId, code = code, returnUrl = returnUrl },
+                        protocol: Request.Scheme);
+
+                    var emailService = HttpContext.RequestServices.GetRequiredService<IEmailSender>();
+                    await emailService.SendEmailAsync(Input.Email, "Confirm your email",
+                        $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl!)}'>clicking here</a>.");
+
+                    if (_userManager.Options.SignIn.RequireConfirmedAccount)
+                    {
+                        return RedirectToPage("RegisterConfirmation", new { email = Input.Email, returnUrl = returnUrl });
+                    }
+                    else
+                    {
+                        await _signInManager.SignInAsync(user, isPersistent: false);
+                        return LocalRedirect(returnUrl);
+                    }
                 }
                 foreach (var error in result.Errors)
                 {
@@ -128,6 +163,24 @@ namespace AuctionHub.Areas.Identity.Pages.Account
 
             // If we got this far, something failed, redisplay form
             return Page();
+        }
+
+        private async Task<bool> CheckReCaptchaAsync(string? response, string? secret)
+        {
+            if (string.IsNullOrEmpty(response) || string.IsNullOrEmpty(secret)) return false;
+
+            try
+            {
+                using var client = new HttpClient();
+                var result = await client.PostAsync($"https://www.google.com/recaptcha/api/siteverify?secret={secret}&response={response}", null);
+                if (result.IsSuccessStatusCode)
+                {
+                    var jsonString = await result.Content.ReadAsStringAsync();
+                    return jsonString.Contains("\"success\": true");
+                }
+            }
+            catch { }
+            return false;
         }
 
         private ApplicationUser CreateUser()
