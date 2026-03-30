@@ -120,7 +120,23 @@
                                         <div class="bg-light rounded-4 p-3 shadow-sm-hover transition-all" style="border-top-left-radius: 0;">
                                             <div class="d-flex justify-content-between align-items-center mb-1">
                                                 <span class="fw-bold text-dark small">@comment.UserDisplayName</span>
-                                                <small class="text-muted smallest">@comment.CreatedOn.ToLocalTime().ToString("MMM dd, HH:mm")</small>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <small class="text-muted smallest">@comment.CreatedOn.ToLocalTime().ToString("MMM dd, HH:mm")</small>
+                                                    @{
+                                                        var loopUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                                                    }
+                                                    @if (comment.UserId == loopUserId || User.IsInRole("Administrator"))
+                                                    {
+                                                        <form asp-action="DeleteComment" method="post" class="lh-1">
+                                                            <input type="hidden" name="commentId" value="@comment.Id" />
+                                                            <input type="hidden" name="auctionId" value="@Model.Id" />
+                                                            <button type="submit" class="btn btn-link p-0 text-danger border-0 shadow-none" 
+                                                                    style="font-size: 0.75rem;" onclick="return confirm('Delete this comment?');" title="Delete Comment">
+                                                                <i class="bi bi-trash-fill"></i>
+                                                            </button>
+                                                        </form>
+                                                    }
+                                                </div>
                                             </div>
                                             <p class="small mb-0 text-secondary" style="line-height: 1.5;">@comment.Content</p>
                                         </div>

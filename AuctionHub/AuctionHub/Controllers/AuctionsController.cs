@@ -1117,7 +1117,7 @@ public class AuctionsController : Controller
         if (currentUserId == null) return Challenge();
 
         var result = await _auctionService.AddCommentAsync(auctionId, currentUserId, content);
-        
+
         if (result.Success)
         {
             TempData["Success"] = "Comment added successfully.";
@@ -1127,7 +1127,27 @@ public class AuctionsController : Controller
             TempData["Error"] = result.Message;
         }
 
-        // Fix: Use DetailsById with auctionId for safe redirect
         return RedirectToAction(nameof(DetailsById), new { id = auctionId });
     }
-}
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteComment(int commentId, int auctionId)
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (currentUserId == null) return Challenge();
+
+        var result = await _auctionService.DeleteCommentAsync(commentId, currentUserId);
+
+        if (result.Success)
+        {
+            TempData["Success"] = result.Message;
+        }
+        else
+        {
+            TempData["Error"] = result.Message;
+        }
+
+        return RedirectToAction(nameof(DetailsById), new { id = auctionId });
+    }
+    }

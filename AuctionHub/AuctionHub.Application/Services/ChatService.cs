@@ -78,6 +78,7 @@ public class ChatService : IChatService
                     AuctionId = g.Key.AuctionId,
                     AuctionTitle = lastMsg.Auction != null ? (lastMsg.Auction.Title ?? "Unknown Auction") : "Unknown Auction",
                     OtherUserId = g.Key.OtherUserId,
+                    OtherUserPublicId = otherUser?.PublicId ?? Guid.Empty,
                     OtherUserName = otherUser != null ? (otherUser.DisplayName ?? otherUser.UserName ?? "Unknown User") : "Unknown User",
                     OtherUserAvatar = otherUser?.ProfilePictureUrl,
                     LastMessage = lastMsg.Content,

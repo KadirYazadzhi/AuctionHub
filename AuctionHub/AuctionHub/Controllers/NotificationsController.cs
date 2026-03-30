@@ -31,16 +31,18 @@ public class NotificationsController : Controller
 
     [HttpGet]
     public async Task<IActionResult> RedirectToLink(int id)
+    var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+    if (userId == null) return Challenge();
+
+    var notifications = await _notificationService.GetUserNotificationsAsync(userId);
+    var notification = notifications.FirstOrDefault(n => n.Id == id);
+
+    if (notification != null)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (userId == null) return Challenge();
+        // The service already filters by userId, but we verify again for safety
+        await _notificationService.MarkAsReadAsync(id, userId);
+        // ... (rest of logic)
 
-        var notifications = await _notificationService.GetUserNotificationsAsync(userId);
-        var notification = notifications.FirstOrDefault(n => n.Id == id);
-
-        if (notification != null)
-        {
-            await _notificationService.MarkAsReadAsync(id, userId);
             if (!string.IsNullOrEmpty(notification.Link) && notification.Link != "#")
             {
                 var link = notification.Link;

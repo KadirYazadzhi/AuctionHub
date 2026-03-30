@@ -80,7 +80,7 @@
                                     <span class="small fw-bold">Radius: <span id="radiusVal" class="text-primary">@(ViewData["MaxDistance"] ?? 20)</span> km</span>
                                     <button type="button" class="btn btn-link btn-sm text-danger p-0 text-decoration-none" id="btnClearLocation">Clear</button>
                                 </div>
-                                <input type="range" name="maxDistance" class="form-range" min="1" max="100" value="@(ViewData["MaxDistance"] ?? 20)" id="distanceRange">
+                                <input type="range" name="maxDistance" class="form-range" min="1" max="500" step="5" value="@(ViewData["MaxDistance"] ?? 20)" id="distanceRange">
                                 
                                 <div id="filterMap" class="rounded-3 border mb-2 shadow-sm" style="height: 120px; z-index: 1;"></div>
                                 <input type="hidden" name="latitude" id="filterLat" value="@ViewData["Latitude"]" />

@@ -27,6 +27,12 @@ public class ReviewService : IReviewService
 
         if (auction == null) return false;
 
+        // Security: Can only review within 30 days of auction end
+        if (auction.EndTime.AddDays(30) < DateTime.UtcNow)
+        {
+            return false;
+        }
+
         string targetUserId;
         if (model.ReviewerId == auction.SellerId)
         {

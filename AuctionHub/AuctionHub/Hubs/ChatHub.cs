@@ -99,4 +99,9 @@ public class ChatHub : Hub
             $"✉️ New message from {senderName}: \"{(message.Length > 50 ? message.Substring(0, 47) + "..." : message)}\"", 
             $"/Chat/Index?{queryParam}&targetUserId={senderId}");
     }
+
+    public override async Task OnDisconnectedAsync(Exception? exception)
+    {
+        await base.OnDisconnectedAsync(exception);
+    }
 }

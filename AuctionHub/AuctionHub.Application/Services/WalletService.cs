@@ -99,7 +99,11 @@ public class WalletService : IWalletService
         using var dbTransaction = await _context.Database.BeginTransactionAsync();
         try
         {
-            var user = await _userManager.FindByIdAsync(userId);
+            // Use UPDLOCK to prevent race conditions on wallet balance checks
+            var user = await _context.Users
+                .FromSqlInterpolated($"SELECT * FROM AspNetUsers WITH (UPDLOCK, ROWLOCK) WHERE Id = {userId}")
+                .FirstOrDefaultAsync();
+                
             if (user == null) return (false, "User not found.");
 
             if (user.WalletBalance < amount) return (false, "Insufficient funds.");

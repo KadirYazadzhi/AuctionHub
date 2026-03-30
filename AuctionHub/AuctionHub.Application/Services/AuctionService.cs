@@ -948,7 +948,12 @@ public class AuctionService : IAuctionService
                 return (-1, "Duplicate auction detected.");
             }
 
-            var auction = new Auction
+            if (model.BuyItNowPrice.HasValue && model.BuyItNowPrice.Value < model.StartPrice)
+        {
+            return (0, "Buy It Now price cannot be lower than the starting price.");
+        }
+
+        var auction = new Auction
             {
                 Title = model.Title,
                 Description = model.Description,
@@ -1248,6 +1253,32 @@ public class AuctionService : IAuctionService
                 }
             }
 
+            // 1.1. NEW: Refund all participation fees for this auction
+            var participants = await _context.AuctionParticipants
+                .Where(p => p.AuctionId == auction.Id)
+                .ToListAsync();
+
+            foreach (var participant in participants)
+            {
+                var pUser = await _context.Users.FindAsync(participant.UserId);
+                if (pUser != null && auction.ParticipationFee.HasValue && auction.ParticipationFee.Value > 0)
+                {
+                    pUser.WalletBalance += auction.ParticipationFee.Value;
+                    _context.Transactions.Add(new Transaction
+                    {
+                        UserId = pUser.Id,
+                        Amount = auction.ParticipationFee.Value,
+                        Description = $"Refund: Participation fee for '{auction.Title}' (Auction deleted)",
+                        TransactionType = "Refund",
+                        TransactionDate = DateTime.UtcNow,
+                        AuctionId = auction.Id
+                    });
+                    
+                    await _notificationService.NotifyUserAsync(pUser.Id, 
+                        $"ℹ️ Your participation fee for '{auction.Title}' was refunded.", "/Wallet");
+                }
+            }
+
             // ALWAYS delete images from Cloudinary when a user explicitly deletes the auction to save storage.
             // (Since we already block deletion of auctions with bids, this is safe).
             if (!string.IsNullOrEmpty(auction.ImageUrl))
@@ -1475,9 +1506,15 @@ public class AuctionService : IAuctionService
             if (amount <= 0) return (false, "Bid amount must be greater than zero.");
             
             var previousHighBid = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault();
-            if (previousHighBid != null && previousHighBid.BidderId == userId)
+            
+            // Fix: Check if the user is already leading (either via manual bid or auto-bid)
+            if (auction.Bids.Any())
             {
-                return (false, "You are already the highest bidder.");
+                var currentLeaderId = auction.Bids.OrderByDescending(b => b.Amount).First().BidderId;
+                if (currentLeaderId == userId)
+                {
+                    return (false, "You are already the leading bidder.");
+                }
             }
 
             // DYNAMIC MINIMUM STEP: 5% of current price for items over 100€ (Skip for Dutch)
@@ -1495,6 +1532,15 @@ public class AuctionService : IAuctionService
 
             // 1. Charge User
             currentUser.WalletBalance -= amount;
+            
+            // --- Anti-Sniping Protection ---
+            var timeRemaining = auction.EndTime - DateTime.UtcNow;
+            if (timeRemaining.TotalMinutes < 2)
+            {
+                // Extend the auction by 2 minutes from NOW
+                auction.EndTime = DateTime.UtcNow.AddMinutes(2);
+                _logger.LogInformation($"Auction {auction.Id} extended due to bid sniping protection.");
+            }
             _context.Transactions.Add(new Transaction
             {
                 UserId = userId,
@@ -1759,12 +1805,14 @@ public class AuctionService : IAuctionService
 
         try
         {
+            // Use UPDLOCK to prevent race conditions during purchase
             var auction = await _context.Auctions
+                .FromSqlInterpolated($"SELECT * FROM Auctions WITH (UPDLOCK, ROWLOCK) WHERE Id = {auctionId}")
                 .Include(a => a.Seller)
                 .Include(a => a.Bids)
                 .ThenInclude(b => b.Bidder)
                 .Include(a => a.Participants)
-                .FirstOrDefaultAsync(a => a.Id == auctionId);
+                .FirstOrDefaultAsync();
 
             if (auction == null) return (false, "Auction not found.");
             
@@ -1791,7 +1839,11 @@ public class AuctionService : IAuctionService
             if (auction.SellerId == userId) return (false, "You cannot buy your own item.");
             if (!auction.IsActive || auction.EndTime <= DateTime.UtcNow) return (false, "Auction ended.");
 
-            var currentUser = await _context.Users.FindAsync(userId);
+            // Use UPDLOCK for user as well
+            var currentUser = await _context.Users
+                .FromSqlInterpolated($"SELECT * FROM AspNetUsers WITH (UPDLOCK, ROWLOCK) WHERE Id = {userId}")
+                .FirstOrDefaultAsync();
+                
             if (currentUser == null || currentUser.WalletBalance < price) return (false, "Insufficient funds.");
 
             // 1. Charge Buyer
@@ -2247,6 +2299,26 @@ public class AuctionService : IAuctionService
             .ToListAsync();
     }
 
+    public async Task<(bool Success, string Message)> DeleteCommentAsync(int commentId, string userId)
+    {
+        var comment = await _context.Comments.FindAsync(commentId);
+        if (comment == null) return (false, "Comment not found.");
+
+        // IDOR Protection: Only the comment owner or an Admin can delete it
+        var isAdmin = await _context.UserRoles
+            .Join(_context.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new { ur, r })
+            .AnyAsync(x => x.ur.UserId == userId && x.r.Name == "Administrator");
+
+        if (comment.UserId != userId && !isAdmin)
+        {
+            return (false, "You are not authorized to delete this comment.");
+        }
+
+        _context.Comments.Remove(comment);
+        await _context.SaveChangesAsync();
+        return (true, "Comment deleted successfully.");
+    }
+
     // --- Background Jobs (Hangfire) ---
 
     [DisableConcurrentExecution(timeoutInSeconds: 60)]
@@ -2300,7 +2372,18 @@ public class AuctionService : IAuctionService
                             TransactionDate = DateTime.UtcNow,
                             AuctionId = auction.Id
                         });
+                        
+                        await _notificationService.NotifyUserAsync(auction.SellerId, 
+                            $"📉 Reserve not met for '{auction.Title}'. You can relist it with a lower reserve.", 
+                            "/Auctions/MyAuctions");
                     }
+                }
+                else
+                {
+                    // No bids at all
+                    await _notificationService.NotifyUserAsync(auction.SellerId, 
+                        $"📉 Your auction '{auction.Title}' ended with no bids. Would you like to relist it?", 
+                        "/Auctions/MyAuctions");
                 }
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -2393,12 +2476,26 @@ public class AuctionService : IAuctionService
                     decimal totalDecrement = (auction.DutchDecrementAmount ?? 0) * intervalsMissed;
                     auction.CurrentPrice -= totalDecrement;
                     
-                    if (auction.CurrentPrice < minPrice) auction.CurrentPrice = minPrice;
+                    if (auction.CurrentPrice <= minPrice) 
+                    {
+                        auction.CurrentPrice = minPrice;
+                        // If we reached minPrice and some time has passed without purchase, we could close it here
+                        // but usually Dutch auctions stay at minPrice until EndTime. 
+                        // Let's force close if it's been at minPrice for too long or just ensure it expires.
+                    }
                     
                     // Advance the timer by the exact number of intervals missed to stay perfectly on schedule
                     auction.LastDutchDecrement = auction.LastDutchDecrement.Value.AddMinutes(interval * intervalsMissed);
                     
                     await _biddingNotificationService.NotifyNewBidAsync(auction.PublicId, "System", auction.CurrentPrice, now);
+                }
+                else
+                {
+                    // Already at min price and no one bought it - close it to prevent staleness
+                    auction.IsActive = false;
+                    await _notificationService.NotifyUserAsync(auction.SellerId, 
+                        $"📉 Your Dutch auction for '{auction.Title}' ended without a buyer at the reserve price.", 
+                        "/Auctions/MyAuctions");
                 }
             }
         }

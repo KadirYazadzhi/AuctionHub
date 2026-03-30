@@ -154,6 +154,12 @@ builder.Services.AddRateLimiter(options => {
         opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
         opt.QueueLimit = 3;
     });
+    options.AddFixedWindowLimiter("chat", opt => {
+        opt.PermitLimit = 30; // Allow 30 messages per minute
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 5;
+    });
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 

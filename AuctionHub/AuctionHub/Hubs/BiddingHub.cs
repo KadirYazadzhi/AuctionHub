@@ -38,4 +38,10 @@ public class BiddingHub : Hub
         string groupName = $"Auction_{auctionId}";
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
     }
+
+    public override async Task OnDisconnectedAsync(Exception? exception)
+    {
+        // SignalR handles group removal automatically, but we can add logging or tracking here
+        await base.OnDisconnectedAsync(exception);
+    }
 }
