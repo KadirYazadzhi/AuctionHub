@@ -92,11 +92,22 @@ public class ChatService : IChatService
 
     public async Task<IEnumerable<ChatMessageDto>> GetPrivateMessagesAsync(int auctionId, string userId1, string userId2)
     {
-        return await _context.ChatMessages
+        var isAdmin1 = await _context.UserRoles
+            .Join(_context.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new { ur, r })
+            .AnyAsync(x => x.ur.UserId == userId1 && x.r.Name == "Administrator");
+
+        var query = _context.ChatMessages
             .Where(m => m.AuctionId == auctionId && !m.IsGlobal &&
                         ((m.SenderId == userId1 && m.ReceiverId == userId2) ||
-                         (m.SenderId == userId2 && m.ReceiverId == userId1)))
-            .Where(m => (m.SenderId == userId1 && !m.IsHiddenForSender) || (m.ReceiverId == userId1 && !m.IsHiddenForReceiver))
+                         (m.SenderId == userId2 && m.ReceiverId == userId1)));
+
+        // Admins can see everything, others only what's not hidden for them
+        if (!isAdmin1)
+        {
+            query = query.Where(m => (m.SenderId == userId1 && !m.IsHiddenForSender) || (m.ReceiverId == userId1 && !m.IsHiddenForReceiver));
+        }
+
+        return await query
             .OrderByDescending(m => m.SentOn)
             .Take(50)
             .Select(m => new ChatMessageDto
@@ -120,6 +131,28 @@ public class ChatService : IChatService
     {
         if (string.IsNullOrWhiteSpace(content)) throw new ArgumentException("Message content cannot be empty.");
         if (content.Length > 1000) content = content.Substring(0, 1000);
+
+        // NEW: If this is a private message, unhide the ENTIRE previous conversation for BOTH participants
+        // Use a more robust case-insensitive check in the unhiding logic
+        if (!isGlobal && auctionId.HasValue && !string.IsNullOrEmpty(receiverId))
+        {
+            var previousMessages = await _context.ChatMessages
+                .Where(m => m.AuctionId == auctionId && 
+                           ((m.SenderId == senderId && m.ReceiverId == receiverId) || 
+                            (m.SenderId == receiverId && m.ReceiverId == senderId)))
+                .ToListAsync();
+
+            foreach (var prevMsg in previousMessages)
+            {
+                // Unhide for current sender
+                if (string.Equals(prevMsg.SenderId, senderId, StringComparison.OrdinalIgnoreCase)) prevMsg.IsHiddenForSender = false;
+                if (string.Equals(prevMsg.ReceiverId, senderId, StringComparison.OrdinalIgnoreCase)) prevMsg.IsHiddenForReceiver = false;
+                
+                // Unhide for current receiver
+                if (string.Equals(prevMsg.SenderId, receiverId, StringComparison.OrdinalIgnoreCase)) prevMsg.IsHiddenForSender = false;
+                if (string.Equals(prevMsg.ReceiverId, receiverId, StringComparison.OrdinalIgnoreCase)) prevMsg.IsHiddenForReceiver = false;
+            }
+        }
 
         var msg = new ChatMessage
         {
@@ -219,8 +252,8 @@ public class ChatService : IChatService
 
         foreach (var m in messages)
         {
-            if (m.SenderId == userId) m.IsHiddenForSender = true;
-            else if (m.ReceiverId == userId) m.IsHiddenForReceiver = true;
+            if (string.Equals(m.SenderId, userId, StringComparison.OrdinalIgnoreCase)) m.IsHiddenForSender = true;
+            if (string.Equals(m.ReceiverId, userId, StringComparison.OrdinalIgnoreCase)) m.IsHiddenForReceiver = true;
         }
 
         await _context.SaveChangesAsync();

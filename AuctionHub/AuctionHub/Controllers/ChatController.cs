@@ -79,12 +79,14 @@ public class ChatController : Controller
             }
             else
             {
+                // If targetUserId not provided, look at history
                 var lastMessage = await _chatService.GetLastMessageForSessionAsync(auctionId.Value, currentUserId);
                 if (lastMessage != null)
                 {
                     otherUserId = lastMessage.SenderId == currentUserId ? (lastMessage.ReceiverId ?? "") : lastMessage.SenderId;
                 }
                 
+                // Fallback to Seller or Winner if no history
                 if (string.IsNullOrEmpty(otherUserId) && auction != null)
                 {
                     otherUserId = currentUserId == auction.SellerId ? (auction.WinnerId ?? "") : auction.SellerId;
@@ -97,20 +99,22 @@ public class ChatController : Controller
                 return RedirectToAction(nameof(Index), new { global = true });
             }
 
-            // Ensure this session is in the sidebar
-            if (!sessionsList.Any(s => s.AuctionId == auctionId && s.OtherUserId == otherUserId))
+            // Ensure this session is in the sidebar list (important for SignalR updates)
+            if (!sessionsList.Any(s => s.AuctionId == auctionId && string.Equals(s.OtherUserId, otherUserId, StringComparison.OrdinalIgnoreCase)))
             {
                 var otherUserObj = await _userManager.FindByIdAsync(otherUserId);
+                var lastMsgForSidebar = await _chatService.GetLastMessageForSessionAsync(auctionId.Value, currentUserId);
+                
                 sessionsList.Add(new AuctionHub.Application.DTOs.ChatSessionDto
                 {
                     IsGlobal = false,
                     AuctionId = auctionId,
                     AuctionTitle = auction?.Title ?? "Archived Auction",
                     OtherUserId = otherUserId,
-                    OtherUserName = otherUserObj?.DisplayName ?? "User",
+                    OtherUserName = otherUserObj?.DisplayName ?? otherUserObj?.UserName ?? "User",
                     OtherUserAvatar = otherUserObj?.ProfilePictureUrl,
-                    LastMessage = "Archived conversation",
-                    LastMessageTime = DateTime.UtcNow
+                    LastMessage = lastMsgForSidebar?.Content ?? "No messages yet",
+                    LastMessageTime = lastMsgForSidebar?.SentOn ?? DateTime.UtcNow
                 });
             }
 

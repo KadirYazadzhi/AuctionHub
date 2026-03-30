@@ -398,8 +398,11 @@
             const connection = new signalR.HubConnectionBuilder().withUrl("/hubs/chat").withAutomaticReconnect().build();
 
             connection.on("ReceivePrivateMessage", function (msg) {
+                const isCurrentChat = activeChatType === "Private" && Number(msg.auctionId) === Number(auctionId);
+                
                 updateSidebar(msg);
-                if (activeChatType === "Private" && msg.auctionId === auctionId) {
+
+                if (isCurrentChat) {
                     if(noMessagesBox) noMessagesBox.remove();
                     appendMessage(msg);
                 }
@@ -413,32 +416,53 @@
                 }
             });
 
-            const privateContainer = document.getElementById('private-conversations-container');
-
             function updateSidebar(msg) {
                 if (msg.isGlobal) {
                     const el = document.querySelector('.conversation-link[data-global="true"]');
                     if (el) { 
-                        el.querySelector('.last-msg').innerText = msg.content; 
+                        const lastMsgEl = el.querySelector('.last-msg');
+                        if (lastMsgEl) lastMsgEl.innerText = msg.content; 
                         conversationList.prepend(el); 
                     }
                     return;
                 }
-                const otherId = msg.senderId === currentUserId ? msg.receiverId : msg.senderId;
-                const el = document.querySelector(`.conversation-link[data-auction-id="${msg.auctionId}"][data-other-user-id="${otherId}"]`);
-                if (el) {
-                    el.querySelector('.last-msg').innerText = msg.content;
-                    el.querySelector('.last-msg-time').innerText = "Just now";
+                
+                // Case-insensitive ID comparison
+                const senderIdNorm = (msg.senderId || "").toLowerCase();
+                const receiverIdNorm = (msg.receiverId || "").toLowerCase();
+                const currentUserIdNorm = (currentUserId || "").toLowerCase();
+                const otherId = senderIdNorm === currentUserIdNorm ? receiverIdNorm : senderIdNorm;
+                
+                // Find all links for this auction first
+                const links = document.querySelectorAll(`.conversation-link[data-auction-id="${msg.auctionId}"]`);
+                let foundEl = null;
+
+                links.forEach(l => {
+                    const attrId = (l.getAttribute('data-other-user-id') || "").toLowerCase();
+                    if (attrId === otherId) {
+                        foundEl = l;
+                    }
+                });
+
+                if (foundEl) {
+                    const lastMsgEl = foundEl.querySelector('.last-msg');
+                    const lastMsgTimeEl = foundEl.querySelector('.last-msg-time');
+                    if (lastMsgEl) lastMsgEl.innerText = msg.content;
+                    if (lastMsgTimeEl) lastMsgTimeEl.innerText = "Just now";
                     
-                    // Fix: Move within the private container instead of the whole sidebar
                     if (privateContainer) {
-                        privateContainer.prepend(el);
-                        // Re-insert section label if it was at the top
+                        privateContainer.prepend(foundEl);
                         const label = privateContainer.querySelector('.section-label');
                         if (label) privateContainer.prepend(label);
                     }
                 } else {
-                    window.location.reload(); 
+                    // Only reload if we are the sender or receiver but don't have the link in sidebar
+                    const isParticipant = senderIdNorm === currentUserIdNorm || receiverIdNorm === currentUserIdNorm;
+                    if (isParticipant) {
+                        console.log("Conversation not in sidebar, reloading...");
+                        // Delay reload slightly to allow DB to catch up if needed
+                        setTimeout(() => window.location.reload(), 1000);
+                    }
                 }
             }
 
