@@ -71,6 +71,9 @@
                                                 <span class="name fw-bold text-main text-truncate">@session.OtherUserName</span>
                                                 <span class="time last-msg-time">@(session.LastMessageTime > DateTime.MinValue ? session.LastMessageTime.ToLocalTime().ToString("MMM dd") : "")</span>
                                             </div>
+                                            <div class="smallest text-primary text-truncate mb-1">
+                                                <i class="bi bi-tag-fill me-1"></i> @session.AuctionTitle
+                                            </div>
                                             <div class="last-msg text-muted smallest text-truncate">@session.LastMessage</div>
                                         </div>
                                     </div>
@@ -410,10 +413,15 @@
                 }
             });
 
+            const privateContainer = document.getElementById('private-conversations-container');
+
             function updateSidebar(msg) {
                 if (msg.isGlobal) {
                     const el = document.querySelector('.conversation-link[data-global="true"]');
-                    if (el) { el.querySelector('.last-msg').innerText = msg.content; conversationList.prepend(el); }
+                    if (el) { 
+                        el.querySelector('.last-msg').innerText = msg.content; 
+                        conversationList.prepend(el); 
+                    }
                     return;
                 }
                 const otherId = msg.senderId === currentUserId ? msg.receiverId : msg.senderId;
@@ -421,9 +429,16 @@
                 if (el) {
                     el.querySelector('.last-msg').innerText = msg.content;
                     el.querySelector('.last-msg-time').innerText = "Just now";
-                    privateContainer.prepend(el);
+                    
+                    // Fix: Move within the private container instead of the whole sidebar
+                    if (privateContainer) {
+                        privateContainer.prepend(el);
+                        // Re-insert section label if it was at the top
+                        const label = privateContainer.querySelector('.section-label');
+                        if (label) privateContainer.prepend(label);
+                    }
                 } else {
-                    window.location.reload(); // Simplest way to fetch new session metadata
+                    window.location.reload(); 
                 }
             }
 
