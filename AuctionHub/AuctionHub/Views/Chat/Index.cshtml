@@ -396,8 +396,12 @@
             if(mobileSidebarBody && conversationList) mobileSidebarBody.innerHTML = conversationList.innerHTML;
 
             const connection = new signalR.HubConnectionBuilder().withUrl("/hubs/chat").withAutomaticReconnect().build();
+            const processedMessageIds = new Set();
 
             connection.on("ReceivePrivateMessage", function (msg) {
+                if (processedMessageIds.has(msg.id)) return;
+                processedMessageIds.add(msg.id);
+
                 const isCurrentChat = activeChatType === "Private" && Number(msg.auctionId) === Number(auctionId);
                 
                 updateSidebar(msg);
@@ -409,6 +413,9 @@
             });
 
             connection.on("ReceiveGlobalMessage", function (msg) {
+                if (processedMessageIds.has(msg.id)) return;
+                processedMessageIds.add(msg.id);
+
                 updateSidebar(msg);
                 if (activeChatType === "Global") {
                     if(noMessagesBox) noMessagesBox.remove();
@@ -451,9 +458,13 @@
                     if (lastMsgTimeEl) lastMsgTimeEl.innerText = "Just now";
                     
                     if (privateContainer) {
-                        privateContainer.prepend(foundEl);
-                        const label = privateContainer.querySelector('.section-label');
-                        if (label) privateContainer.prepend(label);
+                        // Move to top of private list
+                        const firstItem = privateContainer.querySelector('.conversation-link');
+                        if (firstItem && firstItem !== foundEl) {
+                            privateContainer.insertBefore(foundEl, firstItem);
+                        } else if (!firstItem) {
+                            privateContainer.appendChild(foundEl);
+                        }
                     }
                 } else {
                     // Only reload if we are the sender or receiver but don't have the link in sidebar
@@ -461,7 +472,7 @@
                     if (isParticipant) {
                         console.log("Conversation not in sidebar, reloading...");
                         // Delay reload slightly to allow DB to catch up if needed
-                        setTimeout(() => window.location.reload(), 1000);
+                        setTimeout(() => window.location.reload(), 800);
                     }
                 }
             }
