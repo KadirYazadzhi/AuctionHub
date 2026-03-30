@@ -2517,6 +2517,8 @@ public class AuctionService : IAuctionService
             }
         }
         await _context.SaveChangesAsync();
+    }
+
     public async Task CleanupInactiveAuctionsAsync()
     {
         var threshold = DateTime.UtcNow.AddHours(-48);

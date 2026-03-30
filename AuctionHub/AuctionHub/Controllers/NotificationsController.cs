@@ -31,21 +31,24 @@ public class NotificationsController : Controller
 
     [HttpGet]
     public async Task<IActionResult> RedirectToLink(int id)
-    var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-    if (userId == null) return Challenge();
-
-    var notifications = await _notificationService.GetUserNotificationsAsync(userId);
-    var notification = notifications.FirstOrDefault(n => n.Id == id);
-
-    if (notification != null)
     {
-        // The service already filters by userId, but we verify again for safety
-        await _notificationService.MarkAsReadAsync(id, userId);
-        // ... (rest of logic)
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId == null) return Challenge();
+
+        // Security check: Fetch notifications for the CURRENT user only
+        var notifications = await _notificationService.GetUserNotificationsAsync(userId);
+        var notification = notifications.FirstOrDefault(n => n.Id == id);
+
+        if (notification != null)
+        {
+            // Mark as read immediately
+            await _notificationService.MarkAsReadAsync(id, userId);
 
             if (!string.IsNullOrEmpty(notification.Link) && notification.Link != "#")
             {
                 var link = notification.Link;
+
+                // Standardize link
                 if (!link.StartsWith("/") && !link.StartsWith("http"))
                 {
                     link = "/" + link;
@@ -58,7 +61,10 @@ public class NotificationsController : Controller
                     var lastPart = parts.Last();
                     if (int.TryParse(lastPart, out int oldId))
                     {
-                        var auction = await _context.Auctions.FindAsync(oldId);
+                        var auction = await _context.Auctions
+                            .IgnoreQueryFilters()
+                            .FirstOrDefaultAsync(a => a.Id == oldId);
+                            
                         if (auction != null)
                         {
                             link = $"/Auctions/Details/{auction.PublicId}";
@@ -72,29 +78,34 @@ public class NotificationsController : Controller
         }
         else
         {
-            TempData["Error"] = $"Notification with ID {id} not found.";
+            TempData["Error"] = "Notification not found or access denied.";
         }
 
         return RedirectToAction(nameof(Index));
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> MarkRead(int id)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        await _notificationService.MarkAsReadAsync(id, userId!);
+        if (userId == null) return Challenge();
+
+        await _notificationService.MarkAsReadAsync(id, userId);
         return Ok();
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> MarkAllRead()
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        await _notificationService.MarkAllAsReadAsync(userId!);
+        if (userId == null) return Challenge();
+
+        await _notificationService.MarkAllAsReadAsync(userId);
         return RedirectToAction(nameof(Index));
     }
     
-    // API endpoint for the bell icon badge
     [HttpGet]
     public async Task<IActionResult> GetUnreadCount()
     {

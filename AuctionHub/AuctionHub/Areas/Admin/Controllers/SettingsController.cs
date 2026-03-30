@@ -16,7 +16,35 @@ public class SettingsController : AdminBaseController
     public async Task<IActionResult> Index()
     {
         var settings = await _adminService.GetSystemSettingsAsync();
+        ViewBag.IsMaintenanceMode = await _adminService.IsMaintenanceModeEnabledAsync();
         return View(settings);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ClearCache()
+    {
+        await _adminService.ClearCacheAsync();
+        TempData["Success"] = "System cache cleared successfully.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleMaintenance()
+    {
+        var result = await _adminService.ToggleMaintenanceModeAsync();
+        if (result.Enabled) TempData["Success"] = result.Message;
+        else TempData["Info"] = result.Message;
+        
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> DownloadReport()
+    {
+        var fileBytes = await _adminService.ExportTransactionsToCsvAsync();
+        return File(fileBytes, "text/csv", $"AuctionHub_Report_{DateTime.UtcNow:yyyyMMdd}.csv");
     }
 
     [HttpPost]

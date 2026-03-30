@@ -2,16 +2,19 @@ using AuctionHub.Application.Interfaces;
 using AuctionHub.Application.DTOs;
 using AuctionHub.Domain.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace AuctionHub.Application.Services;
 
 public class AdminService : IAdminService
 {
     private readonly IAuctionHubDbContext _context;
+    private readonly IDistributedCache _cache;
 
-    public AdminService(IAuctionHubDbContext context)
+    public AdminService(IAuctionHubDbContext context, IDistributedCache cache)
     {
         _context = context;
+        _cache = cache;
     }
 
     public async Task<AdminDashboardStatsDto> GetDashboardStatsAsync()
@@ -309,5 +312,44 @@ public class AdminService : IAdminService
         }
 
         return System.Text.Encoding.UTF8.GetPreamble().Concat(System.Text.Encoding.UTF8.GetBytes(builder.ToString())).ToArray();
+    }
+
+    public async Task ClearCacheAsync()
+    {
+        // Invalidate known cache keys
+        await _cache.RemoveAsync("Categories");
+        await _cache.RemoveAsync("ending_soon_4_anonymous");
+        await _cache.RemoveAsync("ending_soon_8_anonymous");
+    }
+
+    public async Task<(bool Enabled, string Message)> ToggleMaintenanceModeAsync()
+    {
+        var setting = await _context.SystemSettings.FirstOrDefaultAsync(s => s.Key == "MaintenanceMode");
+        if (setting == null)
+        {
+            setting = new SystemSetting 
+            { 
+                Key = "MaintenanceMode", 
+                Value = "false",
+                Description = "Disables public access to the site when set to true."
+            };
+            _context.SystemSettings.Add(setting);
+        }
+
+        bool currentlyEnabled = setting.Value.ToLower() == "true";
+        bool newState = !currentlyEnabled;
+        setting.Value = newState.ToString().ToLower();
+        setting.LastUpdated = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+        await _cache.RemoveAsync("MaintenanceMode"); // Force refresh on next check
+
+        return (newState, newState ? "Maintenance mode activated." : "Maintenance mode deactivated.");
+    }
+
+    public async Task<bool> IsMaintenanceModeEnabledAsync()
+    {
+        var setting = await _context.SystemSettings.FirstOrDefaultAsync(s => s.Key == "MaintenanceMode");
+        return setting?.Value.ToLower() == "true";
     }
 }

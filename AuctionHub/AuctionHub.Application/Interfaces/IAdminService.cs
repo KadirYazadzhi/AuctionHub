@@ -29,6 +29,11 @@ public interface IAdminService
 
     // Export
     Task<byte[]> ExportTransactionsToCsvAsync();
+
+    // System Management
+    Task ClearCacheAsync();
+    Task<(bool Enabled, string Message)> ToggleMaintenanceModeAsync();
+    Task<bool> IsMaintenanceModeEnabledAsync();
 }
 
 public class SuspiciousActivityDto

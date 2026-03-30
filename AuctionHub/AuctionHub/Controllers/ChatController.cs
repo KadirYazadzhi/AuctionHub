@@ -103,6 +103,7 @@ public class ChatController : Controller
                 var otherUserObj = await _userManager.FindByIdAsync(otherUserId);
                 sessionsList.Add(new AuctionHub.Application.DTOs.ChatSessionDto
                 {
+                    IsGlobal = false,
                     AuctionId = auctionId,
                     AuctionTitle = auction?.Title ?? "Archived Auction",
                     OtherUserId = otherUserId,
