@@ -21,7 +21,13 @@ using DotNetEnv;
 using Microsoft.Data.SqlClient;
 
 // Load .env file for local development
-var envPath = Path.Combine(Directory.GetCurrentDirectory(), ".env");
+var envPath = Path.Combine(AppContext.BaseDirectory, ".env");
+if (!File.Exists(envPath))
+{
+    // Fallback to project root if running from IDE/Bin
+    envPath = Path.Combine(Directory.GetCurrentDirectory(), ".env");
+}
+
 if (File.Exists(envPath))
 {
     Env.Load(envPath);
@@ -131,12 +137,20 @@ builder.Services.Configure<SecurityStampValidatorOptions>(options =>
 
 builder.Services.AddAuthentication()
     .AddGoogle(googleOptions => {
-        googleOptions.ClientId = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID") ?? "placeholder";
-        googleOptions.ClientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET") ?? "placeholder";
+        googleOptions.ClientId = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID") 
+            ?? builder.Configuration["Authentication:Google:ClientId"] 
+            ?? "placeholder";
+        googleOptions.ClientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET") 
+            ?? builder.Configuration["Authentication:Google:ClientSecret"] 
+            ?? "placeholder";
     })
     .AddGitHub(githubOptions => {
-        githubOptions.ClientId = Environment.GetEnvironmentVariable("GITHUB_CLIENT_ID") ?? "placeholder";
-        githubOptions.ClientSecret = Environment.GetEnvironmentVariable("GITHUB_CLIENT_SECRET") ?? "placeholder";
+        githubOptions.ClientId = Environment.GetEnvironmentVariable("GITHUB_CLIENT_ID") 
+            ?? builder.Configuration["Authentication:GitHub:ClientId"] 
+            ?? "placeholder";
+        githubOptions.ClientSecret = Environment.GetEnvironmentVariable("GITHUB_CLIENT_SECRET") 
+            ?? builder.Configuration["Authentication:GitHub:ClientSecret"] 
+            ?? "placeholder";
     });
 
 builder.Services.AddControllersWithViews(options => {
@@ -149,10 +163,10 @@ builder.Services.AddAntiforgery(options => options.HeaderName = "X-XSRF-TOKEN");
 builder.Services.AddRateLimiter(options => {
     options.AddFixedWindowLimiter("fixed", opt => { opt.PermitLimit = 10; opt.Window = TimeSpan.FromMinutes(1); });
     options.AddFixedWindowLimiter("bidding", opt => {
-        opt.PermitLimit = 20; // Allow 20 bidding-related operations per window
+        opt.PermitLimit = 60; // Allow 60 bidding-related operations per window (increased from 20)
         opt.Window = TimeSpan.FromMinutes(1);
         opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        opt.QueueLimit = 5;
+        opt.QueueLimit = 10;
     });
     options.AddFixedWindowLimiter("financial", opt => {
         opt.PermitLimit = 10; // Allow 10 financial operations per window
@@ -180,6 +194,7 @@ if (!app.Environment.IsDevelopment())
 app.UseStatusCodePagesWithReExecute("/Home/Error", "?statusCode={0}");
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+app.UseMiddleware<AuctionHub.Infrastructure.Filters.MaintenanceMiddleware>();
 app.UseRouting();
 app.UseRateLimiter();
 app.UseAuthentication();
