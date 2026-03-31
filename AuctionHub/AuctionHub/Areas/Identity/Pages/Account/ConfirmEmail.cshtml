@@ -1,0 +1,73 @@
+@page
+@model ConfirmEmailModel
+@{
+    ViewData["Title"] = "Confirm Email";
+}
+
+<div class="container py-5 mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5 text-center">
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden animate-fade-up">
+                <div class="card-body p-5">
+                    @if (Model.Succeeded)
+                    {
+                        <div class="mb-4">
+                            <div class="icon-box-lg rounded-circle bg-success-subtle text-success mb-3 mx-auto d-flex align-items-center justify-content-center" style="width: 100px; height: 100px;">
+                                <i class="bi bi-check-circle-fill fs-1 animate-bounce"></i>
+                            </div>
+                        </div>
+                        <h2 class="fw-bold mb-3">Email Confirmed!</h2>
+                        <p class="text-muted mb-4">
+                            Thank you for confirming your email address. Your account is now fully active and ready for bidding!
+                        </p>
+                        <div class="d-grid gap-2">
+                            <a asp-page="./Login" class="btn btn-primary btn-lg rounded-pill py-3 fw-bold shadow-sm hover-lift">
+                                Log In to Your Account <i class="bi bi-arrow-right ms-2"></i>
+                            </a>
+                            <a href="/" class="btn btn-outline-secondary rounded-pill py-2">
+                                Back to Home
+                            </a>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="mb-4">
+                            <div class="icon-box-lg rounded-circle bg-danger-subtle text-danger mb-3 mx-auto d-flex align-items-center justify-content-center" style="width: 100px; height: 100px;">
+                                <i class="bi bi-x-circle-fill fs-1"></i>
+                            </div>
+                        </div>
+                        <h2 class="fw-bold mb-3">Confirmation Failed</h2>
+                        <p class="text-muted mb-4">
+                            Oops! Something went wrong while confirming your email. The link may have expired or is invalid.
+                        </p>
+                        <div class="d-grid gap-2">
+                            <a asp-page="./Login" class="btn btn-primary btn-lg rounded-pill py-3 fw-bold shadow-sm">
+                                Go to Login
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .animate-fade-up {
+        animation: fadeUp 0.6s ease-out forwards;
+    }
+    
+    @@keyframes fadeUp {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-bounce {
+        animation: bounce 1s infinite;
+    }
+
+    @@keyframes bounce {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
+</style>
