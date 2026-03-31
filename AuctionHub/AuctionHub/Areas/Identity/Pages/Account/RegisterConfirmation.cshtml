@@ -1,33 +1,69 @@
 @page
 @model RegisterConfirmationModel
 @{
-    ViewData["Title"] = "Register confirmation";
+    ViewData["Title"] = "Confirm Registration";
 }
 
-<div class="container py-5">
+<div class="container py-5 mt-5">
     <div class="row justify-content-center">
-        <div class="col-md-6 text-center">
-            <div class="card border-0 shadow-lg rounded-4 p-5 animate-fade-up">
-                <i class="bi bi-envelope-check display-1 text-primary mb-4"></i>
-                <h1 class="fw-bold">@ViewData["Title"]</h1>
-                <p class="text-muted fs-5 mb-4">
-                    Almost there! We've sent a verification link to your email.
-                </p>
-                
-                @if (Model.DisplayConfirmAccountLink)
-                {
-                    <div class="alert alert-info alert-permanent border-0 rounded-4 shadow-sm py-4">
-                        <p class="mb-3 fw-bold">Development Mode:</p>
-                        <a id="confirm-link" href="@Model.EmailConfirmationUrl" class="btn btn-primary btn-lg rounded-pill px-5">
-                            Click here to confirm your account
+        <div class="col-md-7 col-lg-6 text-center">
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden animate-fade-up">
+                <div class="card-body p-5">
+                    <div class="mb-4">
+                        <div class="icon-box-lg rounded-circle bg-primary-subtle text-primary mb-3 mx-auto d-flex align-items-center justify-content-center" style="width: 100px; height: 100px;">
+                            <i class="bi bi-envelope-check-fill fs-1"></i>
+                        </div>
+                    </div>
+                    
+                    <h2 class="fw-bold mb-3">Check your email!</h2>
+                    <p class="text-muted fs-5 mb-4">
+                        Almost there! We've sent a verification link to <strong>@Model.Email</strong>. 
+                        Please check your inbox (and spam folder) to activate your account.
+                    </p>
+
+                    @if (Model.DisplayConfirmAccountLink)
+                    {
+                        <div class="alert alert-warning border-0 rounded-4 shadow-sm p-4 mb-4">
+                            <div class="d-flex align-items-center justify-content-center mb-3 text-warning-emphasis">
+                                <i class="bi bi-exclamation-triangle-fill fs-4 me-2"></i>
+                                <span class="fw-bold">Development Mode Detected</span>
+                            </div>
+                            <p class="small mb-3">In a real production environment, this link would only be sent via email. For testing purposes, you can confirm the account directly below:</p>
+                            <a id="confirm-link" href="@Model.EmailConfirmationUrl" class="btn btn-warning btn-lg rounded-pill px-5 fw-bold shadow-sm">
+                                <i class="bi bi-shield-check me-2"></i> Confirm Account Now
+                            </a>
+                        </div>
+                    }
+
+                    <hr class="my-4 opacity-25">
+                    
+                    <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+                        <a asp-page="./Login" class="btn btn-outline-primary rounded-pill px-4">
+                            <i class="bi bi-arrow-left me-2"></i> Return to Login
+                        </a>
+                        <a href="/" class="btn btn-link text-muted text-decoration-none small">
+                            Back to Home
                         </a>
                     </div>
-                }
-                else
-                {
-                    <p>Please check your inbox (and spam folder) to activate your account.</p>
-                }
+                </div>
+                
+                <div class="card-footer bg-light border-0 py-4">
+                    <p class="mb-0 text-muted small">
+                        Didn't receive the email? <a href="#" class="text-primary fw-bold text-decoration-none">Resend link</a>
+                    </p>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    .animate-fade-up {
+        animation: fadeUp 0.6s ease-out forwards;
+    }
+    
+    @@keyframes fadeUp {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
