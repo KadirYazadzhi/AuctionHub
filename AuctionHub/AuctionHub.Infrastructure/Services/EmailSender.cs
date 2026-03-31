@@ -93,6 +93,7 @@ public class EmailSender : IEmailSender, IEmailService
         message.Body = new BodyBuilder { HtmlBody = htmlMessage }.ToMessageBody();
 
         using var client = new SmtpClient();
+        client.Timeout = 10000; // 10 seconds timeout
         try {
             await client.ConnectAsync(host, port, SecureSocketOptions.StartTls);
             await client.AuthenticateAsync(user, pass);
@@ -100,6 +101,7 @@ public class EmailSender : IEmailSender, IEmailService
             await client.DisconnectAsync(true);
         } catch (Exception ex) {
             Console.WriteLine($"SMTP ERROR: {ex.Message}");
+            throw; // Re-throw to be handled by the caller
         }
     }
 }

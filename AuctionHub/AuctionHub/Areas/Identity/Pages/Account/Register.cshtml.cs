@@ -142,8 +142,15 @@ namespace AuctionHub.Areas.Identity.Pages.Account
                         protocol: Request.Scheme);
 
                     var emailService = HttpContext.RequestServices.GetRequiredService<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender>();
-                    await emailService.SendEmailAsync(Input.Email, "Confirm your email",
-                        $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl!)}'>clicking here</a>.");
+                    try
+                    {
+                        await emailService.SendEmailAsync(Input.Email, "Confirm your email",
+                            $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl!)}'>clicking here</a>.");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error sending confirmation email.");
+                    }
 
                     if (_userManager.Options.SignIn.RequireConfirmedAccount)
                     {
