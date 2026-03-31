@@ -24,8 +24,11 @@ public class Transaction
 
     public DateTime TransactionDate { get; set; } = DateTime.UtcNow;
 
-    // Helps categorize: "Deposit", "Bid", "Refund", "Purchase"
+    // Helps categorize: "Deposit", "Bid", "Refund", "Purchase", "Withdrawal"
     public string TransactionType { get; set; } = "General";
+
+    // "Pending", "Approved", "Rejected", "Completed"
+    public string Status { get; set; } = "Completed";
 
     public int? AuctionId { get; set; }
 

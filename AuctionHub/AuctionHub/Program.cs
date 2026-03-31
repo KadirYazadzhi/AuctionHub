@@ -125,6 +125,7 @@ builder.Services.AddStackExchangeRedisCache(options => {
 builder.Services.AddDefaultIdentity<ApplicationUser>(options => {
     options.SignIn.RequireConfirmedAccount = true; // MANDATORY EMAIL VERIFICATION
     options.Password.RequiredLength = 8;
+    options.User.RequireUniqueEmail = true; // IMPORTANT: Prevent duplicate emails
 })
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<AuctionHubDbContext>();
@@ -158,6 +159,14 @@ builder.Services.AddControllersWithViews(options => {
     options.ModelBinderProviders.Insert(0, new DoubleModelBinderProvider());
 });
 builder.Services.AddRazorPages();
+
+// Fix for External Login state error on localhost
+builder.Services.Configure<CookiePolicyOptions>(options =>
+{
+    options.CheckConsentNeeded = context => false;
+    options.MinimumSameSitePolicy = SameSiteMode.Lax; // Important for OAuth
+});
+
 builder.Services.AddAntiforgery(options => options.HeaderName = "X-XSRF-TOKEN");
 
 builder.Services.AddRateLimiter(options => {
@@ -194,11 +203,12 @@ if (!app.Environment.IsDevelopment())
 app.UseStatusCodePagesWithReExecute("/Home/Error", "?statusCode={0}");
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-app.UseMiddleware<AuctionHub.Infrastructure.Filters.MaintenanceMiddleware>();
+app.UseCookiePolicy();
 app.UseRouting();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<AuctionHub.Infrastructure.Filters.MaintenanceMiddleware>();
 
 app.UseHangfireDashboard("/hangfire", new DashboardOptions
 {

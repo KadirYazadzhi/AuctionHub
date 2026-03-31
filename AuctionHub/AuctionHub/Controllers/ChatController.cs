@@ -79,7 +79,7 @@ public class ChatController : Controller
             }
             else
             {
-                // If targetUserId not provided, look at history
+                // If targetUserId not provided, look at history (even hidden)
                 var lastMessage = await _chatService.GetLastMessageForSessionAsync(auctionId.Value, currentUserId);
                 if (lastMessage != null)
                 {
@@ -100,10 +100,11 @@ public class ChatController : Controller
             }
 
             // Ensure this session is in the sidebar list (important for SignalR updates)
+            // Use CASE-INSENSITIVE check to avoid duplicates
             if (!sessionsList.Any(s => s.AuctionId == auctionId && string.Equals(s.OtherUserId, otherUserId, StringComparison.OrdinalIgnoreCase)))
             {
                 var otherUserObj = await _userManager.FindByIdAsync(otherUserId);
-                var lastMsgForSidebar = await _chatService.GetLastMessageForSessionAsync(auctionId.Value, currentUserId);
+                var lastMsgForSidebar = await _chatService.GetLastMessageForSessionAsync(auctionId.Value, currentUserId, otherUserId);
                 
                 sessionsList.Add(new AuctionHub.Application.DTOs.ChatSessionDto
                 {

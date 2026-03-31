@@ -66,7 +66,7 @@ public class ChatService : IChatService
             .GroupBy(m => new 
             { 
                 m.AuctionId, 
-                OtherUserId = m.SenderId == userId ? m.ReceiverId : m.SenderId 
+                OtherUserId = (m.SenderId == userId ? m.ReceiverId : m.SenderId)?.ToLower()
             })
             .Select(g => 
             {
@@ -77,7 +77,7 @@ public class ChatService : IChatService
                     IsGlobal = false,
                     AuctionId = g.Key.AuctionId,
                     AuctionTitle = lastMsg.Auction != null ? (lastMsg.Auction.Title ?? "Unknown Auction") : "Unknown Auction",
-                    OtherUserId = g.Key.OtherUserId,
+                    OtherUserId = lastMsg.SenderId == userId ? lastMsg.ReceiverId : lastMsg.SenderId,
                     OtherUserPublicId = otherUser?.PublicId ?? Guid.Empty,
                     OtherUserName = otherUser != null ? (otherUser.DisplayName ?? otherUser.UserName ?? "Unknown User") : "Unknown User",
                     OtherUserAvatar = otherUser?.ProfilePictureUrl,
@@ -231,10 +231,17 @@ public class ChatService : IChatService
         };
     }
 
-    public async Task<ChatMessageDto?> GetLastMessageForSessionAsync(int auctionId, string userId)
+    public async Task<ChatMessageDto?> GetLastMessageForSessionAsync(int auctionId, string userId, string? targetUserId = null)
     {
-        var msg = await _context.ChatMessages
-            .Where(m => m.AuctionId == auctionId && (m.SenderId == userId || m.ReceiverId == userId))
+        var query = _context.ChatMessages
+            .Where(m => m.AuctionId == auctionId && (m.SenderId == userId || m.ReceiverId == userId));
+
+        if (!string.IsNullOrEmpty(targetUserId))
+        {
+            query = query.Where(m => m.SenderId == targetUserId || m.ReceiverId == targetUserId);
+        }
+
+        var msg = await query
             .OrderByDescending(m => m.SentOn)
             .FirstOrDefaultAsync();
 

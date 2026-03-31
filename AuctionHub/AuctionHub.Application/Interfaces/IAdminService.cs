@@ -32,6 +32,11 @@ public interface IAdminService
 
     // System Management
     Task ClearCacheAsync();
+    Task<IEnumerable<TransactionDto>> GetPendingWithdrawalsAsync();
+    Task<bool> ApproveWithdrawalAsync(int transactionId, string adminId);
+    Task<bool> RejectWithdrawalAsync(int transactionId, string adminId, string reason);
+
+    // Maintenance
     Task<(bool Enabled, string Message)> ToggleMaintenanceModeAsync();
     Task<bool> IsMaintenanceModeEnabledAsync();
 }

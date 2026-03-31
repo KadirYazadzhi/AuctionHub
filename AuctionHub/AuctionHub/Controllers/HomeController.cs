@@ -5,7 +5,7 @@ using AuctionHub.Domain.Models;
 using AuctionHub.Models;
 using AuctionHub.Application.Interfaces;
 using Microsoft.AspNetCore.Identity; 
-
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity.UI.Services;
 
 namespace AuctionHub.Controllers;
@@ -157,6 +157,12 @@ public class HomeController : Controller
         }
 
         return RedirectToAction(nameof(Index));
+    }
+
+    [AllowAnonymous]
+    public IActionResult Maintenance()
+    {
+        return View();
     }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

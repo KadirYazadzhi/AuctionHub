@@ -89,8 +89,11 @@ public class ChatHub : Hub
         // Add avatar to the DTO for the receiver
         savedMessage.SenderAvatar = sender?.ProfilePictureUrl;
 
-        // Send to the specific private group
-        await Clients.Group($"PrivateChat_Auction_{auctionId}").SendAsync("ReceivePrivateMessage", savedMessage);
+        // Send to the specific private group, but only to OTHERS
+        await Clients.OthersInGroup($"PrivateChat_Auction_{auctionId}").SendAsync("ReceivePrivateMessage", savedMessage);
+        
+        // Also send to current caller so their processedMessageIds can track it
+        await Clients.Caller.SendAsync("ReceivePrivateMessage", savedMessage);
         
         var auction = await _chatService.GetAuctionByIdAsync(auctionId);
         string queryParam = auction != null ? $"publicId={auction.PublicId}" : $"auctionId={auctionId}";

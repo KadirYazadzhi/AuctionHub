@@ -425,54 +425,92 @@
 
             function updateSidebar(msg) {
                 if (msg.isGlobal) {
-                    const el = document.querySelector('.conversation-link[data-global="true"]');
-                    if (el) { 
+                    const els = document.querySelectorAll('.conversation-link[data-global="true"]');
+                    els.forEach(el => {
                         const lastMsgEl = el.querySelector('.last-msg');
                         if (lastMsgEl) lastMsgEl.innerText = msg.content; 
-                        conversationList.prepend(el); 
-                    }
+                        el.parentElement.prepend(el);
+                    });
                     return;
                 }
                 
-                // Case-insensitive ID comparison
                 const senderIdNorm = (msg.senderId || "").toLowerCase();
                 const receiverIdNorm = (msg.receiverId || "").toLowerCase();
                 const currentUserIdNorm = (currentUserId || "").toLowerCase();
                 const otherId = senderIdNorm === currentUserIdNorm ? receiverIdNorm : senderIdNorm;
                 
-                // Find all links for this auction first
+                // Find ALL existing links (could be in desktop AND mobile sidebar)
                 const links = document.querySelectorAll(`.conversation-link[data-auction-id="${msg.auctionId}"]`);
-                let foundEl = null;
+                let foundAny = false;
 
                 links.forEach(l => {
                     const attrId = (l.getAttribute('data-other-user-id') || "").toLowerCase();
                     if (attrId === otherId) {
-                        foundEl = l;
+                        foundAny = true;
+                        
+                        // Update text
+                        const lastMsgEl = l.querySelector('.last-msg');
+                        const lastMsgTimeEl = l.querySelector('.last-msg-time');
+                        if (lastMsgEl) lastMsgEl.innerText = msg.content;
+                        if (lastMsgTimeEl) lastMsgTimeEl.innerText = "Just now";
+                        
+                        // Move to top of ITS OWN container
+                        const container = l.parentElement;
+                        const firstLink = container.querySelector('.conversation-link');
+                        if (firstLink && firstLink !== l) {
+                            container.insertBefore(l, firstLink);
+                        }
                     }
                 });
 
-                if (foundEl) {
-                    const lastMsgEl = foundEl.querySelector('.last-msg');
-                    const lastMsgTimeEl = foundEl.querySelector('.last-msg-time');
-                    if (lastMsgEl) lastMsgEl.innerText = msg.content;
-                    if (lastMsgTimeEl) lastMsgTimeEl.innerText = "Just now";
-                    
-                    if (privateContainer) {
-                        // Move to top of private list
-                        const firstItem = privateContainer.querySelector('.conversation-link');
-                        if (firstItem && firstItem !== foundEl) {
-                            privateContainer.insertBefore(foundEl, firstItem);
-                        } else if (!firstItem) {
-                            privateContainer.appendChild(foundEl);
-                        }
-                    }
-                } else {
-                    // Only reload if we are the sender or receiver but don't have the link in sidebar
+                if (!foundAny) {
+                    // Create NEW sidebar item instead of reloading
                     const isParticipant = senderIdNorm === currentUserIdNorm || receiverIdNorm === currentUserIdNorm;
                     if (isParticipant) {
-                        console.log("Conversation not in sidebar, reloading...");
-                        // Delay reload slightly to allow DB to catch up if needed
-                        setTimeout(() => window.location.reload(), 800);
+                        const otherName = senderIdNorm === currentUserIdNorm ? (msg.receiverName || "User") : (msg.senderName || "User");
+                        const avatar = senderIdNorm === currentUserIdNorm ? "" : (msg.senderAvatar || "");
+                        
+                        const newSessionHtml = `
+                            <a href="/Chat/Index?auctionId=${msg.auctionId}&targetUserId=${otherId}" 
+                               class="conversation-link" 
+                               data-auction-id="${msg.auctionId}" 
+                               data-other-user-id="${otherId}">
+                                <div class="conversation-item p-3 m-2 rounded-4 transition-all">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="avatar bg-light-custom text-primary border shadow-sm">
+                                            ${avatar ? `<img src="${avatar}" alt="Avatar" />` : '<i class="bi bi-person-fill"></i>'}
+                                        </div>
+                                        <div class="info overflow-hidden flex-grow-1">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="name fw-bold text-main text-truncate">${escapeHtml(otherName)}</span>
+                                                <span class="time last-msg-time">Just now</span>
+                                            </div>
+                                            <div class="smallest text-primary text-truncate mb-1">
+                                                <i class="bi bi-tag-fill me-1"></i> New Conversation
+                                            </div>
+                                            <div class="last-msg text-muted smallest text-truncate">${escapeHtml(msg.content)}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>`;
+                        
+                        // Add to both containers if they exist
+                        [privateContainer, mobileSidebarBody].forEach(container => {
+                            if (container) {
+                                // Double check if already added to this specific container
+                                const existing = Array.from(container.querySelectorAll('.conversation-link'))
+                                    .find(l => (l.getAttribute('data-other-user-id') || "").toLowerCase() === otherId);
+                                    
+                                if (!existing) {
+                                    const sectionLabel = container.querySelector('.section-label');
+                                    if (sectionLabel) {
+                                        sectionLabel.insertAdjacentHTML('afterend', newSessionHtml);
+                                    } else {
+                                        container.insertAdjacentHTML('afterbegin', newSessionHtml);
+                                    }
+                                }
+                            }
+                        });
                     }
                 }
             }

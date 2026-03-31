@@ -677,3 +677,25 @@ html body .card.border-promoted:hover {
     white-space: nowrap;
     border-radius: 50rem;
 }
+
+/* Responsive Sell Button in Navbar (992px to 1400px) */
+@media (min-width: 992px) and (max-width: 1400px) {
+    .sell-btn-text {
+        display: none;
+    }
+    .sell-btn {
+        width: 36px!important;
+        height: 36px;
+        padding: 0 !important;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50% !important;
+        flex-shrink: 0;
+    }
+    .sell-btn i {
+        margin: 0 !important;
+        font-size: 1.2rem;
+    }
+}
+

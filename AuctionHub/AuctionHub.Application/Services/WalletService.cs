@@ -29,6 +29,7 @@ public class WalletService : IWalletService
                 Description = t.Description,
                 TransactionDate = t.TransactionDate,
                 TransactionType = t.TransactionType,
+                Status = t.Status,
                 User = t.User.UserName ?? "Unknown"
             })
             .ToListAsync();
@@ -47,6 +48,7 @@ public class WalletService : IWalletService
                 Description = t.Description,
                 TransactionDate = t.TransactionDate,
                 TransactionType = t.TransactionType,
+                Status = t.Status,
                 User = t.User.UserName ?? "Unknown"
             })
             .ToListAsync();
@@ -108,14 +110,17 @@ public class WalletService : IWalletService
 
             if (user.WalletBalance < amount) return (false, "Insufficient funds.");
 
+            // Logic: Deduct funds immediately but mark as Pending if large amount
+            bool requiresApproval = amount >= 500;
             user.WalletBalance -= amount;
             
             var transaction = new Transaction
             {
                 UserId = user.Id,
                 Amount = -amount,
-                Description = "Withdraw funds",
+                Description = requiresApproval ? $"Withdraw funds (Awaiting Admin Approval)" : "Withdraw funds",
                 TransactionType = "Withdrawal",
+                Status = requiresApproval ? "Pending" : "Completed",
                 TransactionDate = DateTime.UtcNow
             };
             _context.Transactions.Add(transaction);
@@ -129,6 +134,11 @@ public class WalletService : IWalletService
 
             await _context.SaveChangesAsync();
             await dbTransaction.CommitAsync();
+
+            if (requiresApproval)
+            {
+                return (true, $"Your withdrawal request for {amount:C} is pending admin approval.");
+            }
             return (true, $"Successfully withdrawn {amount:C} from your wallet!");
         }
         catch (Exception)

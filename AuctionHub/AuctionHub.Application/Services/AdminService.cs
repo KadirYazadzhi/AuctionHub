@@ -290,6 +290,79 @@ public class AdminService : IAdminService
         }
     }
 
+    public async Task<IEnumerable<TransactionDto>> GetPendingWithdrawalsAsync()
+    {
+        return await _context.Transactions
+            .Include(t => t.User)
+            .Where(t => t.TransactionType == "Withdrawal" && t.Status == "Pending")
+            .OrderByDescending(t => t.TransactionDate)
+            .Select(t => new TransactionDto
+            {
+                Id = t.Id,
+                Amount = Math.Abs(t.Amount),
+                Description = t.Description,
+                TransactionDate = t.TransactionDate,
+                TransactionType = t.TransactionType,
+                Status = t.Status,
+                User = t.User.UserName ?? "Unknown"
+            })
+            .ToListAsync();
+    }
+
+    public async Task<bool> ApproveWithdrawalAsync(int transactionId, string adminId)
+    {
+        var transaction = await _context.Transactions.FindAsync(transactionId);
+        if (transaction == null || transaction.Status != "Pending") return false;
+
+        transaction.Status = "Completed";
+        transaction.Description = $"Withdrawal Approved by Admin (ID: {adminId})";
+
+        await LogActionAsync(adminId, "Approve Withdrawal", "Transaction", transactionId.ToString(), "Completed");
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> RejectWithdrawalAsync(int transactionId, string adminId, string reason)
+    {
+        using var dbTransaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            var tx = await _context.Transactions
+                .Include(t => t.User)
+                .FirstOrDefaultAsync(t => t.Id == transactionId);
+
+            if (tx == null || tx.Status != "Pending") return false;
+
+            tx.Status = "Rejected";
+            tx.Description = $"Withdrawal Rejected: {reason}";
+
+            // Refund user
+            tx.User.WalletBalance += Math.Abs(tx.Amount);
+
+            // Add a compensating transaction for auditing
+            var refundTx = new Transaction
+            {
+                UserId = tx.UserId,
+                Amount = Math.Abs(tx.Amount),
+                Description = $"Refund for rejected withdrawal: {reason}",
+                TransactionType = "Refund",
+                Status = "Completed",
+                TransactionDate = DateTime.UtcNow
+            };
+            _context.Transactions.Add(refundTx);
+
+            await LogActionAsync(adminId, "Reject Withdrawal", "Transaction", transactionId.ToString(), $"Reason: {reason}");
+            await _context.SaveChangesAsync();
+            await dbTransaction.CommitAsync();
+            return true;
+        }
+        catch
+        {
+            await dbTransaction.RollbackAsync();
+            return false;
+        }
+    }
+
     public async Task<byte[]> ExportTransactionsToCsvAsync()
     {
         var transactions = await _context.Transactions

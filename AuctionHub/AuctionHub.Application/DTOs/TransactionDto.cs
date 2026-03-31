@@ -7,5 +7,6 @@ public class TransactionDto
     public string Description { get; set; } = null!;
     public DateTime TransactionDate { get; set; }
     public string TransactionType { get; set; } = null!;
+    public string Status { get; set; } = "Completed";
     public string User { get; set; } = null!;
 }

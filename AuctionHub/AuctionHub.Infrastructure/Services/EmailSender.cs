@@ -95,7 +95,9 @@ public class EmailSender : IEmailSender, IEmailService
         using var client = new SmtpClient();
         client.Timeout = 10000; // 10 seconds timeout
         try {
-            await client.ConnectAsync(host, port, SecureSocketOptions.StartTls);
+            // Use Auto to let MailKit decide, or force SslOnConnect for Port 465
+            var socketOptions = port == 465 ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.Auto;
+            await client.ConnectAsync(host, port, socketOptions);
             await client.AuthenticateAsync(user, pass);
             await client.SendAsync(message);
             await client.DisconnectAsync(true);
