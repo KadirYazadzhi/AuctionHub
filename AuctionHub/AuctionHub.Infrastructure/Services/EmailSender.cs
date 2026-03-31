@@ -27,17 +27,17 @@ public class EmailSender : IEmailSender, IEmailService
         var apiToken = _config["EmailSettings:ApiToken"];
         var host = _config["EmailSettings:Host"];
 
-        // Strategy 1: Mailtrap API (If Token is present)
-        if (!string.IsNullOrEmpty(apiToken) && apiToken != "YOUR_MAILTRAP_TOKEN")
-        {
-            await SendViaMailtrapApiAsync(email, subject, htmlMessage, apiToken);
-            return;
-        }
-
-        // Strategy 2: SMTP (If Host is present - Gmail, etc.)
+        // Strategy 1: SMTP (Real emails - Highest Priority)
         if (!string.IsNullOrEmpty(host) && host != "YOUR_SMTP_HOST")
         {
             await SendViaSmtpAsync(email, subject, htmlMessage);
+            return;
+        }
+
+        // Strategy 2: Mailtrap API (Sandbox/Testing - Secondary Priority)
+        if (!string.IsNullOrEmpty(apiToken) && apiToken != "YOUR_MAILTRAP_TOKEN")
+        {
+            await SendViaMailtrapApiAsync(email, subject, htmlMessage, apiToken);
             return;
         }
 
