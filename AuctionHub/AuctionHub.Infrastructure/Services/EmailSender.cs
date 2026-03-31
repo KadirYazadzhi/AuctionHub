@@ -48,7 +48,7 @@ public class EmailSender : IEmailSender, IEmailService
 
     private async Task SendViaMailtrapApiAsync(string email, string subject, string htmlMessage, string token)
     {
-        const string inboxId = "4420755";
+        var inboxId = _config["EmailSettings:InboxId"] ?? "4420755";
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
