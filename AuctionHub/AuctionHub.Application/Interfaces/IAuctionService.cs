@@ -81,6 +81,7 @@ public interface IAuctionService
     Task<(bool Success, string Message)> DeactivateAutoBidAsync(int auctionId, string userId);
     Task<(bool Success, string Message)> DisputeAuctionAsync(Guid publicId, string userId);
     Task<SellerAnalyticsDto> GetSellerAnalyticsAsync(string userId);
+    Task<HomeStatsDto> GetHomeStatsAsync();
     
     // --- Private Offers ---
     Task<(bool Success, string Message)> MakePrivateOfferAsync(int auctionId, string buyerId, decimal amount);

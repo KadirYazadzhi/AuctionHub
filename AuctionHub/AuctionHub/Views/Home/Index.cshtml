@@ -56,11 +56,17 @@
 <section class="py-6">
     <div class="container py-4">
         <div class="row text-center g-4 align-items-center">
+            @{
+                var stats = ViewBag.HomeStats as AuctionHub.Application.DTOs.HomeStatsDto;
+                var activeAuctions = stats?.ActiveAuctionsCount.ToString("N0") ?? "0";
+                var dailyVolume = $"€{(stats?.DailyVolume.ToString("N0") ?? "0")}";
+                var totalUsers = stats?.TotalUsersCount.ToString("N0") ?? "0";
+            }
             <!-- Inactive Stat Card 1 -->
             <div class="col-md-4 animate-fade-up delay-100">
                 <div class="stat-card card h-100 border-0 shadow-sm rounded-5 bg-white py-5 transition-all">
                     <div class="card-body">
-                        <h2 class="fw-bold display-5 text-primary mb-2 transition-all">10k+</h2>
+                        <h2 class="fw-bold display-5 text-primary mb-2 transition-all">@activeAuctions</h2>
                         <p class="text-muted mb-0 fw-medium transition-all">Active Auctions</p>
                     </div>
                 </div>
@@ -69,7 +75,7 @@
             <div class="col-md-4 animate-fade-up delay-200">
                 <div class="stat-card card h-100 border-0 shadow-sm rounded-5 bg-white py-5 transition-all">
                     <div class="card-body">
-                        <h2 class="fw-bold display-5 text-primary mb-2 transition-all">€2M+</h2>
+                        <h2 class="fw-bold display-5 text-primary mb-2 transition-all">@dailyVolume</h2>
                         <p class="text-muted mb-0 fw-medium transition-all">Daily Volume</p>
                     </div>
                 </div>
@@ -78,7 +84,7 @@
             <div class="col-md-4 animate-fade-up delay-300">
                 <div class="stat-card card h-100 border-0 shadow-sm rounded-5 bg-white py-5 transition-all">
                     <div class="card-body">
-                        <h2 class="fw-bold display-5 text-primary mb-2 transition-all">50k+</h2>
+                        <h2 class="fw-bold display-5 text-primary mb-2 transition-all">@totalUsers</h2>
                         <p class="text-muted mb-0 fw-medium transition-all">Verified Users</p>
                     </div>
                 </div>
@@ -179,54 +185,72 @@
         </div>
         
         <div class="row g-4">
+            @{
+                var categories = stats?.CategoryCounts ?? new Dictionary<string, int>();
+                
+                // Case-insensitive lookup helper
+                int GetCount(string name) => categories.FirstOrDefault(x => x.Key.Contains(name, StringComparison.OrdinalIgnoreCase)).Value;
+                
+                var elecCount = GetCount("Electronics");
+                var artCount = GetCount("Art");
+                var antiCount = GetCount("Antiques");
+                var vehCount = GetCount("Vehicles");
+
+                // IDs from FeaturedCategories list or defaults
+                var featured = stats?.FeaturedCategories ?? new List<AuctionHub.Application.DTOs.CategoryDto>();
+                var electronicsId = featured.FirstOrDefault(c => c.Name.Contains("Electronics", StringComparison.OrdinalIgnoreCase))?.Id ?? 1;
+                var artId = featured.FirstOrDefault(c => c.Name.Contains("Art", StringComparison.OrdinalIgnoreCase))?.Id ?? 2;
+                var antiquesId = featured.FirstOrDefault(c => c.Name.Contains("Antiques", StringComparison.OrdinalIgnoreCase))?.Id ?? 3;
+                var vehiclesId = featured.FirstOrDefault(c => c.Name.Contains("Vehicles", StringComparison.OrdinalIgnoreCase))?.Id ?? 4;
+            }
             <!-- Electronics -->
             <div class="col-6 col-md-3 animate-fade-up delay-100">
-                <a asp-controller="Auctions" asp-action="Index" asp-route-categoryId="1" class="category-card card h-100 text-decoration-none border-0 shadow-sm rounded-5 bg-white text-center py-5 transition-all">
+                <a asp-controller="Auctions" asp-action="Index" asp-route-categoryId="@electronicsId" class="category-card card h-100 text-decoration-none border-0 shadow-sm rounded-5 bg-white text-center py-5 transition-all">
                     <div class="card-body">
                         <div class="icon-box bg-primary-subtle text-primary rounded-circle mx-auto mb-4 d-flex align-items-center justify-content-center transition-all" style="width: 70px; height: 70px;">
                             <i class="bi bi-laptop fs-2"></i>
                         </div>
                         <h5 class="fw-bold text-dark mb-1 transition-all">Electronics</h5>
-                        <small class="text-muted transition-all">340+ items</small>
+                        <small class="text-muted transition-all">@elecCount items</small>
                     </div>
                 </a>
             </div>
             
             <!-- Art -->
             <div class="col-6 col-md-3 animate-fade-up delay-200">
-                <a asp-controller="Auctions" asp-action="Index" asp-route-categoryId="2" class="category-card card h-100 text-decoration-none border-0 shadow-sm rounded-5 bg-white text-center py-5 transition-all">
+                <a asp-controller="Auctions" asp-action="Index" asp-route-categoryId="@artId" class="category-card card h-100 text-decoration-none border-0 shadow-sm rounded-5 bg-white text-center py-5 transition-all">
                     <div class="card-body">
                         <div class="icon-box bg-success-subtle text-success rounded-circle mx-auto mb-4 d-flex align-items-center justify-content-center transition-all" style="width: 70px; height: 70px;">
                             <i class="bi bi-palette fs-2"></i>
                         </div>
                         <h5 class="fw-bold text-dark mb-1 transition-all">Art & Design</h5>
-                        <small class="text-muted transition-all">120+ items</small>
+                        <small class="text-muted transition-all">@artCount items</small>
                     </div>
                 </a>
             </div>
             
             <!-- Antiques -->
             <div class="col-6 col-md-3 animate-fade-up delay-300">
-                <a asp-controller="Auctions" asp-action="Index" asp-route-categoryId="3" class="category-card card h-100 text-decoration-none border-0 shadow-sm rounded-5 bg-white text-center py-5 transition-all">
+                <a asp-controller="Auctions" asp-action="Index" asp-route-categoryId="@antiquesId" class="category-card card h-100 text-decoration-none border-0 shadow-sm rounded-5 bg-white text-center py-5 transition-all">
                     <div class="card-body">
                         <div class="icon-box bg-warning-subtle text-warning rounded-circle mx-auto mb-4 d-flex align-items-center justify-content-center transition-all" style="width: 70px; height: 70px;">
                             <i class="bi bi-hourglass-split fs-2"></i>
                         </div>
                         <h5 class="fw-bold text-dark mb-1 transition-all">Antiques</h5>
-                        <small class="text-muted transition-all">85+ items</small>
+                        <small class="text-muted transition-all">@antiCount items</small>
                     </div>
                 </a>
             </div>
             
             <!-- Vehicles -->
             <div class="col-6 col-md-3 animate-fade-up delay-300">
-                <a asp-controller="Auctions" asp-action="Index" asp-route-categoryId="4" class="category-card card h-100 text-decoration-none border-0 shadow-sm rounded-5 bg-white text-center py-5 transition-all">
+                <a asp-controller="Auctions" asp-action="Index" asp-route-categoryId="@vehiclesId" class="category-card card h-100 text-decoration-none border-0 shadow-sm rounded-5 bg-white text-center py-5 transition-all">
                     <div class="card-body">
                         <div class="icon-box bg-danger-subtle text-danger rounded-circle mx-auto mb-4 d-flex align-items-center justify-content-center transition-all" style="width: 70px; height: 70px;">
                             <i class="bi bi-car-front fs-2"></i>
                         </div>
                         <h5 class="fw-bold text-dark mb-1 transition-all">Vehicles</h5>
-                        <small class="text-muted transition-all">50+ items</small>
+                        <small class="text-muted transition-all">@vehCount items</small>
                     </div>
                 </a>
             </div>

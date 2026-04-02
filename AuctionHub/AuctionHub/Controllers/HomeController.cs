@@ -39,6 +39,8 @@ public class HomeController : Controller
     {
         var currentUserId = _userManager.GetUserId(User);
         ViewBag.EndingSoon = await _auctionService.GetEndingSoonAuctionsAsync(4, currentUserId);
+        ViewBag.HomeStats = await _auctionService.GetHomeStatsAsync();
+        
         var globalMessages = await _chatService.GetGlobalMessagesAsync(50);
         return View(globalMessages);
     }

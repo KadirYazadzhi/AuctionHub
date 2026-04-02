@@ -617,6 +617,81 @@ public class AuctionService : IAuctionService
         return analytics;
     }
 
+    public async Task<HomeStatsDto> GetHomeStatsAsync()
+    {
+        string cacheKey = "home_stats";
+        var cachedData = await _cache.GetStringAsync(cacheKey);
+
+        if (!string.IsNullOrEmpty(cachedData))
+        {
+            return JsonSerializer.Deserialize<HomeStatsDto>(cachedData) ?? new HomeStatsDto();
+        }
+
+        var now = DateTime.UtcNow;
+        var dayAgo = now.AddDays(-1);
+
+        var stats = new HomeStatsDto();
+
+        // 1. Active Auctions Count
+        stats.ActiveAuctionsCount = await _context.Auctions
+            .CountAsync(a => !a.IsDeleted && a.IsActive && a.EndTime > now);
+
+        // 2. Daily Volume (Sum of all sales/purchases in last 24h)
+        stats.DailyVolume = await _context.Transactions
+            .Where(t => (t.TransactionType == "Sale" || t.TransactionType == "Purchase") && t.TransactionDate >= dayAgo)
+            .SumAsync(t => t.Amount);
+
+        // 3. Total Users Count
+        stats.TotalUsersCount = await _context.Users.CountAsync();
+
+        // 4. Category Counts (All categories for easy lookup)
+        stats.CategoryCounts = await _context.Categories
+            .Select(c => new 
+            { 
+                c.Name, 
+                Count = c.Auctions.Count(a => !a.IsDeleted && a.IsActive && a.EndTime > now) 
+            })
+            .ToDictionaryAsync(x => x.Name, x => x.Count);
+
+        // 5. Featured Categories (Top 4)
+        stats.FeaturedCategories = await _context.Categories
+            .OrderByDescending(c => c.Auctions.Count(a => !a.IsDeleted && a.IsActive && a.EndTime > now))
+            .Take(4)
+            .Select(c => new CategoryDto
+            {
+                Id = c.Id,
+                Name = c.Name,
+                AuctionsCount = c.Auctions.Count(a => !a.IsDeleted && a.IsActive && a.EndTime > now)
+            })
+            .ToListAsync();
+
+        // If less than 4, fill with defaults
+        if (stats.FeaturedCategories.Count < 4)
+        {
+            var existingIds = stats.FeaturedCategories.Select(c => c.Id).ToList();
+            var remaining = await _context.Categories
+                .Where(c => !existingIds.Contains(c.Id))
+                .Take(4 - stats.FeaturedCategories.Count)
+                .Select(c => new CategoryDto
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    AuctionsCount = c.Auctions.Count(a => !a.IsDeleted && a.IsActive && a.EndTime > now)
+                })
+                .ToListAsync();
+            
+            stats.FeaturedCategories.AddRange(remaining);
+        }
+
+        var options = new DistributedCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+        };
+        await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(stats), options);
+
+        return stats;
+    }
+
     public async Task<(bool Success, string Message)> PromoteAuctionAsync(int auctionId, string userId)
     {
         using var dbTransaction = await _context.Database.BeginTransactionAsync();
