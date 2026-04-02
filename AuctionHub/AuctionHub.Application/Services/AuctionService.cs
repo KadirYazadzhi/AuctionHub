@@ -1350,6 +1350,12 @@ public class AuctionService : IAuctionService
                 .Where(p => p.AuctionId == auction.Id)
                 .ToListAsync();
 
+            decimal totalParticipationFeesToRefund = 0;
+            if (auction.ParticipationFee.HasValue && auction.ParticipationFee.Value > 0)
+            {
+                totalParticipationFeesToRefund = participants.Count * auction.ParticipationFee.Value;
+            }
+
             foreach (var participant in participants)
             {
                 var pUser = await _context.Users.FindAsync(participant.UserId);
@@ -1368,6 +1374,25 @@ public class AuctionService : IAuctionService
                     
                     await _notificationService.NotifyUserAsync(pUser.Id, 
                         $"ℹ️ Your participation fee for '{auction.Title}' was refunded.", "/Wallet");
+                }
+            }
+
+            // Deduct the total refunded fees from the seller's balance
+            if (totalParticipationFeesToRefund > 0)
+            {
+                var seller = await _context.Users.FindAsync(auction.SellerId);
+                if (seller != null)
+                {
+                    seller.WalletBalance -= totalParticipationFeesToRefund;
+                    _context.Transactions.Add(new Transaction
+                    {
+                        UserId = seller.Id,
+                        Amount = -totalParticipationFeesToRefund,
+                        Description = $"Deduction: Refunded participation fees for deleted auction '{auction.Title}' ({participants.Count} participants)",
+                        TransactionType = "FeeRefundDeduction",
+                        TransactionDate = DateTime.UtcNow,
+                        AuctionId = auction.Id
+                    });
                 }
             }
 
