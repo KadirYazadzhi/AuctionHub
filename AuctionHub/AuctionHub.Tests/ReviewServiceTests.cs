@@ -35,7 +35,9 @@ public class ReviewServiceTests
         var auction = new Auction 
         { 
             Id = 1, 
+            Title = "Test Auction",
             SellerId = "seller", 
+            CategoryId = 1,
             IsActive = false, 
             EndTime = DateTime.UtcNow.AddDays(-1), 
             Description = "Test",
@@ -48,7 +50,6 @@ public class ReviewServiceTests
         await context.SaveChangesAsync();
 
         // Act
-        // Signature: CanReviewAsync(int auctionId, string userId)
         var result = await service.CanReviewAsync(1, "winner");
 
         // Assert
@@ -68,7 +69,9 @@ public class ReviewServiceTests
         var auction = new Auction 
         { 
             Id = 1, 
+            Title = "Test Auction",
             SellerId = "seller", 
+            CategoryId = 1,
             IsActive = false, 
             EndTime = DateTime.UtcNow.AddDays(-1),
             Description = "Test",
@@ -89,7 +92,6 @@ public class ReviewServiceTests
         };
 
         // Act
-        // Signature: AddReviewAsync(ReviewDto model)
         var result = await service.AddReviewAsync(model);
 
         // Assert

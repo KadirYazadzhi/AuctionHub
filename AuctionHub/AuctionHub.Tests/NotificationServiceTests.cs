@@ -29,7 +29,7 @@ public class NotificationServiceTests
         await using var context = GetDatabaseContext(dbName);
         var service = new NotificationService(context);
 
-        var user = new ApplicationUser { Id = "u1", UserName = "u1", RowVersion = new byte[8] };
+        var user = new ApplicationUser { Id = "u1", UserName = "u1@t.com", Email = "u1@t.com", RowVersion = new byte[8] };
         context.Users.Add(user);
         await context.SaveChangesAsync();
 
@@ -54,6 +54,19 @@ public class NotificationServiceTests
         var u2 = new ApplicationUser { Id = "u2", UserName = "u2", RowVersion = new byte[8] };
         context.Users.AddRange(u1, u2);
         
+        // Add auction
+        context.Auctions.Add(new Auction 
+        { 
+            Id = 1, 
+            Title = "T", 
+            Description = "D", 
+            SellerId = "u1", 
+            CategoryId = 1, 
+            CreatedOn = DateTime.UtcNow, 
+            EndTime = DateTime.UtcNow.AddDays(1),
+            RowVersion = new byte[8]
+        });
+
         context.Watchlist.AddRange(
             new AuctionWatchlist { UserId = "u1", AuctionId = 1 },
             new AuctionWatchlist { UserId = "u2", AuctionId = 1 }

@@ -1582,12 +1582,24 @@ public class AuctionService : IAuctionService
         try
         {
             // Use UPDLOCK to prevent race conditions on auction reads
-            var auction = await _context.Auctions
-                .FromSqlInterpolated($"SELECT * FROM Auctions WITH (UPDLOCK, ROWLOCK) WHERE Id = {auctionId}")
-                .Include(a => a.Bids)
-                .ThenInclude(b => b.Bidder)
-                .Include(a => a.Participants)
-                .FirstOrDefaultAsync();
+            Auction? auction;
+            if (_context.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
+            {
+                auction = await _context.Auctions
+                    .Include(a => a.Bids)
+                    .ThenInclude(b => b.Bidder)
+                    .Include(a => a.Participants)
+                    .FirstOrDefaultAsync(a => a.Id == auctionId);
+            }
+            else
+            {
+                auction = await _context.Auctions
+                    .FromSqlInterpolated($"SELECT * FROM Auctions WITH (UPDLOCK, ROWLOCK) WHERE Id = {auctionId}")
+                    .Include(a => a.Bids)
+                    .ThenInclude(b => b.Bidder)
+                    .Include(a => a.Participants)
+                    .FirstOrDefaultAsync();
+            }
 
             if (auction == null) return (false, "Auction not found.");
 
@@ -1601,9 +1613,17 @@ public class AuctionService : IAuctionService
             }
             
             // Use UPDLOCK to prevent race conditions on wallet balance checks
-            var currentUser = await _context.Users
-                .FromSqlInterpolated($"SELECT * FROM AspNetUsers WITH (UPDLOCK, ROWLOCK) WHERE Id = {userId}")
-                .FirstOrDefaultAsync();
+            ApplicationUser? currentUser;
+            if (_context.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
+            {
+                currentUser = await _context.Users.FindAsync(userId);
+            }
+            else
+            {
+                currentUser = await _context.Users
+                    .FromSqlInterpolated($"SELECT * FROM AspNetUsers WITH (UPDLOCK, ROWLOCK) WHERE Id = {userId}")
+                    .FirstOrDefaultAsync();
+            }
             if (currentUser == null) return (false, "User not found.");
             
             if (currentUser.IsShadowBanned)
@@ -1926,13 +1946,26 @@ public class AuctionService : IAuctionService
         try
         {
             // Use UPDLOCK to prevent race conditions during purchase
-            var auction = await _context.Auctions
-                .FromSqlInterpolated($"SELECT * FROM Auctions WITH (UPDLOCK, ROWLOCK) WHERE Id = {auctionId}")
-                .Include(a => a.Seller)
-                .Include(a => a.Bids)
-                .ThenInclude(b => b.Bidder)
-                .Include(a => a.Participants)
-                .FirstOrDefaultAsync();
+            Auction? auction;
+            if (_context.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
+            {
+                auction = await _context.Auctions
+                    .Include(a => a.Seller)
+                    .Include(a => a.Bids)
+                    .ThenInclude(b => b.Bidder)
+                    .Include(a => a.Participants)
+                    .FirstOrDefaultAsync(a => a.Id == auctionId);
+            }
+            else
+            {
+                auction = await _context.Auctions
+                    .FromSqlInterpolated($"SELECT * FROM Auctions WITH (UPDLOCK, ROWLOCK) WHERE Id = {auctionId}")
+                    .Include(a => a.Seller)
+                    .Include(a => a.Bids)
+                    .ThenInclude(b => b.Bidder)
+                    .Include(a => a.Participants)
+                    .FirstOrDefaultAsync();
+            }
 
             if (auction == null) return (false, "Auction not found.");
             
@@ -1960,9 +1993,17 @@ public class AuctionService : IAuctionService
             if (!auction.IsActive || auction.EndTime <= DateTime.UtcNow) return (false, "Auction ended.");
 
             // Use UPDLOCK for user as well
-            var currentUser = await _context.Users
-                .FromSqlInterpolated($"SELECT * FROM AspNetUsers WITH (UPDLOCK, ROWLOCK) WHERE Id = {userId}")
-                .FirstOrDefaultAsync();
+            ApplicationUser? currentUser;
+            if (_context.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
+            {
+                currentUser = await _context.Users.FindAsync(userId);
+            }
+            else
+            {
+                currentUser = await _context.Users
+                    .FromSqlInterpolated($"SELECT * FROM AspNetUsers WITH (UPDLOCK, ROWLOCK) WHERE Id = {userId}")
+                    .FirstOrDefaultAsync();
+            }
                 
             if (currentUser == null || currentUser.WalletBalance < price) return (false, "Insufficient funds.");
 
