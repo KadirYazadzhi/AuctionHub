@@ -102,8 +102,8 @@ public class WalletService : IWalletService
         try
         {
             ApplicationUser? user;
-
-            if (_context.Database.IsInMemory())
+            
+            if (_context.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
             {
                 user = await _context.Users.FindAsync(userId);
             }

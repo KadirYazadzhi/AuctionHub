@@ -1425,7 +1425,10 @@ public class AuctionService : IAuctionService
             // Now physically delete from Cloudinary outside the DB transaction
             foreach (var imgPublicId in publicIdsToDelete)
             {
-                await _photoService.DeletePhotoAsync(imgPublicId);
+                if (!string.IsNullOrEmpty(imgPublicId))
+                {
+                    await _photoService.DeletePhotoAsync(imgPublicId);
+                }
             }
             
             _logger.LogInformation("Auction {PublicId} successfully deleted, images purged, and transaction committed", publicId);
