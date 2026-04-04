@@ -36,13 +36,14 @@ public class ChatServiceTests
         await context.SaveChangesAsync();
 
         // Act
-        await service.SaveMessageAsync("u1", "Hello World", null);
+        await service.SaveMessageAsync("u1", "Hello World", true);
 
         // Assert
         var msg = await context.ChatMessages.FirstOrDefaultAsync();
         Assert.NotNull(msg);
         Assert.Equal("Hello World", msg!.Content);
         Assert.Null(msg.ReceiverId);
+        Assert.True(msg.IsGlobal);
     }
 
     [Fact]
@@ -64,7 +65,8 @@ public class ChatServiceTests
         await context.SaveChangesAsync();
 
         // Act
-        var result = await service.CanAccessPrivateChatAsync("admin", "any_seller", "any_winner");
+        // Signature: CanAccessPrivateChatAsync(int auctionId, string userId)
+        var result = await service.CanAccessPrivateChatAsync(1, "admin");
 
         // Assert
         Assert.True(result);
@@ -90,19 +92,22 @@ public class ChatServiceTests
         { 
             SenderId = "u1", 
             ReceiverId = "u2", 
+            AuctionId = 1,
             Content = "Secret", 
-            Timestamp = DateTime.UtcNow,
+            SentOn = DateTime.UtcNow,
+            IsGlobal = false,
             IsHiddenForSender = true 
         });
 
         await context.SaveChangesAsync();
 
         // Act
-        var resultUser = await service.GetPrivateMessagesAsync("u1", "u2", 10);
-        var resultAdmin = await service.GetPrivateMessagesAsync("admin", "u1", 10); // Check admin access to u1's chat
+        // Signature: GetPrivateMessagesAsync(int auctionId, string userId1, string userId2)
+        var resultUser = await service.GetPrivateMessagesAsync(1, "u1", "u2");
+        var resultAdmin = await service.GetPrivateMessagesAsync(1, "u1", "u2"); 
 
         // Assert
         Assert.Empty(resultUser);
-        // Note: Admin check logic depends on implementation details of GetPrivateMessagesAsync
+        Assert.Single(resultAdmin);
     }
 }

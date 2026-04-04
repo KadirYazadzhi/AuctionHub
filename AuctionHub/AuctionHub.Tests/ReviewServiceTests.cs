@@ -2,6 +2,7 @@ using AuctionHub.Application.Interfaces;
 using AuctionHub.Application.Services;
 using AuctionHub.Infrastructure.Data;
 using AuctionHub.Domain.Models;
+using AuctionHub.Application.DTOs;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Xunit;
@@ -47,7 +48,8 @@ public class ReviewServiceTests
         await context.SaveChangesAsync();
 
         // Act
-        var result = await service.CanReviewAsync("winner", 1);
+        // Signature: CanReviewAsync(int auctionId, string userId)
+        var result = await service.CanReviewAsync(1, "winner");
 
         // Assert
         Assert.True(result);
@@ -78,11 +80,20 @@ public class ReviewServiceTests
         context.Auctions.Add(auction);
         await context.SaveChangesAsync();
 
+        var model = new ReviewDto
+        {
+            AuctionId = 1,
+            ReviewerId = "winner",
+            Rating = 5,
+            Comment = "Great seller!"
+        };
+
         // Act
-        var result = await service.AddReviewAsync(1, "winner", 5, "Great seller!");
+        // Signature: AddReviewAsync(ReviewDto model)
+        var result = await service.AddReviewAsync(model);
 
         // Assert
-        Assert.True(result.Success);
+        Assert.True(result);
         var review = await context.Reviews.FirstOrDefaultAsync();
         Assert.NotNull(review);
         Assert.Equal(5, review!.Rating);
