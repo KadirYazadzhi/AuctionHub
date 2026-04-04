@@ -43,7 +43,8 @@ public class UserServiceTests
         var user = new ApplicationUser 
         { 
             Id = "user1", 
-            UserName = "tester", 
+            UserName = "tester@test.com", 
+            Email = "tester@test.com",
             PublicId = Guid.NewGuid(),
             RowVersion = new byte[8]
         };
@@ -51,8 +52,8 @@ public class UserServiceTests
         
         // Reviews for user1
         context.Reviews.AddRange(
-            new Review { TargetUserId = "user1", Rating = 5, ReviewerId = "r1", CreatedOn = DateTime.UtcNow, AuctionId = 1 },
-            new Review { TargetUserId = "user1", Rating = 3, ReviewerId = "r2", CreatedOn = DateTime.UtcNow, AuctionId = 2 }
+            new Review { TargetUserId = "user1", Rating = 5, ReviewerId = "r1", Comment = "Great!", CreatedOn = DateTime.UtcNow, AuctionId = 1 },
+            new Review { TargetUserId = "user1", Rating = 3, ReviewerId = "r2", Comment = "Okay", CreatedOn = DateTime.UtcNow, AuctionId = 2 }
         );
 
         await context.SaveChangesAsync();

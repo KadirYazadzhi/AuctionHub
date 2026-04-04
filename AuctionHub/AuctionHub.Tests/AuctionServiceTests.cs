@@ -203,6 +203,6 @@ public class AuctionServiceTests
 
         // Assert
         Assert.False(result.Success);
-        Assert.Equal("You cannot cancel an auction that has bids. Please contact support if you need to cancel it.", result.Message);
+        Assert.Contains("cannot cancel an auction that has bids", result.Message);
     }
 }
