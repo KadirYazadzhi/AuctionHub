@@ -174,6 +174,7 @@ public class ExtendedAuctionServiceTests
             BuyItNowPrice = 1000m,
             MinIncrease = 10m,
             RowVersion = new byte[8]
+        };
         // Add existing bid
         auction.Bids.Add(new Bid { BidderId = "bidder1", Amount = 300m, BidTime = DateTime.UtcNow.AddHours(-1) });
 
