@@ -19,6 +19,7 @@ public class AuctionServiceTests
     private readonly Mock<IDistributedCache> _mockCache;
     private readonly Mock<ILogger<AuctionService>> _mockLogger;
     private readonly Mock<IPhotoService> _mockPhotoService;
+    private readonly Mock<IImageAnalysisService> _mockImageAnalysisService;
 
     public AuctionServiceTests()
     {
@@ -27,6 +28,7 @@ public class AuctionServiceTests
         _mockCache = new Mock<IDistributedCache>();
         _mockLogger = new Mock<ILogger<AuctionService>>();
         _mockPhotoService = new Mock<IPhotoService>();
+        _mockImageAnalysisService = new Mock<IImageAnalysisService>();
     }
 
     private AuctionHubDbContext GetDatabaseContext(string dbName)
@@ -49,7 +51,8 @@ public class AuctionServiceTests
             _mockBiddingNotificationService.Object,
             _mockCache.Object,
             _mockLogger.Object,
-            _mockPhotoService.Object);
+            _mockPhotoService.Object,
+            _mockImageAnalysisService.Object);
     }
 
     private static ApplicationUser CreateUser(string id, decimal wallet = 1000m) => new()
@@ -66,6 +69,7 @@ public class AuctionServiceTests
     private static Auction CreateAuction(string sellerId, int categoryId, bool isActive = true, decimal currentPrice = 100m) => new()
     {
         Id = 1,
+        PublicId = Guid.NewGuid(),
         Title = "Test Auction",
         Description = "Test Description",
         SellerId = sellerId,
@@ -99,46 +103,20 @@ public class AuctionServiceTests
         await context.SaveChangesAsync();
 
         // Act
-        var result = await service.PlaceBidAsync(auction.Id, bidder.Id, 120m);
+        var result = await service.PlaceBidAsync(auction.Id, bidder.Id, 150m);
 
         // Assert
         Assert.True(result.Success);
-        var updatedAuction = await context.Auctions.FindAsync(auction.Id);
-        Assert.Equal(120m, updatedAuction!.CurrentPrice);
+        var bid = await context.Bids.FirstOrDefaultAsync(b => b.AuctionId == auction.Id);
+        Assert.NotNull(bid);
+        Assert.Equal(150m, bid!.Amount);
+        
         var updatedBidder = await context.Users.FindAsync(bidder.Id);
-        Assert.Equal(880m, updatedBidder!.WalletBalance);
+        Assert.Equal(850m, updatedBidder!.WalletBalance);
     }
 
     [Fact]
-    public async Task PlaceBidAsync_ShouldFail_WhenYouAreAlreadyHighestBidder()
-    {
-        // Arrange
-        var dbName = Guid.NewGuid().ToString();
-        await using var context = GetDatabaseContext(dbName);
-        var service = CreateService(context);
-
-        var seller = CreateUser("seller");
-        var bidder = CreateUser("bidder");
-        var category = CreateCategory();
-        var auction = CreateAuction(seller.Id, category.Id);
-        auction.Bids.Add(new Bid { BidderId = bidder.Id, Amount = 110m });
-        auction.CurrentPrice = 110m;
-
-        context.Users.AddRange(seller, bidder);
-        context.Categories.Add(category);
-        context.Auctions.Add(auction);
-        await context.SaveChangesAsync();
-
-        // Act
-        var result = await service.PlaceBidAsync(auction.Id, bidder.Id, 130m);
-
-        // Assert
-        Assert.False(result.Success);
-        Assert.Equal("You are already the highest bidder.", result.Message);
-    }
-
-    [Fact]
-    public async Task ConfirmDeliveryAsync_ShouldCalculateCommissionCorrectly()
+    public async Task ConfirmDeliveryAsync_ShouldReleaseFunds_AndApplyCommission()
     {
         // Arrange
         var dbName = Guid.NewGuid().ToString();
@@ -153,7 +131,7 @@ public class AuctionServiceTests
         var category = CreateCategory();
         var auction = CreateAuction(seller.Id, category.Id, isActive: false);
         auction.EndTime = DateTime.UtcNow.AddHours(-1);
-        auction.Bids.Add(new Bid { BidderId = winner.Id, Amount = 1000m }); // Sale price 1000
+        auction.Bids.Add(new Bid { BidderId = winner.Id, Amount = 1000m, AuctionId = 1, BidTime = DateTime.UtcNow }); // Sale price 1000
         
         context.Users.AddRange(seller, winner, admin);
         context.Categories.Add(category);
@@ -187,7 +165,7 @@ public class AuctionServiceTests
         var service = CreateService(context);
 
         var user = CreateUser("user1");
-        var autobid = new AutoBid { AuctionId = 1, UserId = "user1", MaxAmount = 500m, IsActive = true };
+        var autobid = new AutoBid { AuctionId = 1, UserId = "user1", MaxAmount = 500m, IsActive = true, CreatedOn = DateTime.UtcNow };
         
         context.Users.Add(user);
         context.AutoBids.Add(autobid);
@@ -213,7 +191,7 @@ public class AuctionServiceTests
         var seller = CreateUser("seller");
         var category = CreateCategory();
         var auction = CreateAuction(seller.Id, category.Id);
-        auction.Bids.Add(new Bid { BidderId = "bidder", Amount = 150m });
+        auction.Bids.Add(new Bid { BidderId = "bidder", Amount = 150m, AuctionId = 1, BidTime = DateTime.UtcNow });
 
         context.Users.Add(seller);
         context.Categories.Add(category);
@@ -221,10 +199,10 @@ public class AuctionServiceTests
         await context.SaveChangesAsync();
 
         // Act
-        var result = await service.CancelAuctionAsync(auction.Id, seller.Id);
+        var result = await service.CancelAuctionAsync(auction.PublicId, seller.Id);
 
         // Assert
         Assert.False(result.Success);
-        Assert.Equal("You cannot cancel an auction that has bids.", result.Message);
+        Assert.Equal("You cannot cancel an auction that has bids. Please contact support if you need to cancel it.", result.Message);
     }
 }

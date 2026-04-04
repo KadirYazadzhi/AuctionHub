@@ -41,7 +41,7 @@ public class WalletServiceTests
 
         var user = new ApplicationUser { Id = "user1", WalletBalance = 100m };
         _mockUserManager.Setup(m => m.FindByIdAsync("user1")).ReturnsAsync(user);
-        _mockUserManager.Setup(m => m.UpdateAsync(user)).ReturnsAsync(IdentityResult.Succeeded);
+        _mockUserManager.Setup(m => m.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
 
         // Act
         var result = await service.AddFundsAsync("user1", 50m);
@@ -65,7 +65,7 @@ public class WalletServiceTests
 
         var user = new ApplicationUser { Id = "user1", WalletBalance = 100m };
         _mockUserManager.Setup(m => m.FindByIdAsync("user1")).ReturnsAsync(user);
-        _mockUserManager.Setup(m => m.UpdateAsync(user)).ReturnsAsync(IdentityResult.Succeeded);
+        _mockUserManager.Setup(m => m.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
 
         // Act
         var result = await service.WithdrawAsync("user1", 40m);

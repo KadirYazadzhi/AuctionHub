@@ -20,6 +20,7 @@ public class ExtendedAuctionServiceTests
     private readonly Mock<IDistributedCache> _mockCache;
     private readonly Mock<ILogger<AuctionService>> _mockLogger;
     private readonly Mock<IPhotoService> _mockPhotoService;
+    private readonly Mock<IImageAnalysisService> _mockImageAnalysisService;
 
     public ExtendedAuctionServiceTests()
     {
@@ -28,6 +29,7 @@ public class ExtendedAuctionServiceTests
         _mockCache = new Mock<IDistributedCache>();
         _mockLogger = new Mock<ILogger<AuctionService>>();
         _mockPhotoService = new Mock<IPhotoService>();
+        _mockImageAnalysisService = new Mock<IImageAnalysisService>();
     }
 
     private AuctionHubDbContext GetDatabaseContext(string dbName)
@@ -50,7 +52,8 @@ public class ExtendedAuctionServiceTests
             _mockBiddingNotificationService.Object,
             _mockCache.Object,
             _mockLogger.Object,
-            _mockPhotoService.Object);
+            _mockPhotoService.Object,
+            _mockImageAnalysisService.Object);
     }
 
     [Fact]
@@ -61,8 +64,8 @@ public class ExtendedAuctionServiceTests
         await using var context = GetDatabaseContext(dbName);
         var service = CreateService(context);
 
-        var seller = new ApplicationUser { Id = "seller", WalletBalance = 0m };
-        var bidder = new ApplicationUser { Id = "bidder", WalletBalance = 1000m };
+        var seller = new ApplicationUser { Id = "seller", WalletBalance = 0m, RowVersion = new byte[8] };
+        var bidder = new ApplicationUser { Id = "bidder", WalletBalance = 1000m, RowVersion = new byte[8] };
         var category = new Category { Id = 1, Name = "Test" };
         
         // Set EndTime to 1 minute from now
@@ -77,7 +80,8 @@ public class ExtendedAuctionServiceTests
             EndTime = originalEndTime,
             StartPrice = 100m,
             CurrentPrice = 100m,
-            MinIncrease = 10m
+            MinIncrease = 10m,
+            RowVersion = new byte[8]
         };
 
         context.Users.AddRange(seller, bidder);
@@ -104,9 +108,9 @@ public class ExtendedAuctionServiceTests
         await using var context = GetDatabaseContext(dbName);
         var service = CreateService(context);
 
-        var seller = new ApplicationUser { Id = "seller", WalletBalance = 0m };
-        var manualBidder = new ApplicationUser { Id = "manual", WalletBalance = 1000m };
-        var autoBidder = new ApplicationUser { Id = "bot", WalletBalance = 2000m, DisplayName = "AutoBot" };
+        var seller = new ApplicationUser { Id = "seller", WalletBalance = 0m, RowVersion = new byte[8] };
+        var manualBidder = new ApplicationUser { Id = "manual", WalletBalance = 1000m, RowVersion = new byte[8] };
+        var autoBidder = new ApplicationUser { Id = "bot", WalletBalance = 2000m, UserName = "AutoBot", RowVersion = new byte[8] };
         var category = new Category { Id = 1, Name = "Test" };
         
         var auction = new Auction
@@ -119,7 +123,8 @@ public class ExtendedAuctionServiceTests
             EndTime = DateTime.UtcNow.AddDays(1),
             StartPrice = 100m,
             CurrentPrice = 100m,
-            MinIncrease = 10m
+            MinIncrease = 10m,
+            RowVersion = new byte[8]
         };
 
         context.Users.AddRange(seller, manualBidder, autoBidder);
@@ -163,9 +168,9 @@ public class ExtendedAuctionServiceTests
         await using var context = GetDatabaseContext(dbName);
         var service = CreateService(context);
 
-        var seller = new ApplicationUser { Id = "seller", WalletBalance = 0m };
-        var currentBidder = new ApplicationUser { Id = "bidder1", WalletBalance = 500m };
-        var buyer = new ApplicationUser { Id = "buyer", WalletBalance = 2000m };
+        var seller = new ApplicationUser { Id = "seller", WalletBalance = 0m, RowVersion = new byte[8] };
+        var currentBidder = new ApplicationUser { Id = "bidder1", WalletBalance = 500m, RowVersion = new byte[8] };
+        var buyer = new ApplicationUser { Id = "buyer", WalletBalance = 2000m, RowVersion = new byte[8] };
         var category = new Category { Id = 1, Name = "Test" };
         
         var auction = new Auction
@@ -179,7 +184,8 @@ public class ExtendedAuctionServiceTests
             StartPrice = 100m,
             CurrentPrice = 300m,
             BuyItNowPrice = 1000m,
-            MinIncrease = 10m
+            MinIncrease = 10m,
+            RowVersion = new byte[8]
         };
         // Add existing bid
         auction.Bids.Add(new Bid { BidderId = "bidder1", Amount = 300m, BidTime = DateTime.UtcNow.AddHours(-1) });
@@ -215,7 +221,7 @@ public class ExtendedAuctionServiceTests
         await using var context = GetDatabaseContext(dbName);
         var service = CreateService(context);
 
-        var seller = new ApplicationUser { Id = "seller", WalletBalance = 100m };
+        var seller = new ApplicationUser { Id = "seller", WalletBalance = 100m, RowVersion = new byte[8] };
         context.Users.Add(seller);
         context.Categories.Add(new Category { Id = 1, Name = "Test" });
         await context.SaveChangesAsync();
@@ -227,15 +233,21 @@ public class ExtendedAuctionServiceTests
             StartPrice = 100m,
             MinIncrease = 10m,
             EndTime = DateTime.UtcNow.AddDays(1),
-            CategoryId = 1
+            CategoryId = 1,
+            ImageStreams = new List<System.IO.Stream>(),
+            ImageFileNames = new List<string>(),
+            AdditionalImageUrls = new List<string>()
         };
+
+        _mockImageAnalysisService.Setup(s => s.AnalyzeImageAsync(It.IsAny<System.IO.Stream>(), It.IsAny<string>()))
+            .ReturnsAsync(new ImageAnalysisResult { IsSafeForWork = true });
 
         // Act
         var result1 = await service.CreateAuctionAsync(model, "seller");
         var result2 = await service.CreateAuctionAsync(model, "seller");
 
         // Assert
-        Assert.True(result1 > 0);
-        Assert.Equal(-1, result2); // Second one should be flagged as duplicate
+        Assert.True(result1.AuctionId > 0);
+        Assert.Equal(-1, result2.AuctionId); // Second one should be flagged as duplicate
     }
 }

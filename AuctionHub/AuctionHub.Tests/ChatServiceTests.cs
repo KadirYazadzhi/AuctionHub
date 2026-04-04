@@ -4,6 +4,7 @@ using AuctionHub.Application.Services;
 using AuctionHub.Infrastructure.Data;
 using AuctionHub.Domain.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 using Moq;
 using Xunit;
 

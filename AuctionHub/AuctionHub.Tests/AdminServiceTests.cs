@@ -4,12 +4,21 @@ using AuctionHub.Infrastructure.Data;
 using AuctionHub.Domain.Models;
 using AuctionHub.Application.DTOs;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
+using Moq;
 using Xunit;
 
 namespace AuctionHub.Tests;
 
 public class AdminServiceTests
 {
+    private readonly Mock<IDistributedCache> _mockCache;
+
+    public AdminServiceTests()
+    {
+        _mockCache = new Mock<IDistributedCache>();
+    }
+
     private AuctionHubDbContext GetDatabaseContext(string dbName)
     {
         var options = new DbContextOptionsBuilder<AuctionHubDbContext>()
@@ -28,20 +37,20 @@ public class AdminServiceTests
         // Arrange
         var dbName = Guid.NewGuid().ToString();
         await using var context = GetDatabaseContext(dbName);
-        var service = new AdminService(context);
+        var service = new AdminService(context, _mockCache.Object);
 
         // Transactions
         context.Transactions.AddRange(
-            new Transaction { TransactionType = "Promotion", Amount = 100m, TransactionDate = DateTime.UtcNow },
-            new Transaction { TransactionType = "Commission", Amount = 50m, TransactionDate = DateTime.UtcNow },
-            new Transaction { TransactionType = "AdminRefund", Amount = 20m, TransactionDate = DateTime.UtcNow }, // Deduct
-            new Transaction { TransactionType = "Purchase", Amount = 500m, TransactionDate = DateTime.UtcNow } // Not revenue directly
+            new Transaction { TransactionType = "Promotion", Amount = 100m, TransactionDate = DateTime.UtcNow, UserId = "u1" },
+            new Transaction { TransactionType = "Commission", Amount = 50m, TransactionDate = DateTime.UtcNow, UserId = "u1" },
+            new Transaction { TransactionType = "AdminRefund", Amount = 20m, TransactionDate = DateTime.UtcNow, UserId = "u1" }, // Deduct
+            new Transaction { TransactionType = "Purchase", Amount = 500m, TransactionDate = DateTime.UtcNow, UserId = "u1" } // Not revenue directly
         );
 
         // Users
         context.Users.AddRange(
-            new ApplicationUser { Id = "u1", CreatedOn = DateTime.UtcNow },
-            new ApplicationUser { Id = "u2", CreatedOn = DateTime.UtcNow.AddDays(-2) }
+            new ApplicationUser { Id = "u1", CreatedOn = DateTime.UtcNow, RowVersion = new byte[8] },
+            new ApplicationUser { Id = "u2", CreatedOn = DateTime.UtcNow.AddDays(-2), RowVersion = new byte[8] }
         );
 
         await context.SaveChangesAsync();
@@ -62,10 +71,10 @@ public class AdminServiceTests
         // Arrange
         var dbName = Guid.NewGuid().ToString();
         await using var context = GetDatabaseContext(dbName);
-        var service = new AdminService(context);
+        var service = new AdminService(context, _mockCache.Object);
 
-        var seller = new ApplicationUser { Id = "seller", WalletBalance = 0m };
-        var winner = new ApplicationUser { Id = "winner", WalletBalance = 100m };
+        var seller = new ApplicationUser { Id = "seller", WalletBalance = 0m, RowVersion = new byte[8] };
+        var winner = new ApplicationUser { Id = "winner", WalletBalance = 100m, RowVersion = new byte[8] };
         
         var auction = new Auction
         {
@@ -74,9 +83,10 @@ public class AdminServiceTests
             SellerId = "seller",
             IsDisputed = true,
             IsSettled = false,
-            CurrentPrice = 500m
+            CurrentPrice = 500m,
+            RowVersion = new byte[8]
         };
-        auction.Bids.Add(new Bid { BidderId = "winner", Amount = 500m });
+        auction.Bids.Add(new Bid { BidderId = "winner", Amount = 500m, AuctionId = 1, BidTime = DateTime.UtcNow });
 
         context.Users.AddRange(seller, winner);
         context.Auctions.Add(auction);
@@ -101,10 +111,10 @@ public class AdminServiceTests
         // Arrange
         var dbName = Guid.NewGuid().ToString();
         await using var context = GetDatabaseContext(dbName);
-        var service = new AdminService(context);
+        var service = new AdminService(context, _mockCache.Object);
 
-        var seller = new ApplicationUser { Id = "seller", WalletBalance = 0m };
-        var winner = new ApplicationUser { Id = "winner", WalletBalance = 100m };
+        var seller = new ApplicationUser { Id = "seller", WalletBalance = 0m, RowVersion = new byte[8] };
+        var winner = new ApplicationUser { Id = "winner", WalletBalance = 100m, RowVersion = new byte[8] };
         
         var auction = new Auction
         {
@@ -113,9 +123,10 @@ public class AdminServiceTests
             SellerId = "seller",
             IsDisputed = true,
             IsSettled = false,
-            CurrentPrice = 500m
+            CurrentPrice = 500m,
+            RowVersion = new byte[8]
         };
-        auction.Bids.Add(new Bid { BidderId = "winner", Amount = 500m });
+        auction.Bids.Add(new Bid { BidderId = "winner", Amount = 500m, AuctionId = 1, BidTime = DateTime.UtcNow });
 
         context.Users.AddRange(seller, winner);
         context.Auctions.Add(auction);
@@ -140,7 +151,7 @@ public class AdminServiceTests
         // Arrange
         var dbName = Guid.NewGuid().ToString();
         await using var context = GetDatabaseContext(dbName);
-        var service = new AdminService(context);
+        var service = new AdminService(context, _mockCache.Object);
 
         context.SystemSettings.Add(new SystemSetting { Key = "OldKey", Value = "OldValue" });
         await context.SaveChangesAsync();
