@@ -1,0 +1,153 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auctionhub-web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: auctionhub-web
+  template:
+    metadata:
+      labels:
+        app: auctionhub-web
+    spec:
+      # InitContainer waits for the database to open port 1433
+      initContainers:
+      - name: wait-for-mssql
+        image: busybox:1.28
+        command: ['sh', '-c', "until nc -zv mssql-svc 1433; do echo waiting for mssql; sleep 2; done;"]
+      containers:
+      - name: auctionhub-web
+        image: YOUR_REGISTRY/auctionhub-web:YOUR_VERSION
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        env:
+        - name: ASPNETCORE_ENVIRONMENT
+          value: "Production"
+        
+        # Database Settings
+        - name: DB_SERVER
+          value: "mssql-svc"
+        - name: DB_NAME
+          value: "AuctionHubDb"
+        - name: DB_USER
+          value: "auction_user"
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: auctionhub-secrets
+              key: DB_PASSWORD
+        
+        # Connection String
+        - name: ConnectionStrings__DefaultConnection
+          valueFrom:
+            secretKeyRef:
+              name: auctionhub-secrets
+              key: ConnectionStrings__DefaultConnection
+
+        # Redis Settings
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: auctionhub-secrets
+              key: redis-connection
+        - name: ConnectionStrings__Redis
+          valueFrom:
+            secretKeyRef:
+              name: auctionhub-secrets
+              key: ConnectionStrings__Redis
+
+        # Cloudinary
+        - name: Cloudinary__CloudName
+          valueFrom:
+            secretKeyRef: { name: auctionhub-secrets, key: cloudinary-cloudname }
+        - name: Cloudinary__ApiKey
+          valueFrom:
+            secretKeyRef: { name: auctionhub-secrets, key: cloudinary-apikey }
+        - name: Cloudinary__ApiSecret
+          valueFrom:
+            secretKeyRef: { name: auctionhub-secrets, key: cloudinary-apisecret }
+
+        # Authentication (Google & GitHub)
+        - name: GOOGLE_CLIENT_ID
+          valueFrom:
+            secretKeyRef: { name: auctionhub-secrets, key: google-clientid }
+        - name: GOOGLE_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef: { name: auctionhub-secrets, key: google-clientsecret }
+        - name: GITHUB_CLIENT_ID
+          valueFrom:
+            secretKeyRef: { name: auctionhub-secrets, key: github-clientid }
+        - name: GITHUB_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef: { name: auctionhub-secrets, key: github-clientsecret }
+
+        # Email, AI & Admin
+        - name: EmailSettings__ApiToken
+          valueFrom:
+            secretKeyRef: { name: auctionhub-secrets, key: email-apitoken }
+        - name: EmailSettings__Password
+          valueFrom:
+            secretKeyRef: { name: auctionhub-secrets, key: EmailSettings__Password }
+        - name: AI__HuggingFaceToken
+          valueFrom:
+            secretKeyRef: { name: auctionhub-secrets, key: AI__HuggingFaceToken }
+        - name: GoogleReCaptcha__SiteKey
+          valueFrom:
+            secretKeyRef: { name: auctionhub-secrets, key: GoogleReCaptcha__SiteKey }
+        - name: ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef: { name: auctionhub-secrets, key: ADMIN_PASSWORD }
+        - name: ADMIN_FIRST_NAME
+          valueFrom:
+            secretKeyRef: { name: auctionhub-secrets, key: ADMIN_FIRST_NAME }
+        - name: ADMIN_LAST_NAME
+          valueFrom:
+            secretKeyRef: { name: auctionhub-secrets, key: ADMIN_LAST_NAME }
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auctionhub-web-service
+spec:
+  selector:
+    app: auctionhub-web
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: auctionhub-ingress
+  annotations:
+    kubernetes.io/ingress.class: traefik
+    cert-manager.io/cluster-issuer: letsencrypt-prod # Update according to your setup
+spec:
+  rules:
+  - host: your-domain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: auctionhub-web-service
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - your-domain.com
+    secretName: auction-tls-cert
