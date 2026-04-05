@@ -20,6 +20,7 @@ public class WalletService : IWalletService
     public async Task<IEnumerable<TransactionDto>> GetTransactionsAsync(string userId)
     {
         return await _context.Transactions
+            .Include(t => t.User)
             .Where(t => t.UserId == userId)
             .OrderByDescending(t => t.TransactionDate)
             .Select(t => new TransactionDto
@@ -30,7 +31,7 @@ public class WalletService : IWalletService
                 TransactionDate = t.TransactionDate,
                 TransactionType = t.TransactionType,
                 Status = t.Status,
-                User = t.User.UserName ?? "Unknown"
+                User = t.User != null ? t.User.UserName : "Unknown"
             })
             .ToListAsync();
     }
@@ -49,7 +50,7 @@ public class WalletService : IWalletService
                 TransactionDate = t.TransactionDate,
                 TransactionType = t.TransactionType,
                 Status = t.Status,
-                User = t.User.UserName ?? "Unknown"
+                User = t.User != null ? t.User.UserName : "Unknown"
             })
             .ToListAsync();
     }

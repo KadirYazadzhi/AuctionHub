@@ -116,8 +116,7 @@ public static class DbSeeder
                 EmailConfirmed = true,
                 FirstName = adminFirstName,
                 LastName = adminLastName,
-                WalletBalance = 1000000m,
-                RowVersion = new byte[8]
+                WalletBalance = 1000000m
             };
 
             var result = await userManager.CreateAsync(adminUser, adminPassword);
