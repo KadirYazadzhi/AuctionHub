@@ -271,7 +271,10 @@
     {
         <text>
         const globalConnection = new signalR.HubConnectionBuilder()
-            .withUrl("/hubs/bidding")
+            .withUrl("/hubs/bidding", {
+                skipNegotiation: true,
+                transport: signalR.HttpTransportType.WebSockets
+            })
             .withAutomaticReconnect()
             .build();
 

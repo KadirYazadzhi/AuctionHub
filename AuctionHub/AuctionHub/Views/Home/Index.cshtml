@@ -664,7 +664,10 @@
             };
 
             const connection = new signalR.HubConnectionBuilder()
-                .withUrl("/hubs/chat")
+                .withUrl("/hubs/chat", {
+                    skipNegotiation: true,
+                    transport: signalR.HttpTransportType.WebSockets
+                })
                 .withAutomaticReconnect()
                 .build();
 

@@ -892,6 +892,8 @@
 
     const connection = new signalR.HubConnectionBuilder()
         .withUrl("/hubs/bidding", {
+            skipNegotiation: true,
+            transport: signalR.HttpTransportType.WebSockets,
             headers: { "X-XSRF-TOKEN": document.cookie.split('; ').find(row => row.startsWith('XSRF-TOKEN='))?.split('=')[1] }
         })
         .build();

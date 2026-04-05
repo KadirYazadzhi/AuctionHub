@@ -395,7 +395,13 @@
             const mobileSidebarBody = document.getElementById('mobile-conversation-list');
             if(mobileSidebarBody && conversationList) mobileSidebarBody.innerHTML = conversationList.innerHTML;
 
-            const connection = new signalR.HubConnectionBuilder().withUrl("/hubs/chat").withAutomaticReconnect().build();
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/hubs/chat", {
+                    skipNegotiation: true,
+                    transport: signalR.HttpTransportType.WebSockets
+                })
+                .withAutomaticReconnect()
+                .build();
             const processedMessageIds = new Set();
 
             connection.on("ReceivePrivateMessage", function (msg) {
