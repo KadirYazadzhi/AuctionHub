@@ -103,11 +103,7 @@ builder.Services.AddHangfire(configuration => configuration
 builder.Services.AddHangfireServer();
 
 // Redis Configuration
-var redisUrl = Environment.GetEnvironmentVariable("REDIS_URL")
-    ?? builder.Configuration.GetConnectionString("Redis") 
-    ?? "127.0.0.1:6379";
-
-var redisConnectionString = $"{redisUrl},abortConnect=false";
+var redisConnectionString = $"{builder.Configuration["REDIS_URL"] ?? "127.0.0.1:6379"},abortConnect=false";
 var redis = ConnectionMultiplexer.Connect(redisConnectionString);
 builder.Services.AddDataProtection()
     .PersistKeysToStackExchangeRedis(redis, "AuctionHub-DataProtection-Keys")
@@ -139,20 +135,12 @@ builder.Services.Configure<SecurityStampValidatorOptions>(options =>
 
 builder.Services.AddAuthentication()
     .AddGoogle(googleOptions => {
-        googleOptions.ClientId = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID") 
-            ?? builder.Configuration["Authentication:Google:ClientId"] 
-            ?? "placeholder";
-        googleOptions.ClientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET") 
-            ?? builder.Configuration["Authentication:Google:ClientSecret"] 
-            ?? "placeholder";
+        googleOptions.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "placeholder";
+        googleOptions.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "placeholder";
     })
     .AddGitHub(githubOptions => {
-        githubOptions.ClientId = Environment.GetEnvironmentVariable("GITHUB_CLIENT_ID") 
-            ?? builder.Configuration["Authentication:GitHub:ClientId"] 
-            ?? "placeholder";
-        githubOptions.ClientSecret = Environment.GetEnvironmentVariable("GITHUB_CLIENT_SECRET") 
-            ?? builder.Configuration["Authentication:GitHub:ClientSecret"] 
-            ?? "placeholder";
+        githubOptions.ClientId = builder.Configuration["Authentication:GitHub:ClientId"] ?? "placeholder";
+        githubOptions.ClientSecret = builder.Configuration["Authentication:GitHub:ClientSecret"] ?? "placeholder";
     });
 
 builder.Services.AddControllersWithViews(options => {
@@ -236,7 +224,7 @@ using (var scope = app.Services.CreateScope())
 
     // 3. Identity Fixes
     var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
-    var adminEmail = Environment.GetEnvironmentVariable("ADMIN_EMAIL") ?? "admin@auctionhub.com";
+    var adminEmail = builder.Configuration["ADMIN_EMAIL"] ?? "admin@auctionhub.com";
     var adminUser = await userManager.FindByEmailAsync(adminEmail);
     if (adminUser != null)
     {
