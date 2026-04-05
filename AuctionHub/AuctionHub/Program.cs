@@ -17,6 +17,7 @@ using System.Threading.RateLimiting;
 using Hangfire;
 using Hangfire.SqlServer;
 using AuctionHub.Infrastructure.Filters;
+using AuctionHub.Infrastructure.Extensions;
 using DotNetEnv;
 using Microsoft.Data.SqlClient;
 
@@ -210,6 +211,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<AuctionHub.Infrastructure.Filters.MaintenanceMiddleware>();
 
+// Apply Migrations with Retry Logic
+app.ApplyMigrations();
+
 app.UseHangfireDashboard("/hangfire", new DashboardOptions
 {
     Authorization = new[] { new HangfireAuthorizationFilter() }
@@ -220,20 +224,17 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     var context = services.GetRequiredService<AuctionHubDbContext>();
     
-    // 1. Run Migrations
-    await context.Database.MigrateAsync();
-    
-    // 2. Seed Data
+    // 1. Seed Data
     await DbSeeder.SeedAsync(services);
 
-    // 3. Register Recurring Jobs
+    // 2. Register Recurring Jobs
     var recurringJobManager = services.GetRequiredService<IRecurringJobManager>();
     recurringJobManager.AddOrUpdate<IAuctionService>("AuctionCleanup", service => service.CloseExpiredAuctionsAsync(), Cron.Minutely);
     recurringJobManager.AddOrUpdate<IAuctionService>("EscrowRelease", service => service.ReleaseEscrowFundsAsync(), Cron.Hourly);
     recurringJobManager.AddOrUpdate<IAuctionService>("DutchAuctionDrop", service => service.ProcessDutchAuctionsAsync(), Cron.Minutely);
     recurringJobManager.AddOrUpdate<IAuctionService>("InactiveAuctionCleanup", service => service.CleanupInactiveAuctionsAsync(), Cron.Daily);
 
-    // 4. Identity Fixes
+    // 3. Identity Fixes
     var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
     var adminEmail = Environment.GetEnvironmentVariable("ADMIN_EMAIL") ?? "admin@auctionhub.com";
     var adminUser = await userManager.FindByEmailAsync(adminEmail);
