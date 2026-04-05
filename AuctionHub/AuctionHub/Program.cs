@@ -53,17 +53,6 @@ var connectionString = !string.IsNullOrEmpty(dbServer) && !string.IsNullOrEmpty(
     : builder.Configuration.GetConnectionString("DefaultConnection") 
       ?? throw new InvalidOperationException("Connection string not found.");
 
-// --- CRITICAL FIX: Ensure Database exists before Hangfire starts ---
-var masterConnectionString = connectionString.Replace($"Database={dbName}", "Database=master");
-using (var connection = new SqlConnection(masterConnectionString))
-{
-    connection.Open();
-    using (var command = new SqlCommand($"IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = N'{dbName}') CREATE DATABASE [{dbName}]", connection))
-    {
-        command.ExecuteNonQuery();
-    }
-}
-
 builder.Services.AddDbContext<AuctionHubDbContext>(options =>
     options.UseSqlServer(connectionString));
 
@@ -199,7 +188,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<AuctionHub.Infrastructure.Filters.MaintenanceMiddleware>();
 
-// Apply Migrations with Retry Logic
+// --- Apply Migrations with Retry Logic ---
 app.ApplyMigrations();
 
 app.UseHangfireDashboard("/hangfire", new DashboardOptions
@@ -210,9 +199,8 @@ app.UseHangfireDashboard("/hangfire", new DashboardOptions
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-    var context = services.GetRequiredService<AuctionHubDbContext>();
     
-    // 1. Seed Data
+    // 1. Seed Data (includes Role Management)
     await DbSeeder.SeedAsync(services);
 
     // 2. Register Recurring Jobs
@@ -221,17 +209,6 @@ using (var scope = app.Services.CreateScope())
     recurringJobManager.AddOrUpdate<IAuctionService>("EscrowRelease", service => service.ReleaseEscrowFundsAsync(), Cron.Hourly);
     recurringJobManager.AddOrUpdate<IAuctionService>("DutchAuctionDrop", service => service.ProcessDutchAuctionsAsync(), Cron.Minutely);
     recurringJobManager.AddOrUpdate<IAuctionService>("InactiveAuctionCleanup", service => service.CleanupInactiveAuctionsAsync(), Cron.Daily);
-
-    // 3. Identity Fixes
-    var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
-    var adminEmail = builder.Configuration["ADMIN_EMAIL"] ?? "admin@auctionhub.com";
-    var adminUser = await userManager.FindByEmailAsync(adminEmail);
-    if (adminUser != null)
-    {
-        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-        if (!await roleManager.RoleExistsAsync("Administrator")) await roleManager.CreateAsync(new IdentityRole("Administrator"));
-        if (!await userManager.IsInRoleAsync(adminUser, "Administrator")) await userManager.AddToRoleAsync(adminUser, "Administrator");
-    }
 }
 
 app.MapControllerRoute(name: "areas", pattern: "{area:exists}/{controller=Dashboard}/{action=Index}/{id?}");

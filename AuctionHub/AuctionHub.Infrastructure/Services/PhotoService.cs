@@ -63,4 +63,50 @@ public class PhotoService : IPhotoService
             ? (true, "Deleted") 
             : (false, result.Error?.Message ?? "Error deleting photo");
     }
+
+    public (bool Success, string ErrorMessage) ValidateImage(long length, string contentType, string fileName)
+    {
+        if (length > 5 * 1024 * 1024)
+        {
+            return (false, "File size must be less than 5MB.");
+        }
+
+        var allowedMimeTypes = new[] { "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp" };
+        if (!string.IsNullOrEmpty(contentType) && !allowedMimeTypes.Contains(contentType.ToLowerInvariant()))
+        {
+            return (false, "Invalid file type. Must be an image (JPEG, PNG, GIF, or WebP).");
+        }
+
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+        var extension = Path.GetExtension(fileName).ToLowerInvariant();
+        if (!allowedExtensions.Contains(extension))
+        {
+            return (false, "Invalid file extension. Allowed: jpg, jpeg, png, gif, webp.");
+        }
+
+        return (true, string.Empty);
+    }
+
+    public void DeleteLocalImage(string? imageUrl, string webRootPath)
+    {
+        if (string.IsNullOrEmpty(imageUrl)) return;
+        
+        if (imageUrl.StartsWith("/images/auctions/"))
+        {
+            var relativePath = imageUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+            var filePath = Path.Combine(webRootPath, relativePath);
+            
+            if (System.IO.File.Exists(filePath))
+            {
+                try
+                {
+                    System.IO.File.Delete(filePath);
+                }
+                catch
+                {
+                    // Log error or ignore
+                }
+            }
+        }
+    }
 }

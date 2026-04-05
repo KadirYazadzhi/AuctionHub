@@ -11,24 +11,6 @@ public static class DbSeeder
     {
         var context = serviceProvider.GetRequiredService<AuctionHubDbContext>();
         
-        // --- MANUAL SCHEMA UPDATE: Add 'Status' column to Transactions table ---
-        // Since we cannot run migrations in this environment, we apply it via raw SQL.
-        try 
-        {
-            await context.Database.ExecuteSqlRawAsync(@"
-                IF NOT EXISTS (SELECT * FROM sys.columns 
-                               WHERE object_id = OBJECT_ID(N'[Transactions]') 
-                               AND name = N'Status')
-                BEGIN
-                    ALTER TABLE [Transactions] ADD [Status] nvarchar(max) NOT NULL DEFAULT N'Completed';
-                END
-            ");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error updating database schema: {ex.Message}");
-        }
-
         // --- CLEANUP DUPLICATES: Fix for 'Sequence contains more than one element' ---
         try
         {

@@ -7,63 +7,11 @@ public interface IAuctionService
 {
     Task<(bool Success, string Message)> PlaceBidAsync(int auctionId, string userId, decimal amount);
     Task<(bool Success, string Message)> BuyItNowAsync(int auctionId, string userId);
-    Task<PaginatedList<AuctionDto>> GetAuctionsAsync(
-        string? searchTerm, 
-        int? categoryId, 
-        string? sortOrder, 
-        int pageNumber, 
-        int pageSize, 
-        decimal? minPrice, 
-        decimal? maxPrice, 
-        string? status,
-        string? currentUserId = null,
-        double? latitude = null,
-        double? longitude = null,
-        double? maxDistance = null);
-
-    Task<PaginatedList<AuctionDto>> GetMyAuctionsAsync(
-        string userId,
-        string? searchTerm, 
-        int? categoryId, 
-        string? sortOrder, 
-        int pageNumber, 
-        int pageSize, 
-        decimal? minPrice, 
-        decimal? maxPrice, 
-        string? status);
-
-    Task<PaginatedList<AuctionDto>> GetMyBidsAsync(
-        string userId,
-        string? searchTerm, 
-        int? categoryId, 
-        string? sortOrder, 
-        int pageNumber, 
-        int pageSize, 
-        decimal? minPrice, 
-        decimal? maxPrice, 
-        string? status);
-
-    Task<PaginatedList<AuctionDto>> GetUserAuctionsAsync(
-        string username,
-        string? searchTerm, 
-        int? categoryId, 
-        string? sortOrder, 
-        int pageNumber, 
-        int pageSize, 
-        decimal? minPrice, 
-        decimal? maxPrice, 
-        string? status);
-
-    Task<PaginatedList<AuctionDto>> GetMyWatchlistAsync(
-        string userId,
-        string? searchTerm, 
-        int? categoryId, 
-        string? sortOrder, 
-        int pageNumber, 
-        int pageSize, 
-        decimal? minPrice, 
-        decimal? maxPrice, 
-        string? status);
+    Task<PaginatedList<AuctionDto>> GetAuctionsAsync(AuctionQueryDto query);
+    Task<PaginatedList<AuctionDto>> GetMyAuctionsAsync(AuctionQueryDto query);
+    Task<PaginatedList<AuctionDto>> GetMyBidsAsync(AuctionQueryDto query);
+    Task<PaginatedList<AuctionDto>> GetUserAuctionsAsync(AuctionQueryDto query);
+    Task<PaginatedList<AuctionDto>> GetMyWatchlistAsync(AuctionQueryDto query);
 
     Task<AuctionDetailsDto?> GetAuctionDetailsAsync(int id, string? currentUserId = null);
     Task<AuctionDetailsDto?> GetAuctionDetailsAsync(Guid publicId, string? currentUserId = null);

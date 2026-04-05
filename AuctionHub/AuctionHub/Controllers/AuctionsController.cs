@@ -23,6 +23,7 @@ public class AuctionsController : Controller
     private readonly IChatService _chatService;
     private readonly IReviewService _reviewService;
     private readonly ILogger<AuctionsController> _logger;
+    private readonly IPhotoService _photoService;
 
     public AuctionsController(
         IWebHostEnvironment webHostEnvironment, 
@@ -31,7 +32,8 @@ public class AuctionsController : Controller
         UserManager<ApplicationUser> userManager,
         IChatService chatService,
         IReviewService reviewService,
-        ILogger<AuctionsController> logger)
+        ILogger<AuctionsController> logger,
+        IPhotoService photoService)
     {
         _webHostEnvironment = webHostEnvironment;
         _auctionService = auctionService;
@@ -40,27 +42,17 @@ public class AuctionsController : Controller
         _chatService = chatService;
         _reviewService = reviewService;
         _logger = logger;
+        _photoService = photoService;
     }
 
     [AllowAnonymous]
     [HttpGet]
-    public async Task<IActionResult> Index(string? searchTerm, int? categoryId, string? sortOrder, int? pageNumber, decimal? minPrice, decimal? maxPrice, string? status, double? latitude, double? longitude, double? maxDistance)
+    public async Task<IActionResult> Index([FromQuery] AuctionQueryDto query)
     {
-        ViewData["CurrentSort"] = sortOrder;
-        ViewData["CurrentSearch"] = searchTerm;
-        ViewData["CurrentCategory"] = categoryId;
-        ViewData["MinPrice"] = minPrice;
-        ViewData["MaxPrice"] = maxPrice;
-        ViewData["Status"] = status;
-        ViewData["Latitude"] = latitude;
-        ViewData["Longitude"] = longitude;
-        ViewData["MaxDistance"] = maxDistance;
-        
-        int pageSize = 9;
-        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        query.PageSize = 9;
+        query.CurrentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        var paginatedDto = await _auctionService.GetAuctionsAsync(
-            searchTerm, categoryId, sortOrder, pageNumber ?? 1, pageSize, minPrice, maxPrice, status, currentUserId, latitude, longitude, maxDistance);
+        var paginatedDto = await _auctionService.GetAuctionsAsync(query);
 
         var viewModelItems = paginatedDto.Select(a => new AuctionListViewModel
         {
@@ -86,11 +78,26 @@ public class AuctionsController : Controller
         }).ToList();
 
         var paginatedViewModel = new PaginatedList<AuctionListViewModel>(
-            viewModelItems, paginatedDto.TotalCount, paginatedDto.PageIndex, pageSize);
+            viewModelItems, paginatedDto.TotalCount, paginatedDto.PageIndex, query.PageSize);
 
+        PreserveFilterState(query);
         ViewBag.Categories = await GetCategoriesAsync(); 
 
         return View(paginatedViewModel);
+    }
+
+    private void PreserveFilterState(AuctionQueryDto query)
+    {
+        ViewData["CurrentSort"] = query.SortOrder;
+        ViewData["CurrentSearch"] = query.SearchTerm;
+        ViewData["CurrentCategory"] = query.CategoryId;
+        ViewData["MinPrice"] = query.MinPrice;
+        ViewData["MaxPrice"] = query.MaxPrice;
+        ViewData["Status"] = query.Status;
+        ViewData["Latitude"] = query.Latitude;
+        ViewData["Longitude"] = query.Longitude;
+        ViewData["MaxDistance"] = query.MaxDistance;
+        ViewData["CurrentUsername"] = query.Username;
     }
 
     [AllowAnonymous]
@@ -344,21 +351,13 @@ public class AuctionsController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> MyAuctions(string? searchTerm, int? categoryId, string? sortOrder, int? pageNumber, decimal? minPrice, decimal? maxPrice, string? status)
+    public async Task<IActionResult> MyAuctions([FromQuery] AuctionQueryDto query)
     {
-        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (currentUserId == null) return Challenge();
+        query.PageSize = 6;
+        query.CurrentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (query.CurrentUserId == null) return Challenge();
 
-        ViewData["CurrentSort"] = sortOrder;
-        ViewData["CurrentSearch"] = searchTerm;
-        ViewData["CurrentCategory"] = categoryId;
-        ViewData["MinPrice"] = minPrice;
-        ViewData["MaxPrice"] = maxPrice;
-        ViewData["Status"] = status;
-
-        int pageSize = 6;
-        var paginatedDto = await _auctionService.GetMyAuctionsAsync(
-            currentUserId, searchTerm, categoryId, sortOrder, pageNumber ?? 1, pageSize, minPrice, maxPrice, status);
+        var paginatedDto = await _auctionService.GetMyAuctionsAsync(query);
 
         var viewModelItems = paginatedDto.Select(a => new AuctionListViewModel
         {
@@ -384,29 +383,22 @@ public class AuctionsController : Controller
         }).ToList();
 
         var paginatedViewModel = new PaginatedList<AuctionListViewModel>(
-            viewModelItems, paginatedDto.TotalCount, paginatedDto.PageIndex, pageSize);
+            viewModelItems, paginatedDto.TotalCount, paginatedDto.PageIndex, query.PageSize);
 
+        PreserveFilterState(query);
         ViewBag.Categories = await GetCategoriesAsync();
 
         return View(paginatedViewModel);
     }
 
     [HttpGet]
-    public async Task<IActionResult> MyBids(string? searchTerm, int? categoryId, string? sortOrder, int? pageNumber, decimal? minPrice, decimal? maxPrice, string? status)
+    public async Task<IActionResult> MyBids([FromQuery] AuctionQueryDto query)
     {
-        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (currentUserId == null) return Challenge();
-        
-        ViewData["CurrentSort"] = sortOrder;
-        ViewData["CurrentSearch"] = searchTerm;
-        ViewData["CurrentCategory"] = categoryId;
-        ViewData["MinPrice"] = minPrice;
-        ViewData["MaxPrice"] = maxPrice;
-        ViewData["Status"] = status;
+        query.PageSize = 6;
+        query.CurrentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (query.CurrentUserId == null) return Challenge();
 
-        int pageSize = 6;
-        var paginatedDto = await _auctionService.GetMyBidsAsync(
-            currentUserId, searchTerm, categoryId, sortOrder, pageNumber ?? 1, pageSize, minPrice, maxPrice, status);
+        var paginatedDto = await _auctionService.GetMyBidsAsync(query);
 
         var viewModelItems = paginatedDto.Select(a => new AuctionListViewModel
         {
@@ -426,8 +418,9 @@ public class AuctionsController : Controller
         }).ToList();
 
         var paginatedViewModel = new PaginatedList<AuctionListViewModel>(
-            viewModelItems, paginatedDto.TotalCount, paginatedDto.PageIndex, pageSize);
+            viewModelItems, paginatedDto.TotalCount, paginatedDto.PageIndex, query.PageSize);
 
+        PreserveFilterState(query);
         ViewBag.Categories = await GetCategoriesAsync();
 
         return View(paginatedViewModel);
@@ -435,11 +428,11 @@ public class AuctionsController : Controller
 
     [AllowAnonymous]
     [HttpGet]
-    public async Task<IActionResult> UserAuctions(string username, string? searchTerm, int? categoryId, string? sortOrder, int? pageNumber, decimal? minPrice, decimal? maxPrice, string? status = "active")
+    public async Task<IActionResult> UserAuctions([FromQuery] AuctionQueryDto query)
     {
-        if (string.IsNullOrEmpty(username)) return NotFound();
+        if (string.IsNullOrEmpty(query.Username)) return NotFound();
         
-        var user = await _userService.GetByUsernameAsync(username);
+        var user = await _userService.GetByUsernameAsync(query.Username);
         if (user == null) return NotFound();
 
         // Check if target user is an Admin
@@ -455,8 +448,8 @@ public class AuctionsController : Controller
         ViewData["TargetUserImage"] = user.ProfilePictureUrl;
         ViewData["TargetUserAboutMe"] = user.AboutMe;
         
-        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        ViewBag.IsFollowing = currentUserId != null && await _userService.IsFollowingAsync(currentUserId, user.Id);
+        query.CurrentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        ViewBag.IsFollowing = query.CurrentUserId != null && await _userService.IsFollowingAsync(query.CurrentUserId, user.Id);
         ViewBag.TargetUserId = user.Id;
         ViewBag.TargetUserPublicId = user.PublicId;
         ViewData["TargetUserRating"] = user.AverageRating;
@@ -464,17 +457,9 @@ public class AuctionsController : Controller
         ViewData["TargetUserFollowersCount"] = user.FollowersCount;
         ViewData["TargetUserFollowingCount"] = user.FollowingCount;
         ViewData["TargetUserReviews"] = user.Reviews;
-        ViewData["CurrentUsername"] = user.UserName;
-        ViewData["CurrentSort"] = sortOrder;
-        ViewData["CurrentSearch"] = searchTerm;
-        ViewData["CurrentCategory"] = categoryId;
-        ViewData["MinPrice"] = minPrice;
-        ViewData["MaxPrice"] = maxPrice;
-        ViewData["Status"] = status;
 
-        int pageSize = 6;
-        var paginatedDto = await _auctionService.GetUserAuctionsAsync(
-            user.UserName, searchTerm, categoryId, sortOrder, pageNumber ?? 1, pageSize, minPrice, maxPrice, status);
+        query.PageSize = 6;
+        var paginatedDto = await _auctionService.GetUserAuctionsAsync(query);
 
         var viewModelItems = paginatedDto.Select(a => new AuctionListViewModel
         {
@@ -500,8 +485,9 @@ public class AuctionsController : Controller
         }).ToList();
 
         var paginatedViewModel = new PaginatedList<AuctionListViewModel>(
-            viewModelItems, paginatedDto.TotalCount, paginatedDto.PageIndex, pageSize);
+            viewModelItems, paginatedDto.TotalCount, paginatedDto.PageIndex, query.PageSize);
 
+        PreserveFilterState(query);
         ViewBag.Categories = await GetCategoriesAsync();
 
         return View(paginatedViewModel);
@@ -552,12 +538,18 @@ public class AuctionsController : Controller
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (currentUserId == null) return Challenge();
 
-        ValidateImage(model.ImageFile);
+        if (model.ImageFile != null)
+        {
+            var validation = _photoService.ValidateImage(model.ImageFile.Length, model.ImageFile.ContentType, model.ImageFile.FileName);
+            if (!validation.Success) ModelState.AddModelError(nameof(model.ImageFile), validation.ErrorMessage);
+        }
+
         if (model.AdditionalImageFiles != null)
         {
             foreach (var file in model.AdditionalImageFiles)
             {
-                ValidateImage(file);
+                var validation = _photoService.ValidateImage(file.Length, file.ContentType, file.FileName);
+                if (!validation.Success) ModelState.AddModelError(nameof(model.AdditionalImageFiles), validation.ErrorMessage);
             }
         }
 
@@ -657,7 +649,7 @@ public class AuctionsController : Controller
             {
                 foreach (var url in result.ImageUrls)
                 {
-                    DeleteImage(url);
+                    _photoService.DeleteLocalImage(url, _webHostEnvironment.WebRootPath);
                 }
             }
             TempData["Success"] = "Auction deleted successfully.";
@@ -701,12 +693,18 @@ public class AuctionsController : Controller
             ModelState.AddModelError(nameof(model.EndTime), "Auction duration cannot exceed 30 days.");
         }
 
-        ValidateImage(model.ImageFile);
+        if (model.ImageFile != null)
+        {
+            var validation = _photoService.ValidateImage(model.ImageFile.Length, model.ImageFile.ContentType, model.ImageFile.FileName);
+            if (!validation.Success) ModelState.AddModelError(nameof(model.ImageFile), validation.ErrorMessage);
+        }
+
         if (model.AdditionalImageFiles != null)
         {
             foreach (var file in model.AdditionalImageFiles)
             {
-                ValidateImage(file);
+                var validation = _photoService.ValidateImage(file.Length, file.ContentType, file.FileName);
+                if (!validation.Success) ModelState.AddModelError(nameof(model.AdditionalImageFiles), validation.ErrorMessage);
             }
         }
 
@@ -825,21 +823,13 @@ public class AuctionsController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> MyWatchlist(string? searchTerm, int? categoryId, string? sortOrder, int? pageNumber, decimal? minPrice, decimal? maxPrice, string? status)
+    public async Task<IActionResult> MyWatchlist([FromQuery] AuctionQueryDto query)
     {
-        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (currentUserId == null) return Challenge();
+        query.PageSize = 6;
+        query.CurrentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (query.CurrentUserId == null) return Challenge();
 
-        ViewData["CurrentSort"] = sortOrder;
-        ViewData["CurrentSearch"] = searchTerm;
-        ViewData["CurrentCategory"] = categoryId;
-        ViewData["MinPrice"] = minPrice;
-        ViewData["MaxPrice"] = maxPrice;
-        ViewData["Status"] = status;
-        
-        int pageSize = 6;
-        var paginatedDto = await _auctionService.GetMyWatchlistAsync(
-            currentUserId, searchTerm, categoryId, sortOrder, pageNumber ?? 1, pageSize, minPrice, maxPrice, status);
+        var paginatedDto = await _auctionService.GetMyWatchlistAsync(query);
 
         var viewModelItems = paginatedDto.Select(a => new AuctionListViewModel
         {
@@ -865,77 +855,12 @@ public class AuctionsController : Controller
         }).ToList();
 
         var paginatedViewModel = new PaginatedList<AuctionListViewModel>(
-            viewModelItems, paginatedDto.TotalCount, paginatedDto.PageIndex, pageSize);
+            viewModelItems, paginatedDto.TotalCount, paginatedDto.PageIndex, query.PageSize);
 
+        PreserveFilterState(query);
         ViewBag.Categories = await GetCategoriesAsync();
 
         return View(paginatedViewModel);
-    }
-
-    private void ValidateImage(IFormFile? file)
-    {
-        if (file == null) return;
-
-        if (file.Length > 5 * 1024 * 1024)
-        {
-            ModelState.AddModelError("ImageFile", "File size must be less than 5MB.");
-        }
-
-        // Validate MIME type (Content-Type)
-        var allowedMimeTypes = new[] { "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp" };
-        if (!string.IsNullOrEmpty(file.ContentType) && !allowedMimeTypes.Contains(file.ContentType.ToLowerInvariant()))
-        {
-            ModelState.AddModelError("ImageFile", "Invalid file type. Must be an image (JPEG, PNG, GIF, or WebP).");
-        }
-
-        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
-        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-        if (!allowedExtensions.Contains(extension))
-        {
-            ModelState.AddModelError("ImageFile", "Invalid file extension. Allowed: jpg, jpeg, png, gif, webp.");
-        }
-    }
-
-    private async Task<string> SaveImageAsync(IFormFile file)
-    {
-        string uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "images", "auctions");
-        Directory.CreateDirectory(uploadsFolder);
-        
-        string uniqueFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(file.FileName);
-        string filePath = Path.Combine(uploadsFolder, uniqueFileName);
-        
-        using (var fileStream = new FileStream(filePath, FileMode.Create))
-        {
-            await file.CopyToAsync(fileStream);
-        }
-        
-        return "/images/auctions/" + uniqueFileName;
-    }
-
-    private void DeleteImage(string? imageUrl)
-    {
-        if (string.IsNullOrEmpty(imageUrl)) return;
-        
-        // Check if it's a local file (starts with our path)
-        if (imageUrl.StartsWith("/images/auctions/"))
-        {
-            // Convert web path to file path
-            // Remove leading slash, replace / with system separator
-            var relativePath = imageUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
-            var filePath = Path.Combine(_webHostEnvironment.WebRootPath, relativePath);
-            
-            if (System.IO.File.Exists(filePath))
-            {
-                try
-                {
-                    System.IO.File.Delete(filePath);
-                }
-                catch
-                {
-                    // Log error or ignore
-                }
-            }
-        }
     }
 
     [HttpPost]

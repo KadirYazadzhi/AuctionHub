@@ -37,19 +37,7 @@ public class AuctionService : IAuctionService
         _imageAnalysisService = imageAnalysisService;
     }
 
-    public async Task<PaginatedList<AuctionDto>> GetAuctionsAsync(
-        string? searchTerm, 
-        int? categoryId, 
-        string? sortOrder, 
-        int pageNumber, 
-        int pageSize, 
-        decimal? minPrice, 
-        decimal? maxPrice, 
-        string? status,
-        string? currentUserId = null,
-        double? latitude = null,
-        double? longitude = null,
-        double? maxDistance = null)
+    public async Task<PaginatedList<AuctionDto>> GetAuctionsAsync(AuctionQueryDto queryDto)
     {
         // Get Admin IDs to exclude their test auctions from public view
         var adminIds = await GetAdminIdsAsync();
@@ -60,58 +48,10 @@ public class AuctionService : IAuctionService
             .Where(a => !adminIds.Contains(a.SellerId)) // Hide Admin auctions
             .AsQueryable();
 
-        // --- Distance Filtering ---
-        if (latitude.HasValue && longitude.HasValue && maxDistance.HasValue)
-        {
-            double kmPerDegreeLat = 111.0;
-            double kmPerDegreeLng = 111.0 * Math.Cos(latitude.Value * Math.PI / 180.0);
-
-            double latDelta = maxDistance.Value / kmPerDegreeLat;
-            double lngDelta = maxDistance.Value / kmPerDegreeLng;
-
-            double minLat = latitude.Value - latDelta;
-            double maxLat = latitude.Value + latDelta;
-            double minLng = longitude.Value - lngDelta;
-            double maxLng = longitude.Value + lngDelta;
-
-            query = query.Where(a => a.Latitude >= minLat && a.Latitude <= maxLat &&
-                                     a.Longitude >= minLng && a.Longitude <= maxLng);
-        }
-
-        // Status Filtering
-        if (string.IsNullOrEmpty(status) || status == "active")
-        {
-            query = query.Where(a => a.IsActive && a.EndTime > DateTime.UtcNow);
-        }
-        else if (status == "closed")
-        {
-            query = query.Where(a => !a.IsActive || a.EndTime <= DateTime.UtcNow);
-        }
-
-        if (!string.IsNullOrEmpty(searchTerm))
-        {
-            var normalizedSearch = searchTerm.ToLower();
-            query = query.Where(a => a.Title.ToLower().Contains(normalizedSearch) || 
-                             a.Description.ToLower().Contains(normalizedSearch));
-        }
-
-        if (categoryId.HasValue)
-        {
-            query = query.Where(a => a.CategoryId == categoryId.Value);
-        }
-
-        // Price Filtering
-        if (minPrice.HasValue)
-        {
-            query = query.Where(a => a.CurrentPrice >= minPrice.Value);
-        }
-        if (maxPrice.HasValue)
-        {
-            query = query.Where(a => a.CurrentPrice <= maxPrice.Value);
-        }
+        query = ApplyFilters(query, queryDto);
 
         // Sorting
-        query = sortOrder switch
+        query = queryDto.SortOrder switch
         {
             "price_desc" => query.OrderByDescending(a => a.IsPromoted).ThenByDescending(a => a.CurrentPrice),
             "price_asc" => query.OrderByDescending(a => a.IsPromoted).ThenBy(a => a.CurrentPrice),
@@ -142,37 +82,30 @@ public class AuctionService : IAuctionService
                 SellerPublicId = a.Seller.PublicId,
                 SellerName = a.Seller.UserName ?? a.Seller.Email ?? "Unknown",
                 IsTopSeller = a.Seller.ReceivedReviews.Count >= 5 && (a.Seller.ReceivedReviews.Any() ? a.Seller.ReceivedReviews.Average(r => r.Rating) : 0) >= 4.8,
-                IsWinning = currentUserId != null && a.Bids.Any(b => b.BidderId == currentUserId) 
-                    ? a.Bids.OrderByDescending(b => b.Amount).First().BidderId == currentUserId 
+                IsWinning = queryDto.CurrentUserId != null && a.Bids.Any(b => b.BidderId == queryDto.CurrentUserId) 
+                    ? a.Bids.OrderByDescending(b => b.Amount).First().BidderId == queryDto.CurrentUserId 
                     : (bool?)null,
                 WinnerId = a.Bids.OrderByDescending(b => b.Amount).Select(b => b.BidderId).FirstOrDefault()
             });
 
-        return await PaginatedList<AuctionDto>.CreateAsync(projectedQuery, pageNumber, pageSize);
+        return await PaginatedList<AuctionDto>.CreateAsync(projectedQuery, queryDto.PageNumber, queryDto.PageSize);
     }
 
-    public async Task<PaginatedList<AuctionDto>> GetMyAuctionsAsync(
-        string userId,
-        string? searchTerm, 
-        int? categoryId, 
-        string? sortOrder, 
-        int pageNumber, 
-        int pageSize, 
-        decimal? minPrice, 
-        decimal? maxPrice, 
-        string? status)
+    public async Task<PaginatedList<AuctionDto>> GetMyAuctionsAsync(AuctionQueryDto queryDto)
     {
+        if (string.IsNullOrEmpty(queryDto.CurrentUserId)) 
+            return new PaginatedList<AuctionDto>(new List<AuctionDto>(), 0, queryDto.PageNumber, queryDto.PageSize);
+
         var query = _context.Auctions
             .Include(a => a.Category)
             .Include(a => a.Seller)
                 .ThenInclude(u => u.ReceivedReviews)
             .Include(a => a.Bids)
-            .Where(a => a.SellerId == userId);
+            .Where(a => a.SellerId == queryDto.CurrentUserId);
 
-        // Filtering & Sorting (Same logic)
-        query = ApplyFilters(query, searchTerm, categoryId, minPrice, maxPrice, status);
+        query = ApplyFilters(query, queryDto);
         
-        query = sortOrder switch
+        query = queryDto.SortOrder switch
         {
             "price_desc" => query.OrderByDescending(a => a.CurrentPrice),
             "price_asc" => query.OrderBy(a => a.CurrentPrice),
@@ -203,21 +136,15 @@ public class AuctionService : IAuctionService
             WinnerId = a.Bids.OrderByDescending(b => b.Amount).Select(b => b.BidderId).FirstOrDefault()
         });
 
-        return await PaginatedList<AuctionDto>.CreateAsync(projectedQuery, pageNumber, pageSize);
+        return await PaginatedList<AuctionDto>.CreateAsync(projectedQuery, queryDto.PageNumber, queryDto.PageSize);
     }
 
-    public async Task<PaginatedList<AuctionDto>> GetMyBidsAsync(
-        string userId,
-        string? searchTerm, 
-        int? categoryId, 
-        string? sortOrder, 
-        int pageNumber, 
-        int pageSize, 
-        decimal? minPrice, 
-        decimal? maxPrice, 
-        string? status)
+    public async Task<PaginatedList<AuctionDto>> GetMyBidsAsync(AuctionQueryDto queryDto)
     {
-        var myBids = _context.Bids.Where(b => b.BidderId == userId);
+        if (string.IsNullOrEmpty(queryDto.CurrentUserId)) 
+            return new PaginatedList<AuctionDto>(new List<AuctionDto>(), 0, queryDto.PageNumber, queryDto.PageSize);
+
+        var myBids = _context.Bids.Where(b => b.BidderId == queryDto.CurrentUserId);
         
         var adminIds = await GetAdminIdsAsync();
 
@@ -228,9 +155,9 @@ public class AuctionService : IAuctionService
             .Include(a => a.Bids)
             .Where(a => myBids.Any(b => b.AuctionId == a.Id) && !adminIds.Contains(a.SellerId));
 
-        query = ApplyFilters(query, searchTerm, categoryId, minPrice, maxPrice, status);
+        query = ApplyFilters(query, queryDto);
 
-        query = sortOrder switch
+        query = queryDto.SortOrder switch
         {
             "price_desc" => query.OrderByDescending(a => a.CurrentPrice),
             "price_asc" => query.OrderBy(a => a.CurrentPrice),
@@ -256,28 +183,19 @@ public class AuctionService : IAuctionService
             SellerPublicId = a.Seller.PublicId,
             SellerName = a.Seller.UserName ?? a.Seller.Email ?? "Unknown",
             IsTopSeller = a.Seller.ReceivedReviews.Count >= 5 && (a.Seller.ReceivedReviews.Any() ? a.Seller.ReceivedReviews.Average(r => r.Rating) : 0) >= 4.8,
-            IsWinning = a.Bids.Any(b => b.BidderId == userId) 
-                ? a.Bids.OrderByDescending(b => b.Amount).First().BidderId == userId 
+            IsWinning = a.Bids.Any(b => b.BidderId == queryDto.CurrentUserId) 
+                ? a.Bids.OrderByDescending(b => b.Amount).First().BidderId == queryDto.CurrentUserId 
                 : (bool?)null,
             WinnerId = a.Bids.OrderByDescending(b => b.Amount).Select(b => b.BidderId).FirstOrDefault()
         });
 
-        return await PaginatedList<AuctionDto>.CreateAsync(projectedQuery, pageNumber, pageSize);
+        return await PaginatedList<AuctionDto>.CreateAsync(projectedQuery, queryDto.PageNumber, queryDto.PageSize);
     }
 
-    public async Task<PaginatedList<AuctionDto>> GetUserAuctionsAsync(
-        string username,
-        string? searchTerm, 
-        int? categoryId, 
-        string? sortOrder, 
-        int pageNumber, 
-        int pageSize, 
-        decimal? minPrice, 
-        decimal? maxPrice, 
-        string? status)
+    public async Task<PaginatedList<AuctionDto>> GetUserAuctionsAsync(AuctionQueryDto queryDto)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == username);
-        if (user == null) return new PaginatedList<AuctionDto>(new List<AuctionDto>(), 0, pageNumber, pageSize);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == queryDto.Username);
+        if (user == null) return new PaginatedList<AuctionDto>(new List<AuctionDto>(), 0, queryDto.PageNumber, queryDto.PageSize);
 
         var query = _context.Auctions
             .Include(a => a.Category)
@@ -286,9 +204,9 @@ public class AuctionService : IAuctionService
             .Include(a => a.Bids)
             .Where(a => a.SellerId == user.Id);
 
-        query = ApplyFilters(query, searchTerm, categoryId, minPrice, maxPrice, status);
+        query = ApplyFilters(query, queryDto);
 
-        query = sortOrder switch
+        query = queryDto.SortOrder switch
         {
             "price_desc" => query.OrderByDescending(a => a.CurrentPrice),
             "price_asc" => query.OrderBy(a => a.CurrentPrice),
@@ -318,24 +236,18 @@ public class AuctionService : IAuctionService
             WinnerId = a.Bids.OrderByDescending(b => b.Amount).Select(b => b.BidderId).FirstOrDefault()
         });
 
-        return await PaginatedList<AuctionDto>.CreateAsync(projectedQuery, pageNumber, pageSize);
+        return await PaginatedList<AuctionDto>.CreateAsync(projectedQuery, queryDto.PageNumber, queryDto.PageSize);
     }
 
-    public async Task<PaginatedList<AuctionDto>> GetMyWatchlistAsync(
-        string userId,
-        string? searchTerm, 
-        int? categoryId, 
-        string? sortOrder, 
-        int pageNumber, 
-        int pageSize, 
-        decimal? minPrice, 
-        decimal? maxPrice, 
-        string? status)
+    public async Task<PaginatedList<AuctionDto>> GetMyWatchlistAsync(AuctionQueryDto queryDto)
     {
+        if (string.IsNullOrEmpty(queryDto.CurrentUserId)) 
+            return new PaginatedList<AuctionDto>(new List<AuctionDto>(), 0, queryDto.PageNumber, queryDto.PageSize);
+
         var adminIds = await GetAdminIdsAsync();
 
         var query = _context.Watchlist
-            .Where(w => w.UserId == userId)
+            .Where(w => w.UserId == queryDto.CurrentUserId)
             .Include(w => w.Auction)
                 .ThenInclude(a => a.Category)
             .Include(w => w.Auction)
@@ -347,9 +259,9 @@ public class AuctionService : IAuctionService
             .Where(a => !adminIds.Contains(a.SellerId))
             .AsQueryable();
 
-        query = ApplyFilters(query, searchTerm, categoryId, minPrice, maxPrice, status);
+        query = ApplyFilters(query, queryDto);
 
-        query = sortOrder switch
+        query = queryDto.SortOrder switch
         {
             "price_desc" => query.OrderByDescending(a => a.CurrentPrice),
             "price_asc" => query.OrderBy(a => a.CurrentPrice),
@@ -375,13 +287,13 @@ public class AuctionService : IAuctionService
             SellerPublicId = a.Seller.PublicId,
             SellerName = a.Seller.UserName ?? a.Seller.Email ?? "Unknown",
             IsTopSeller = a.Seller.ReceivedReviews.Count >= 5 && (a.Seller.ReceivedReviews.Any() ? a.Seller.ReceivedReviews.Average(r => r.Rating) : 0) >= 4.8,
-            IsWinning = a.Bids.Any(b => b.BidderId == userId) 
-                ? a.Bids.OrderByDescending(b => b.Amount).First().BidderId == userId 
+            IsWinning = a.Bids.Any(b => b.BidderId == queryDto.CurrentUserId) 
+                ? a.Bids.OrderByDescending(b => b.Amount).First().BidderId == queryDto.CurrentUserId 
                 : (bool?)null,
             WinnerId = a.Bids.OrderByDescending(b => b.Amount).Select(b => b.BidderId).FirstOrDefault()
         });
 
-        return await PaginatedList<AuctionDto>.CreateAsync(projectedQuery, pageNumber, pageSize);
+        return await PaginatedList<AuctionDto>.CreateAsync(projectedQuery, queryDto.PageNumber, queryDto.PageSize);
     }
 
     public async Task<IEnumerable<AuctionDto>> GetEndingSoonAuctionsAsync(int count, string? currentUserId = null)
@@ -1489,35 +1401,53 @@ public class AuctionService : IAuctionService
         }
     }
 
-    private IQueryable<Auction> ApplyFilters(IQueryable<Auction> query, string? searchTerm, int? categoryId, decimal? minPrice, decimal? maxPrice, string? status)
+    private IQueryable<Auction> ApplyFilters(IQueryable<Auction> query, AuctionQueryDto dto)
     {
         // Force exclusion of deleted auctions
         query = query.Where(a => !a.IsDeleted);
 
+        // --- Distance Filtering ---
+        if (dto.Latitude.HasValue && dto.Longitude.HasValue && dto.MaxDistance.HasValue)
+        {
+            double kmPerDegreeLat = 111.0;
+            double kmPerDegreeLng = 111.0 * Math.Cos(dto.Latitude.Value * Math.PI / 180.0);
+
+            double latDelta = dto.MaxDistance.Value / kmPerDegreeLat;
+            double lngDelta = dto.MaxDistance.Value / kmPerDegreeLng;
+
+            double minLat = dto.Latitude.Value - latDelta;
+            double maxLat = dto.Latitude.Value + latDelta;
+            double minLng = dto.Longitude.Value - lngDelta;
+            double maxLng = dto.Longitude.Value + lngDelta;
+
+            query = query.Where(a => a.Latitude >= minLat && a.Latitude <= maxLat &&
+                                     a.Longitude >= minLng && a.Longitude <= maxLng);
+        }
+
         // Status Filtering
-        if (status == "active")
+        if (string.IsNullOrEmpty(dto.Status) || dto.Status == "active")
         {
             query = query.Where(a => a.IsActive && a.EndTime > DateTime.UtcNow);
         }
-        else if (status == "closed")
+        else if (dto.Status == "closed")
         {
             query = query.Where(a => !a.IsActive || a.EndTime <= DateTime.UtcNow);
         }
 
-        if (!string.IsNullOrEmpty(searchTerm))
+        if (!string.IsNullOrEmpty(dto.SearchTerm))
         {
-            var normalizedSearch = searchTerm.ToLower();
+            var normalizedSearch = dto.SearchTerm.ToLower();
             query = query.Where(a => a.Title.ToLower().Contains(normalizedSearch) || 
                              a.Description.ToLower().Contains(normalizedSearch));
         }
 
-        if (categoryId.HasValue)
+        if (dto.CategoryId.HasValue)
         {
-            query = query.Where(a => a.CategoryId == categoryId.Value);
+            query = query.Where(a => a.CategoryId == dto.CategoryId.Value);
         }
 
-        if (minPrice.HasValue) query = query.Where(a => a.CurrentPrice >= minPrice.Value);
-        if (maxPrice.HasValue) query = query.Where(a => a.CurrentPrice <= maxPrice.Value);
+        if (dto.MinPrice.HasValue) query = query.Where(a => a.CurrentPrice >= dto.MinPrice.Value);
+        if (dto.MaxPrice.HasValue) query = query.Where(a => a.CurrentPrice <= dto.MaxPrice.Value);
 
         return query;
     }
