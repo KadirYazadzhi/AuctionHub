@@ -8,6 +8,7 @@ COPY ["AuctionHub/AuctionHub.csproj", "AuctionHub/"]
 COPY ["AuctionHub.Application/AuctionHub.Application.csproj", "AuctionHub.Application/"]
 COPY ["AuctionHub.Domain/AuctionHub.Domain.csproj", "AuctionHub.Domain/"]
 COPY ["AuctionHub.Infrastructure/AuctionHub.Infrastructure.csproj", "AuctionHub.Infrastructure/"]
+COPY ["AuctionHub.Tests/AuctionHub.Tests.csproj", "AuctionHub.Tests/"]
 
 # Ресторваме зависимостите
 RUN dotnet restore "AuctionHub.sln"
