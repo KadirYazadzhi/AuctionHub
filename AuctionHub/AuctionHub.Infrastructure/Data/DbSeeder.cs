@@ -119,7 +119,11 @@ public static class DbSeeder
         }
 
         // 3. Seed Admin User
-        string adminEmail = "admin@auctionhub.com";
+        string adminEmail = Environment.GetEnvironmentVariable("ADMIN_EMAIL") ?? "admin@auctionhub.com";
+        string adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD") ?? "Admin123!";
+        string adminFirstName = Environment.GetEnvironmentVariable("ADMIN_FIRST_NAME") ?? "System";
+        string adminLastName = Environment.GetEnvironmentVariable("ADMIN_LAST_NAME") ?? "Admin";
+
         var adminUser = await userManager.FindByEmailAsync(adminEmail);
         if (adminUser == null)
         {
@@ -128,13 +132,13 @@ public static class DbSeeder
                 UserName = adminEmail,
                 Email = adminEmail,
                 EmailConfirmed = true,
-                FirstName = "System",
-                LastName = "Admin",
+                FirstName = adminFirstName,
+                LastName = adminLastName,
                 WalletBalance = 1000000m,
                 RowVersion = new byte[8]
             };
 
-            var result = await userManager.CreateAsync(adminUser, "Admin123!");
+            var result = await userManager.CreateAsync(adminUser, adminPassword);
             if (result.Succeeded)
             {
                 await userManager.AddToRoleAsync(adminUser, adminRole);
