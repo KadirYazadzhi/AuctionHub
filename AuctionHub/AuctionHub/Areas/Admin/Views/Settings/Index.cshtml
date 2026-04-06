@@ -134,8 +134,25 @@
     
     .bg-light-subtle { background-color: rgba(var(--bs-light-rgb), 0.5) !important; }
     .bg-danger-subtle { background-color: rgba(var(--bs-danger-rgb), 0.1) !important; }
-    [data-bs-theme="dark"] .bg-card { background-color: #1e293b !important; }
     
+    /* Dark Mode Improvements */
+    [data-bs-theme="dark"] .bg-card { background-color: #1e293b !important; }
+    [data-bs-theme="dark"] .bg-light-subtle { 
+        background-color: rgba(255, 255, 255, 0.03) !important; 
+        border-color: rgba(255, 255, 255, 0.05) !important;
+    }
+    [data-bs-theme="dark"] .bg-danger-subtle { 
+        background-color: rgba(239, 68, 68, 0.12) !important; 
+    }
+    [data-bs-theme="dark"] .table thead.bg-light-subtle {
+        background-color: rgba(255, 255, 255, 0.02) !important;
+    }
+    [data-bs-theme="dark"] .form-control.bg-light {
+        background-color: #0f172a !important;
+        color: #f1f5f9 !important;
+        border-color: #334155 !important;
+    }
+
     .hover-primary:hover {
         background-color: var(--bs-primary) !important;
         color: white !important;

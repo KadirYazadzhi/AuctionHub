@@ -128,6 +128,21 @@ html, body {
 [data-bs-theme="dark"] .dropdown-divider {
     border-color: var(--border-color) !important;
 }
+[data-bs-theme="dark"] .btn-light {
+    background-color: #334155 !important;
+    color: #f8fafc !important;
+    border-color: #475569 !important;
+}
+
+[data-bs-theme="dark"] .btn-light:hover {
+    background-color: #475569 !important;
+    color: #ffffff !important;
+    border-color: #64748b !important;
+}
+
+[data-bs-theme="dark"] .btn-light i {
+    color: #f8fafc !important;
+}
 
 [data-bs-theme="dark"] .modal-content {
     background-color: var(--bg-white) !important;

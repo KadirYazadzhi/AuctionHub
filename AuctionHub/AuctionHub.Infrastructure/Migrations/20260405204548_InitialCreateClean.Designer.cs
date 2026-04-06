@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AuctionHub.Infrastructure.Migrations
 {
     [DbContext(typeof(AuctionHubDbContext))]
-    [Migration("20260317033732_AddAdvancedMechanics")]
-    partial class AddAdvancedMechanics
+    [Migration("20260405204548_InitialCreateClean")]
+    partial class InitialCreateClean
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -109,6 +109,7 @@ namespace AuctionHub.Infrastructure.Migrations
                         .HasColumnType("nvarchar(256)");
 
                     b.Property<decimal>("WalletBalance")
+                        .IsConcurrencyToken()
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
@@ -153,6 +154,7 @@ namespace AuctionHub.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<decimal>("CurrentPrice")
+                        .IsConcurrencyToken()
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Description")
@@ -470,6 +472,12 @@ namespace AuctionHub.Infrastructure.Migrations
                     b.Property<bool>("IsGlobal")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsHiddenForReceiver")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsHiddenForSender")
+                        .HasColumnType("bit");
+
                     b.Property<string>("ReceiverId")
                         .HasColumnType("nvarchar(450)");
 
@@ -489,6 +497,41 @@ namespace AuctionHub.Infrastructure.Migrations
                     b.HasIndex("SenderId");
 
                     b.ToTable("ChatMessages");
+                });
+
+            modelBuilder.Entity("AuctionHub.Domain.Models.Comment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AuctionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuctionId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Comments");
                 });
 
             modelBuilder.Entity("AuctionHub.Domain.Models.ContactMessage", b =>
@@ -671,6 +714,10 @@ namespace AuctionHub.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("TransactionDate")
                         .HasColumnType("datetime2");
 
@@ -689,6 +736,24 @@ namespace AuctionHub.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Transactions");
+                });
+
+            modelBuilder.Entity("AuctionHub.Domain.Models.UserFollower", b =>
+                {
+                    b.Property<string>("FollowerId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("SellerId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("FollowedOn")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("FollowerId", "SellerId");
+
+                    b.HasIndex("SellerId");
+
+                    b.ToTable("UserFollowers");
                 });
 
             modelBuilder.Entity("AuctionHub.Domain.Models.UserReport", b =>
@@ -1014,6 +1079,25 @@ namespace AuctionHub.Infrastructure.Migrations
                     b.Navigation("Sender");
                 });
 
+            modelBuilder.Entity("AuctionHub.Domain.Models.Comment", b =>
+                {
+                    b.HasOne("AuctionHub.Domain.Models.Auction", "Auction")
+                        .WithMany("Comments")
+                        .HasForeignKey("AuctionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AuctionHub.Domain.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Auction");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("AuctionHub.Domain.Models.Notification", b =>
                 {
                     b.HasOne("AuctionHub.Domain.Models.ApplicationUser", "User")
@@ -1086,6 +1170,25 @@ namespace AuctionHub.Infrastructure.Migrations
                     b.Navigation("Auction");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("AuctionHub.Domain.Models.UserFollower", b =>
+                {
+                    b.HasOne("AuctionHub.Domain.Models.ApplicationUser", "Follower")
+                        .WithMany("Following")
+                        .HasForeignKey("FollowerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AuctionHub.Domain.Models.ApplicationUser", "Seller")
+                        .WithMany("Followers")
+                        .HasForeignKey("SellerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Follower");
+
+                    b.Navigation("Seller");
                 });
 
             modelBuilder.Entity("AuctionHub.Domain.Models.UserReport", b =>
@@ -1164,6 +1267,10 @@ namespace AuctionHub.Infrastructure.Migrations
 
             modelBuilder.Entity("AuctionHub.Domain.Models.ApplicationUser", b =>
                 {
+                    b.Navigation("Followers");
+
+                    b.Navigation("Following");
+
                     b.Navigation("MyAuctions");
 
                     b.Navigation("MyBids");
@@ -1178,6 +1285,8 @@ namespace AuctionHub.Infrastructure.Migrations
             modelBuilder.Entity("AuctionHub.Domain.Models.Auction", b =>
                 {
                     b.Navigation("Bids");
+
+                    b.Navigation("Comments");
 
                     b.Navigation("Images");
 

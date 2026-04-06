@@ -92,8 +92,8 @@
                 <!-- Header -->
                 <header class="chat-header bg-card border-bottom d-flex align-items-center justify-content-between px-4">
                     <div class="d-flex align-items-center gap-3">
-                        <button class="btn btn-light rounded-circle d-lg-none shadow-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">
-                            <i class="bi bi-list"></i>
+                        <button class="btn btn-link text-main border-0 p-0 d-lg-none shadow-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">
+                            <i class="bi bi-list fs-1 fw-bold"></i>
                         </button>
                         
                         @if (activeChatType == "Global")
@@ -208,7 +208,7 @@
 <div class="offcanvas offcanvas-start bg-card border-0" tabindex="-1" id="mobileSidebar">
     <div class="offcanvas-header border-bottom p-4">
         <h5 class="offcanvas-title fw-bold text-main mb-0"><i class="bi bi-chat-dots-fill text-primary me-2"></i>Inbox</h5>
-        <button type="button" class="btn-close shadow-none" data-bs-dismiss="offcanvas"></button>
+        <button type="button" class="btn-close shadow-none dark-theme-white-close" data-bs-dismiss="offcanvas"></button>
     </div>
     <div class="offcanvas-body p-2 custom-scrollbar" id="mobile-conversation-list"></div>
 </div>
@@ -370,6 +370,18 @@
     
     [data-bs-theme="dark"] .bg-card { background-color: #1e293b !important; }
     [data-bs-theme="dark"] .border-bottom, [data-bs-theme="dark"] .border-end { border-color: rgba(255,255,255,0.05) !important; }
+    [data-bs-theme="dark"] .dark-theme-white-close {
+        filter: invert(1) grayscale(100%) brightness(200%);
+    }
+    
+    .chat-header .bi-list {
+        vertical-align: middle;
+        line-height: 1;
+    }
+    
+    .btn-link.text-main:active, .btn-link.text-main:focus {
+        color: var(--bs-primary) !important;
+    }
 </style>
 
 @section Scripts {

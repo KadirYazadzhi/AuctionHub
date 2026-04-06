@@ -1,0 +1,36 @@
+@page
+@model ShowRecoveryCodesModel
+@{
+    ViewData["Title"] = "Recovery codes";
+    ViewData["ActivePage"] = "TwoFactorAuthentication";
+}
+
+<partial name="_StatusMessage" for="StatusMessage" />
+<h4 class="fw-bold mb-4">@ViewData["Title"]</h4>
+<div class="alert alert-warning border-0 rounded-4 shadow-sm mb-4">
+    <div class="d-flex">
+        <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+        <div>
+            <h6 class="fw-bold mb-1">Put these codes in a safe place.</h6>
+            <p class="mb-0 small">If you lose your device and don't have the recovery codes you will lose access to your account.</p>
+        </div>
+    </div>
+</div>
+<div class="row animate-fade-up">
+    <div class="col-md-12">
+        <div class="card border-0 shadow-sm rounded-4 bg-light p-4 mb-4">
+            <div class="row g-3">
+                @for (var row = 0; row < Model.RecoveryCodes.Length; row += 2)
+                {
+                    <div class="col-6">
+                        <code class="fs-5 fw-bold text-dark bg-white p-2 rounded shadow-sm d-block text-center border">@Model.RecoveryCodes[row]</code>
+                    </div>
+                    <div class="col-6">
+                        <code class="fs-5 fw-bold text-dark bg-white p-2 rounded shadow-sm d-block text-center border">@Model.RecoveryCodes[row + 1]</code>
+                    </div>
+                }
+            </div>
+        </div>
+        <a asp-page="./TwoFactorAuthentication" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">I have saved these codes</a>
+    </div>
+</div>

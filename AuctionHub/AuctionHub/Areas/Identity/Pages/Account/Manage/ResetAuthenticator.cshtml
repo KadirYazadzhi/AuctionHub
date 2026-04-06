@@ -1,0 +1,50 @@
+@page
+@model ResetAuthenticatorModel
+@{
+    ViewData["Title"] = "Reset authenticator key";
+    ViewData["ActivePage"] = ManageNavPages.TwoFactorAuthentication;
+}
+
+<partial name="_StatusMessage" for="StatusMessage" />
+<h4 class="fw-bold mb-4">@ViewData["Title"]</h4>
+
+<div class="static-warning-box animate-fade-up">
+    <div class="d-flex">
+        <div class="me-3">
+            <i class="bi bi-exclamation-octagon-fill fs-3 text-danger"></i>
+        </div>
+        <div>
+            <h6 class="fw-bold text-danger mb-1">Warning: Irreversible Action</h6>
+            <p class="mb-0 small text-main">
+                If you reset your authenticator key your authenticator app will not work until you reconfigure it.
+                This process disables 2FA until you verify your authenticator app. 
+                If you do not complete your authenticator app configuration you may lose access to your account.
+            </p>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm rounded-4 bg-card mt-4 animate-fade-up delay-100">
+    <div class="card-body p-4">
+        <p class="text-muted mb-4">Are you sure you want to reset your authenticator key? This will require you to scan a new QR code.</p>
+        <form id="reset-authenticator-form" method="post">
+            <div class="d-flex gap-2">
+                <button id="reset-authenticator-button" class="btn btn-danger rounded-pill px-4 fw-bold shadow-sm" type="submit">Reset Authenticator Key</button>
+                <a asp-page="./TwoFactorAuthentication" class="btn btn-light rounded-pill px-4 border">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .static-warning-box {
+        background-color: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.2);
+        border-radius: 1rem;
+        padding: 1.25rem;
+    }
+    [data-bs-theme="dark"] .static-warning-box {
+        background-color: rgba(239, 68, 68, 0.15);
+        border-color: rgba(239, 68, 68, 0.3);
+    }
+</style>
