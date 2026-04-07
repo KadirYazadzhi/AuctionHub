@@ -313,11 +313,15 @@
             function renderThumbnail(src, isFile, index = -1) {
                 const col = document.createElement('div');
                 col.className = 'col animate-fade-in';
+                const removeAction = !isFile 
+                    ? `removeNewUrl(${index}, this)` 
+                    : `this.closest('.col').remove(); autoSelectCover();`;
+
                 col.innerHTML = `
                     <div class="thumb-wrapper border shadow-sm">
                         <img src="${src}" />
                         <div class="thumb-overlay d-flex flex-column gap-1">
-                            <button type="button" class="btn btn-danger btn-sm rounded-pill py-1" onclick="this.closest('.col').remove(); autoSelectCover();">
+                            <button type="button" class="btn btn-danger btn-sm rounded-pill py-1" onclick="${removeAction}">
                                 <i class="bi bi-trash-fill"></i>
                             </button>
                             <button type="button" class="btn btn-primary btn-sm rounded-pill py-1 btn-cover" onclick="setAsCover('${src}', this)">
@@ -329,6 +333,14 @@
                 thumbnailGrid.appendChild(col);
                 if (!inputs.mainUrl.value) setAsCover(src);
             }
+
+            window.removeNewUrl = (index, btn) => {
+                const removedUrl = additionalUrls[index];
+                additionalUrls.splice(index, 1);
+                btn.closest('.col').remove();
+                urlJsonInput.value = JSON.stringify(additionalUrls);
+                if (inputs.mainUrl.value === removedUrl) autoSelectCover();
+            };
 
             window.markForRemoval = (id, url, btn) => {
                 const container = document.getElementById('existing-img-' + id);

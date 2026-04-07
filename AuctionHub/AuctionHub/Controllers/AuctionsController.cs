@@ -556,6 +556,9 @@ public class AuctionsController : Controller
 
         if (!ModelState.IsValid)
         {
+            var auction = await _auctionService.GetAuctionDetailsAsync(id);
+            if (auction != null) model.ExistingImages = auction.Images;
+            
             model.Categories = await GetCategoriesAsync();
             return View(model);
         }

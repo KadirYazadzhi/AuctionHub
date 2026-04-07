@@ -1239,17 +1239,19 @@ public class AuctionService : IAuctionService
         {
             auction.ImageUrl = model.ImageUrl;
         }
-        else if (auction.Images.Any() && string.IsNullOrEmpty(auction.ImageUrl))
+        else if (auction.Images.Any())
         {
+            // If the user cleared the ImageUrl (base64 cleanup), or it was empty, 
+            // pick the first available image as the new cover.
             var firstImg = auction.Images.FirstOrDefault();
             if (firstImg != null)
             {
                 auction.ImageUrl = firstImg.Url;
             }
-            else
-            {
-                auction.ImageUrl = "/images/no-image.png";
-            }
+        }
+        else
+        {
+            auction.ImageUrl = "/images/no-image.png";
         }
 
         auction.Title = model.Title;
