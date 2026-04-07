@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Globalization;
 using AuctionHub.Application.DTOs;
 using Microsoft.AspNetCore.Identity;
 using AuctionHub.Application.Interfaces;
@@ -539,7 +540,23 @@ public class AuctionsController : Controller
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (currentUserId == null) return Challenge();
 
-        // Manual validation for prices to handle commas reliably
+        // Clear default binder errors for decimal fields to handle commas manually
+        ModelState.Remove(nameof(model.StartPrice));
+        ModelState.Remove(nameof(model.MinIncrease));
+
+        // Failsafe: if binder failed (value is 0), try manual parse from form
+        if (model.StartPrice <= 0 && Request.Form.ContainsKey(nameof(model.StartPrice)))
+        {
+            var rawPrice = Request.Form[nameof(model.StartPrice)].ToString().Replace(",", ".").Replace("€", "").Trim();
+            if (decimal.TryParse(rawPrice, NumberStyles.Any, CultureInfo.InvariantCulture, out var p)) model.StartPrice = p;
+        }
+        if (model.MinIncrease <= 0 && Request.Form.ContainsKey(nameof(model.MinIncrease)))
+        {
+            var rawMin = Request.Form[nameof(model.MinIncrease)].ToString().Replace(",", ".").Replace("€", "").Trim();
+            if (decimal.TryParse(rawMin, NumberStyles.Any, CultureInfo.InvariantCulture, out var m)) model.MinIncrease = m;
+        }
+
+        // Manual validation for prices
         if (model.StartPrice <= 0) ModelState.AddModelError(nameof(model.StartPrice), "Price must be greater than 0.");
         if (model.MinIncrease <= 0) ModelState.AddModelError(nameof(model.MinIncrease), "Minimum increase must be greater than 0.");
 
