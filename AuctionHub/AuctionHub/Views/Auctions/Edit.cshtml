@@ -212,6 +212,8 @@
     .focus-ring:focus { box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.15); border-color: var(--bs-primary) !important; outline: 0; }
     .image-upload-zone { cursor: pointer; transition: all 0.3s; }
     .image-upload-zone:hover { background-color: #f8f9fa !important; border-color: var(--bs-primary) !important; }
+    [data-bs-theme="dark"] .image-upload-zone:hover { background-color: rgba(255, 255, 255, 0.05) !important; }
+    [data-bs-theme="dark"] .image-upload-zone { background-color: rgba(255, 255, 255, 0.02) !important; }
     .thumb-wrapper { position: relative; aspect-ratio: 1/1; overflow: hidden; border-radius: 16px; transition: all 0.3s; }
     .thumb-wrapper img { width: 100%; height: 100%; object-fit: cover; }
     .thumb-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s; padding: 10px; }
