@@ -17,6 +17,7 @@ public interface IAuctionService
     Task<AuctionDetailsDto?> GetAuctionDetailsAsync(Guid publicId, string? currentUserId = null);
     Task<IEnumerable<CategoryDto>> GetCategoriesAsync();
     Task<(int AuctionId, string Message)> CreateAuctionAsync(AuctionFormDto model, string sellerId);
+    Task<(int ImageId, string Url, string Message)> AddImageAsync(Guid auctionPublicId, Stream imageStream, string fileName, string userId);
     Task<(bool Success, string Message, string? OldImageUrl)> UpdateAuctionAsync(Guid publicId, AuctionFormDto model, string userId);
     Task<(bool Success, string Message, IEnumerable<string>? ImageUrls)> DeleteAuctionAsync(Guid publicId, string userId);
     Task<(bool Success, string Message)> ToggleWatchlistAsync(Guid publicId, string userId);

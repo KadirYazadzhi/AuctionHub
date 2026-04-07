@@ -133,6 +133,7 @@ public class AuctionsController : Controller
             CurrentPrice = auction.CurrentPrice,
             StartPrice = auction.StartPrice,
             MinIncrease = auction.MinIncrease,
+            MinStep = auction.MinStep,
             BuyItNowPrice = auction.BuyItNowPrice,
             ReservePrice = auction.ReservePrice,
             ReservePriceMet = auction.ReservePriceMet,
@@ -513,6 +514,8 @@ public class AuctionsController : Controller
 
         var model = new AuctionFormModel
         {
+            Id = auction.Id,
+            PublicId = auction.PublicId,
             Title = auction.Title,
             Description = auction.Description,
             ImageUrl = auction.ImageUrl,
@@ -535,6 +538,31 @@ public class AuctionsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UploadImage(Guid id, IFormFile file)
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (currentUserId == null) return Unauthorized();
+
+        if (file == null || file.Length == 0) return BadRequest("No file uploaded.");
+
+        // Validate image
+        var validation = _photoService.ValidateImage(file.Length, file.ContentType, file.FileName);
+        if (!validation.Success) return BadRequest(validation.ErrorMessage);
+
+        using var stream = file.OpenReadStream();
+        var result = await _auctionService.AddImageAsync(id, stream, file.FileName, currentUserId);
+        
+        if (result.Message == "Success")
+        {
+            return Json(new { id = result.ImageId, url = result.Url });
+        }
+
+        if (result.Message == "Forbidden.") return Forbid();
+        return BadRequest(result.Message);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, AuctionFormModel model)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -544,15 +572,27 @@ public class AuctionsController : Controller
         ModelState.Remove(nameof(model.StartPrice));
         ModelState.Remove(nameof(model.MinIncrease));
 
-        // Failsafe: if binder failed (value is 0), try manual parse from form
-        if (model.StartPrice <= 0 && Request.Form.ContainsKey(nameof(model.StartPrice)))
+        // Failsafe: manual parse from form to support both Bulgarian (comma) and International (dot) formats
+        if (Request.Form.ContainsKey(nameof(model.StartPrice)))
         {
-            var rawPrice = Request.Form[nameof(model.StartPrice)].ToString().Replace(",", ".").Replace("€", "").Trim();
+            var rawPrice = Request.Form[nameof(model.StartPrice)].ToString().Replace(" ", "").Replace("€", "").Trim();
+            // Find last separator
+            int lastComma = rawPrice.LastIndexOf(',');
+            int lastDot = rawPrice.LastIndexOf('.');
+            if (lastComma > lastDot) rawPrice = rawPrice.Replace(".", "").Replace(",", ".");
+            else if (lastDot > lastComma) rawPrice = rawPrice.Replace(",", "");
+
             if (decimal.TryParse(rawPrice, NumberStyles.Any, CultureInfo.InvariantCulture, out var p)) model.StartPrice = p;
         }
-        if (model.MinIncrease <= 0 && Request.Form.ContainsKey(nameof(model.MinIncrease)))
+        
+        if (Request.Form.ContainsKey(nameof(model.MinIncrease)))
         {
-            var rawMin = Request.Form[nameof(model.MinIncrease)].ToString().Replace(",", ".").Replace("€", "").Trim();
+            var rawMin = Request.Form[nameof(model.MinIncrease)].ToString().Replace(" ", "").Replace("€", "").Trim();
+            int lastComma = rawMin.LastIndexOf(',');
+            int lastDot = rawMin.LastIndexOf('.');
+            if (lastComma > lastDot) rawMin = rawMin.Replace(".", "").Replace(",", ".");
+            else if (lastDot > lastComma) rawMin = rawMin.Replace(",", "");
+
             if (decimal.TryParse(rawMin, NumberStyles.Any, CultureInfo.InvariantCulture, out var m)) model.MinIncrease = m;
         }
 
@@ -655,8 +695,14 @@ public class AuctionsController : Controller
         }
         
         if (result.Message == "Forbidden.") return Forbid();
-        TempData["Error"] = result.Message;
-        return RedirectToAction(nameof(Details), new { id = id });
+        
+        // If update failed, stay on Edit page to show error
+        var existingAuction = await _auctionService.GetAuctionDetailsAsync(id);
+        if (existingAuction != null) model.ExistingImages = existingAuction.Images;
+        model.Categories = await GetCategoriesAsync();
+        ModelState.AddModelError(string.Empty, result.Message);
+        
+        return View(model);
     }
 
     [HttpPost]

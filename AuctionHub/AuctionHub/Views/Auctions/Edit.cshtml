@@ -4,62 +4,51 @@
 }
 
 <div class="container py-5 min-vh-100">
-    <div class="d-flex align-items-center justify-content-between mb-5 animate-fade-up">
+    <div class="d-flex align-items-center justify-content-between mb-5 animate-fade-in">
         <div>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-2">
                     <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index" class="text-decoration-none text-muted">Home</a></li>
-                    <li class="breadcrumb-item"><a asp-action="Index" class="text-decoration-none text-muted">Auctions</a></li>
+                    <li class="breadcrumb-item"><a asp-action="MyAuctions" class="text-decoration-none text-muted">My Auctions</a></li>
                     <li class="breadcrumb-item active fw-bold text-primary">Edit</li>
                 </ol>
             </nav>
-            <h1 class="display-5 fw-bold mb-0">Edit <span class="text-primary">Listing</span></h1>
-            <p class="text-muted lead mb-0">Update and refine your auction details.</p>
+            <h1 class="display-5 fw-bold text-dark mb-0">Edit <span class="text-primary">@Model.Title</span></h1>
         </div>
-        <div class="d-none d-md-block">
-            <i class="bi bi-pencil-square display-3 text-primary opacity-25"></i>
+        <div class="text-end">
+            <span class="badge bg-light text-primary border border-primary border-opacity-25 rounded-pill px-3 py-2">
+                <i class="bi bi-pencil-square me-1"></i> Update Mode
+            </span>
         </div>
     </div>
 
-    @if (TempData["Error"] != null)
-    {
-        <div class="alert alert-danger border-0 rounded-4 mb-4 shadow-sm animate-fade-up">
-            <i class="bi bi-exclamation-octagon-fill me-2"></i> @TempData["Error"]
-        </div>
-    }
-
     <form asp-action="Edit" method="post" enctype="multipart/form-data" id="auctionForm">
-        <div asp-validation-summary="ModelOnly" class="text-danger mb-4"></div>
-        <input type="hidden" id="ImageUrl" name="ImageUrl" value="@Model.ImageUrl" />
-        <input type="hidden" id="AdditionalImageUrlsJson" name="AdditionalImageUrlsJson" />
-        <input type="hidden" id="ImagesToRemoveIdsJson" name="ImagesToRemoveIdsJson" />
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <input type="hidden" asp-for="ImageUrl" id="ImageUrl" />
+        <input type="hidden" asp-for="ImagesToRemoveIdsJson" id="ImagesToRemoveIdsJson" value="[]" />
+        <input type="hidden" asp-for="AdditionalImageUrlsJson" id="AdditionalImageUrlsJson" value="[]" />
 
         <div class="row g-5">
             <!-- Form Side -->
-            <div class="col-lg-8 animate-fade-up">
-                <!-- 1. Core Information -->
+            <div class="col-lg-8 animate-slide-up">
+                <!-- 1. Basic Info -->
                 <div class="bg-white p-4 p-lg-5 rounded-5 shadow-sm border border-light mb-5">
                     <h4 class="fw-bold mb-4 d-flex align-items-center">
                         <span class="step-num bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 35px; height: 35px; font-size: 1rem;">1</span>
-                        Core Information
+                        Basic Information
                     </h4>
                     
                     <div class="mb-4">
-                        <label asp-for="Title" class="form-label fw-bold text-dark px-1">Title</label>
+                        <label asp-for="Title" class="form-label fw-bold text-dark px-1">Listing Title</label>
                         <input asp-for="Title" id="inputTitle" class="form-control form-control-lg rounded-4 border-2 border-light bg-light focus-ring" placeholder="What are you selling?" />
                         <span asp-validation-for="Title" class="text-danger small"></span>
                     </div>
 
-                    <div class="mb-4">
-                        <label asp-for="Description" class="form-label fw-bold text-dark px-1">Description</label>
-                        <textarea asp-for="Description" id="inputDescription" class="form-control rounded-4 border-2 border-light bg-light focus-ring" rows="8" placeholder="Tell buyers about the item's history, condition, and unique features..."></textarea>
-                        <span asp-validation-for="Description" class="text-danger small"></span>
-                    </div>
-
-                    <div class="row g-4">
+                    <div class="row g-4 mb-4">
                         <div class="col-md-6">
                             <label asp-for="CategoryId" class="form-label fw-bold text-dark px-1">Category</label>
-                            <select asp-for="CategoryId" id="inputCategory" class="form-select form-select-lg rounded-4 border-2 border-light bg-light focus-ring" asp-items="Model.Categories"></select>
+                            <select asp-for="CategoryId" id="inputCategory" asp-items="Model.Categories" class="form-select form-select-lg rounded-4 border-2 border-light bg-light focus-ring"></select>
                             <span asp-validation-for="CategoryId" class="text-danger small"></span>
                         </div>
                         <div class="col-md-6">
@@ -67,6 +56,12 @@
                             <input asp-for="EndTime" id="inputEndTime" class="form-control form-control-lg rounded-4 border-2 border-light bg-light focus-ring" type="datetime-local" />
                             <span asp-validation-for="EndTime" class="text-danger small"></span>
                         </div>
+                    </div>
+
+                    <div class="mb-0">
+                        <label asp-for="Description" class="form-label fw-bold text-dark px-1">Detailed Description</label>
+                        <textarea asp-for="Description" id="inputDesc" class="form-control rounded-4 border-2 border-light bg-light focus-ring" rows="6" placeholder="Describe your item in detail..."></textarea>
+                        <span asp-validation-for="Description" class="text-danger small"></span>
                     </div>
                 </div>
 
@@ -77,40 +72,22 @@
                         Visuals & Media
                     </h4>
 
-                    <!-- Existing Gallery -->
-                    <div class="mb-5">
-                        <label class="form-label small fw-bold text-muted text-uppercase mb-3 px-1">Current Gallery</label>
-                        <div class="row row-cols-2 row-cols-md-4 g-3" id="existingGallery">
-                            @foreach (var img in Model.ExistingImages)
-                            {
-                                <div class="col animate-fade-in" id="existing-img-@img.Id">
-                                    <div class="thumb-wrapper shadow-sm border @(img.Url == Model.ImageUrl ? "border-primary border-3" : "")">
-                                        <img src="@img.Url" class="w-100 h-100 object-fit-cover" />
-                                        <div class="thumb-overlay d-flex flex-column gap-1">
-                                            <button type="button" class="btn btn-danger btn-sm rounded-pill py-1" onclick="markForRemoval(@img.Id, '@img.Url', this)">
-                                                <i class="bi bi-trash-fill me-1"></i> Remove
-                                            </button>
-                                            <button type="button" class="btn btn-primary btn-sm rounded-pill py-1 btn-cover @(img.Url == Model.ImageUrl ? "d-none" : "")" onclick="setAsCover('@img.Url', this)">
-                                                <i class="bi bi-star-fill me-1"></i> Set Cover
-                                            </button>
-                                        </div>
-                                        @if (img.Url == Model.ImageUrl)
-                                        {
-                                            <span class="badge bg-primary position-absolute top-0 start-0 m-2 shadow-sm rounded-pill cover-badge">COVER</span>
-                                        }
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    </div>
-
-                    <div class="row g-4 mb-4">
+                    <div class="row g-4 mb-5">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold text-dark px-1">Upload More Photos</label>
-                            <div class="image-upload-zone rounded-4 bg-light border-2 border-dashed d-flex flex-column align-items-center justify-content-center p-4 transition-all" id="dropZone" onclick="document.getElementById('fileInput').click()">
-                                <i class="bi bi-cloud-arrow-up text-primary fs-2 mb-2"></i>
-                                <p class="small mb-0 text-muted">Click to browse or drag & drop</p>
-                                <input type="file" id="fileInput" name="AdditionalImageFiles" multiple class="d-none" accept="image/*" />
+                            <label class="form-label fw-bold text-dark px-1">Upload New Photos</label>
+                            <div class="image-upload-zone rounded-4 bg-light border-2 border-dashed d-flex flex-column align-items-center justify-content-center p-4 transition-all" 
+                                 id="dropZone" 
+                                 onclick="document.getElementById('instantFileUpload').click()"
+                                 style="height: 140px; cursor: pointer; border-color: #4361ee !important;">
+                                <div id="uploadStatus">
+                                    <i class="bi bi-cloud-arrow-up text-primary fs-2 mb-2"></i>
+                                    <p class="small mb-0 text-muted">Click or drag & drop (Instant Save)</p>
+                                </div>
+                                <div id="uploadLoader" class="d-none text-center">
+                                    <div class="spinner-border spinner-border-sm text-primary mb-2"></div>
+                                    <p class="small mb-0 text-primary fw-bold">Saving to server...</p>
+                                </div>
+                                <input type="file" id="instantFileUpload" class="d-none" multiple accept="image/*" onchange="handleInstantUpload(this.files)" />
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -121,17 +98,41 @@
                                     <i class="bi bi-plus-lg"></i>
                                 </button>
                             </div>
-                            <small class="text-muted mt-2 d-block">Paste a direct link to an image file.</small>
                         </div>
                     </div>
 
-                    <div class="row row-cols-2 row-cols-md-5 g-3" id="thumbnailGrid">
-                        <!-- Dynamic Thumbnails -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-dark px-1 mb-3">Current Gallery (Saved)</label>
+                        <div class="row row-cols-2 row-cols-md-4 row-cols-lg-5 g-3" id="existingImagesGrid">
+                            @foreach (var img in Model.ExistingImages)
+                            {
+                                <div class="col" id="existing-img-@img.Id">
+                                    <div class="thumb-wrapper border shadow-sm h-100">
+                                        <img src="@img.Url" class="img-fluid rounded-3" />
+                                        <div class="thumb-overlay d-flex flex-column gap-1">
+                                            <button type="button" class="btn btn-danger btn-sm rounded-pill py-1" onclick="markForRemoval(@img.Id, '@img.Url', this)">
+                                                <i class="bi bi-trash-fill"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-primary btn-sm rounded-pill py-1 btn-cover @(Model.ImageUrl == img.Url ? "d-none" : "")" onclick="setAsCover('@img.Url', this)">
+                                                <i class="bi bi-star-fill"></i> Cover
+                                            </button>
+                                        </div>
+                                        @if (Model.ImageUrl == img.Url)
+                                        {
+                                            <span class="badge bg-primary position-absolute top-0 start-0 m-2 shadow-sm rounded-pill cover-badge">COVER</span>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        <div id="newExternalImagesGrid" class="row row-cols-2 row-cols-md-4 row-cols-lg-5 g-3 mt-1">
+                            <!-- New URL images will appear here temporarily -->
+                        </div>
                     </div>
                 </div>
 
                 <!-- 3. Pricing -->
-                <div class="bg-white p-4 p-lg-5 rounded-5 shadow-sm border border-light">
+                <div class="bg-white p-4 p-lg-5 rounded-5 shadow-sm border border-light mb-5">
                     <h4 class="fw-bold mb-4 d-flex align-items-center">
                         <span class="step-num bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 35px; height: 35px; font-size: 1rem;">3</span>
                         Pricing & Sales
@@ -159,23 +160,22 @@
 
             <!-- Preview Side -->
             <div class="col-lg-4">
-                <div class="sticky-top" style="top: 100px; z-index: 10;">
-                    <h5 class="fw-bold mb-4 text-uppercase letter-spacing-1 text-muted small">Live Preview</h5>
-                    <div class="card h-100 border-0 shadow-lg rounded-4 overflow-hidden animate-fade-up" id="previewCard">
-                        <div class="position-absolute top-0 start-0 m-3" style="z-index: 5;">
-                            <span class="badge bg-dark bg-opacity-75 backdrop-blur rounded-pill px-3 py-2 shadow-sm" id="previewCategory">@Model.Categories.FirstOrDefault(c => c.Value == Model.CategoryId.ToString())?.Text</span>
-                        </div>
-                        
-                        <div class="ratio ratio-4x3 overflow-hidden bg-light d-flex align-items-center justify-content-center border-bottom">
-                            <div id="noImagePlaceholder" class="text-center p-5 @(!string.IsNullOrEmpty(Model.ImageUrl) ? "d-none" : "")">
-                                <i class="bi bi-image text-muted display-1 opacity-25"></i>
-                                <p class="text-muted small mt-2">No images added yet</p>
+                <div class="sticky-top" style="top: 2rem; z-index: 10;">
+                    <div class="card border-0 shadow-lg rounded-5 overflow-hidden mb-4">
+                        <div class="position-relative" style="aspect-ratio: 4/3;">
+                            <img src="@(Model.ImageUrl ?? "/images/no-image.png")" id="previewImage" class="w-100 h-100 object-fit-cover @(string.IsNullOrEmpty(Model.ImageUrl) ? "d-none" : "")" />
+                            <div id="noImagePlaceholder" class="w-100 h-100 bg-light d-flex flex-column align-items-center justify-content-center text-muted @(!string.IsNullOrEmpty(Model.ImageUrl) ? "d-none" : "")">
+                                <i class="bi bi-image fs-1 mb-2"></i>
+                                <span class="small">No image selected</span>
                             </div>
-                            <img id="previewImage" src="@Model.ImageUrl" class="img-fluid object-fit-cover transition-transform @(string.IsNullOrEmpty(Model.ImageUrl) ? "d-none" : "")" style="transition: transform 0.5s ease;" />
+                            <div class="position-absolute top-0 end-0 m-3">
+                                <span class="badge backdrop-blur bg-white bg-opacity-75 text-dark rounded-pill px-3 py-2 shadow-sm border border-white border-opacity-50" id="previewCategory">
+                                    Category
+                                </span>
+                            </div>
                         </div>
-
                         <div class="card-body p-4">
-                            <h5 class="card-title fw-bold mb-3 text-truncate" id="previewTitle">@Model.Title</h5>
+                            <h5 class="fw-bold text-dark mb-3 text-truncate" id="previewTitle">@Model.Title</h5>
                             
                             <div class="d-flex justify-content-between align-items-end mb-4">
                                 <div>
@@ -189,7 +189,7 @@
                             </div>
 
                             <div class="d-grid">
-                                <button type="button" class="btn btn-primary rounded-pill py-2 fw-bold disabled opacity-50">Save Changes to Apply</button>
+                                <button type="button" class="btn btn-primary rounded-pill py-2 fw-bold disabled opacity-50">Saved Gallery is Final</button>
                             </div>
                         </div>
                     </div>
@@ -198,7 +198,7 @@
                         <button type="submit" form="auctionForm" class="btn btn-primary btn-lg rounded-pill px-5 py-3 fw-bold shadow-lg hover-lift w-100">
                             Update Auction <i class="bi bi-save2-fill ms-2"></i>
                         </button>
-                        <a asp-action="Details" asp-route-id="@ViewContext.RouteData.Values["id"]" class="btn btn-outline-secondary btn-lg rounded-pill px-5 py-3 fw-bold w-100">
+                        <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary btn-lg rounded-pill px-5 py-3 fw-bold w-100">
                             <i class="bi bi-x-circle me-2"></i> Discard Changes
                         </a>
                     </div>
@@ -211,27 +211,18 @@
 <style>
     .focus-ring:focus { box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.15); border-color: var(--bs-primary) !important; outline: 0; }
     .image-upload-zone { cursor: pointer; transition: all 0.3s; }
-    .image-upload-zone:hover { background-color: #f8f9fa !important; border-color: var(--bs-primary) !important; }
-    [data-bs-theme="dark"] .image-upload-zone:hover { background-color: rgba(255, 255, 255, 0.05) !important; }
-    [data-bs-theme="dark"] .image-upload-zone { background-color: rgba(255, 255, 255, 0.02) !important; }
+    .image-upload-zone:hover { background-color: rgba(67, 97, 238, 0.05) !important; border-color: var(--bs-primary) !important; }
     .thumb-wrapper { position: relative; aspect-ratio: 1/1; overflow: hidden; border-radius: 16px; transition: all 0.3s; }
     .thumb-wrapper img { width: 100%; height: 100%; object-fit: cover; }
     .thumb-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s; padding: 10px; }
     .thumb-wrapper:hover .thumb-overlay { opacity: 1; }
-    .backdrop-blur { backdrop-filter: blur(8px); }
     .removed-img { opacity: 0.3; filter: grayscale(1); }
     .removed-img .btn-cover { display: none !important; }
-    .letter-spacing-1 { letter-spacing: 1px; }
 </style>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
-        // Fix for jQuery Validation with Bulgarian comma
-        $.validator.methods.number = function (value, element) {
-            return this.optional(element) || /^-?(?:\d+|\d{1,3}(?:[\s\.]\d{3})+)(?:[\,]\d+)?$/.test(value);
-        };
-
         document.addEventListener('DOMContentLoaded', function() {
             let removedIds = [];
             let additionalUrls = [];
@@ -253,25 +244,22 @@
                 placeholder: document.getElementById('noImagePlaceholder')
             };
 
-            const urlInput = document.getElementById('urlInput');
-            const addUrlBtn = document.getElementById('addUrlBtn');
-            const fileInput = document.getElementById('fileInput');
-            const thumbnailGrid = document.getElementById('thumbnailGrid');
+            const existingImagesGrid = document.getElementById('existingImagesGrid');
+            const newExternalImagesGrid = document.getElementById('newExternalImagesGrid');
             const urlJsonInput = document.getElementById('AdditionalImageUrlsJson');
             const removalJsonInput = document.getElementById('ImagesToRemoveIdsJson');
+            const uploadStatus = document.getElementById('uploadStatus');
+            const uploadLoader = document.getElementById('uploadLoader');
 
             function updatePreview() {
                 previews.title.innerText = inputs.title.value || "Auction Title";
                 previews.category.innerText = inputs.category.options[inputs.category.selectedIndex]?.text || "Category";
-                
                 const rawPrice = inputs.price.value.replace(',', '.');
                 previews.price.innerText = (parseFloat(rawPrice) || 0).toFixed(2) + '€';
-                
                 if (inputs.endTime.value) {
                     const date = new Date(inputs.endTime.value);
                     previews.time.innerText = date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
                 }
-
                 if (inputs.mainUrl.value) {
                     previews.image.src = inputs.mainUrl.value;
                     previews.image.classList.remove('d-none');
@@ -286,54 +274,109 @@
 
             // Price sanitization
             document.querySelectorAll('.price-input').forEach(input => {
-                input.addEventListener('input', function(e) {
-                    this.value = this.value.replace(/[^0-9,.]/g, '').replace('.', ',');
+                input.addEventListener('input', function() {
+                    // Allow digits, comma and dot
+                    this.value = this.value.replace(/[^0-9,.]/g, '');
                     updatePreview();
                 });
             });
 
-            // Handle New Files
-            fileInput.addEventListener('change', (e) => {
-                for (let file of e.target.files) {
-                    const reader = new FileReader();
-                    reader.onload = (f) => renderThumbnail(f.target.result, true);
-                    reader.readAsDataURL(file);
-                }
-            });
+            // --- Instant AJAX Upload ---
+            window.handleInstantUpload = async function(files) {
+                if (!files || files.length === 0) return;
+                
+                uploadStatus.classList.add('d-none');
+                uploadLoader.classList.remove('d-none');
+                
+                const auctionPublicId = "@Model.PublicId";
+                const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
 
-            // Handle New URLs
-            addUrlBtn.addEventListener('click', () => {
-                const url = urlInput.value.trim();
-                if (url) {
-                    additionalUrls.push(url);
-                    renderThumbnail(url, false, additionalUrls.length - 1);
-                    urlInput.value = '';
-                    urlJsonInput.value = JSON.stringify(additionalUrls);
-                }
-            });
+                for (let file of files) {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('__RequestVerificationToken', token);
 
-            function renderThumbnail(src, isFile, index = -1) {
+                    try {
+                        const response = await fetch(`/Auctions/UploadImage/${auctionPublicId}`, {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            addSavedImageToGrid(data.id, data.url);
+                        } else {
+                            const err = await response.text();
+                            alert("Upload failed: " + err);
+                        }
+                    } catch (e) {
+                        console.error(e);
+                        alert("An error occurred during upload.");
+                    }
+                }
+
+                uploadStatus.classList.remove('d-none');
+                uploadLoader.classList.add('d-none');
+                document.getElementById('instantFileUpload').value = ""; // Clear input
+            };
+
+            function addSavedImageToGrid(id, url) {
                 const col = document.createElement('div');
                 col.className = 'col animate-fade-in';
-                const removeAction = !isFile 
-                    ? `removeNewUrl(${index}, this)` 
-                    : `this.closest('.col').remove(); autoSelectCover();`;
-
+                col.id = `existing-img-${id}`;
                 col.innerHTML = `
-                    <div class="thumb-wrapper border shadow-sm">
-                        <img src="${src}" />
+                    <div class="thumb-wrapper border shadow-sm h-100">
+                        <img src="${url}" class="img-fluid rounded-3" />
                         <div class="thumb-overlay d-flex flex-column gap-1">
-                            <button type="button" class="btn btn-danger btn-sm rounded-pill py-1" onclick="${removeAction}">
+                            <button type="button" class="btn btn-danger btn-sm rounded-pill py-1" onclick="markForRemoval(${id}, '${url}', this)">
                                 <i class="bi bi-trash-fill"></i>
                             </button>
-                            <button type="button" class="btn btn-primary btn-sm rounded-pill py-1 btn-cover" onclick="setAsCover('${src}', this)">
+                            <button type="button" class="btn btn-primary btn-sm rounded-pill py-1 btn-cover" onclick="setAsCover('${url}', this)">
                                 <i class="bi bi-star-fill"></i> Cover
                             </button>
                         </div>
                     </div>
                 `;
-                thumbnailGrid.appendChild(col);
-                if (!inputs.mainUrl.value) setAsCover(src);
+                existingImagesGrid.appendChild(col);
+                if (!inputs.mainUrl.value) setAsCover(url, col.querySelector('.btn-cover'));
+            }
+
+            // Drag & Drop
+            const dropZone = document.getElementById('dropZone');
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); }, false);
+            });
+            dropZone.addEventListener('drop', e => { handleInstantUpload(e.dataTransfer.files); }, false);
+
+            // Handle New URLs (External)
+            document.getElementById('addUrlBtn').addEventListener('click', () => {
+                const url = document.getElementById('urlInput').value.trim();
+                if (url) {
+                    additionalUrls.push(url);
+                    renderUrlThumbnail(url, additionalUrls.length - 1);
+                    document.getElementById('urlInput').value = '';
+                    urlJsonInput.value = JSON.stringify(additionalUrls);
+                }
+            });
+
+            function renderUrlThumbnail(url, index) {
+                const col = document.createElement('div');
+                col.className = 'col animate-fade-in';
+                col.innerHTML = `
+                    <div class="thumb-wrapper border border-info shadow-sm h-100">
+                        <img src="${url}" class="img-fluid rounded-3" />
+                        <div class="thumb-overlay d-flex flex-column gap-1">
+                            <button type="button" class="btn btn-danger btn-sm rounded-pill py-1" onclick="removeNewUrl(${index}, this)">
+                                <i class="bi bi-trash-fill"></i>
+                            </button>
+                            <button type="button" class="btn btn-primary btn-sm rounded-pill py-1 btn-cover" onclick="setAsCover('${url}', this)">
+                                <i class="bi bi-star-fill"></i> Cover
+                            </button>
+                        </div>
+                        <span class="badge bg-info position-absolute bottom-0 start-0 m-2 rounded-pill small">URL</span>
+                    </div>
+                `;
+                newExternalImagesGrid.appendChild(col);
             }
 
             window.removeNewUrl = (index, btn) => {
@@ -359,24 +402,19 @@
 
             window.setAsCover = (url, btn) => {
                 inputs.mainUrl.value = url;
-                
-                // Visual feedback in UI
                 document.querySelectorAll('.thumb-wrapper').forEach(el => el.classList.remove('border-primary', 'border-3'));
                 document.querySelectorAll('.cover-badge').forEach(el => el.remove());
                 document.querySelectorAll('.btn-cover').forEach(el => el.classList.remove('d-none'));
-
                 if (btn) {
                     const wrapper = btn.closest('.thumb-wrapper');
                     wrapper.classList.add('border-primary', 'border-3');
                     btn.classList.add('d-none');
                     wrapper.insertAdjacentHTML('afterbegin', '<span class="badge bg-primary position-absolute top-0 start-0 m-2 shadow-sm rounded-pill cover-badge">COVER</span>');
                 }
-                
                 updatePreview();
             };
 
             window.autoSelectCover = () => {
-                // Find first non-removed existing image or first new image
                 const firstValid = document.querySelector('.thumb-wrapper:not(.removed-img) img');
                 if (firstValid) {
                     setAsCover(firstValid.src, firstValid.closest('.thumb-wrapper').querySelector('.btn-cover'));
@@ -386,14 +424,6 @@
                 }
             };
 
-            // Cleanup base64 before submit to avoid validation/size issues
-            document.getElementById('auctionForm').addEventListener('submit', function() {
-                if (inputs.mainUrl.value.startsWith('data:')) {
-                    inputs.mainUrl.value = ""; // Let backend pick the first new file
-                }
-            });
-
-            // Ensure initial prices are formatted with comma for consistency
             document.querySelectorAll('.price-input').forEach(input => {
                 if (input.value) input.value = input.value.replace('.', ',');
             });

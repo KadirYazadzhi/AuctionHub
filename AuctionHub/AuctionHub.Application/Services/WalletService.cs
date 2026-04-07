@@ -55,6 +55,25 @@ public class WalletService : IWalletService
             .ToListAsync();
     }
 
+    public async Task<PaginatedList<TransactionDto>> GetPaginatedTransactionsAsync(int pageIndex, int pageSize)
+    {
+        var query = _context.Transactions
+            .Include(t => t.User)
+            .OrderByDescending(t => t.TransactionDate)
+            .Select(t => new TransactionDto
+            {
+                Id = t.Id,
+                Amount = t.Amount,
+                Description = t.Description,
+                TransactionDate = t.TransactionDate,
+                TransactionType = t.TransactionType,
+                Status = t.Status,
+                User = t.User != null ? t.User.UserName : "Unknown"
+            });
+
+        return await PaginatedList<TransactionDto>.CreateAsync(query, pageIndex, pageSize);
+    }
+
     public async Task<(bool Success, string Message)> AddFundsAsync(string userId, decimal amount)
     {
         if (amount <= 0) return (false, "Please enter a valid amount greater than 0.");

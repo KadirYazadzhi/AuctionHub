@@ -10,6 +10,7 @@ public class AuctionDetailsDto
     public decimal CurrentPrice { get; set; }
     public decimal StartPrice { get; set; }
     public decimal MinIncrease { get; set; }
+    public decimal MinStep { get; set; } // Added: The calculated minimum next step
     public decimal? BuyItNowPrice { get; set; }
     public decimal? ReservePrice { get; set; }
     public bool ReservePriceMet => !ReservePrice.HasValue || CurrentPrice >= ReservePrice.Value;

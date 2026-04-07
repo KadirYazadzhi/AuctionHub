@@ -7,6 +7,9 @@ namespace AuctionHub.Models.ViewModels;
 
 public class AuctionFormModel
 {
+    public int Id { get; set; }
+    public Guid PublicId { get; set; }
+
     [Required]
     [StringLength(100, MinimumLength = 5)]
     public string Title { get; set; } = null!;

@@ -19,7 +19,7 @@ public class AuctionDetailsViewModel
     public decimal StartPrice { get; set; }
 
     public decimal MinIncrease { get; set; }
-    
+    public decimal MinStep { get; set; } // Added: The current minimum next step
     public decimal? BuyItNowPrice { get; set; }
     public decimal? ReservePrice { get; set; }
     public bool ReservePriceMet { get; set; }

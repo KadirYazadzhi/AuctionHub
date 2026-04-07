@@ -484,9 +484,13 @@
                                             </button>
                                         </form>
                                         <div class="text-center mt-3 text-muted small">
-                                            Minimum increment: <span class="fw-bold">@Model.MinIncrease.ToString("C")</span>
-                                        </div>
-                                    </div>
+                                            Minimum increment: <span class="fw-bold">@Model.MinStep.ToString("C")</span>
+                                            @if (Model.MinStep > Model.MinIncrease)
+                                            {
+                                                <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 rounded-pill ms-1 px-2 py-1" style="font-size: 0.7rem;">
+                                                    <i class="bi bi-info-circle me-1" data-bs-toggle="tooltip" title="For items over 1000€, the minimum step is 5% of the current price for healthy auction growth."></i> 5% Dynamic Rule
+                                                </span>
+                                            }                                        </div>                                    </div>
                                 </div>
 
                                 <!-- Smart Bidding Section -->
@@ -916,9 +920,16 @@
 
         const amountInput = document.querySelector('input[name="Amount"]');
         if (amountInput) {
-            const minIncreaseStr = "@Model.MinIncrease.ToString(System.Globalization.CultureInfo.InvariantCulture)";
-            const minIncrease = parseFloat(minIncreaseStr);
-            const nextSuggested = amount + minIncrease;
+            // Re-calculate MinStep dynamically for real-time accuracy (5% rule)
+            let minIncreaseStr = "@Model.MinIncrease.ToString(System.Globalization.CultureInfo.InvariantCulture)";
+            let minIncrease = parseFloat(minIncreaseStr);
+            let dynamicStep = 0;
+            if (amount >= 1000) {
+                dynamicStep = Math.round(amount * 0.05 * 100) / 100;
+            }
+            let currentMinStep = Math.max(minIncrease, dynamicStep);
+            
+            const nextSuggested = amount + currentMinStep;
             
             const nf = new Intl.NumberFormat('bg-BG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             let formattedValue = nf.format(nextSuggested);
@@ -1020,14 +1031,23 @@
         const amountInput = document.querySelector('input[name="Amount"]');
         if (!amountInput) return;
 
-        // Parse current value (handling comma as decimal separator)
-        let currentVal = parseFloat(amountInput.value.replace(',', '.'));
-        if (isNaN(currentVal)) currentVal = 0;
+        let valStr = amountInput.value.replace(/\s/g, '').replace('€', '');
+        
+        // Robust parsing: if there's a comma and it's after any dot, or if only a comma exists
+        let currentVal;
+        if (valStr.includes(',') && (!valStr.includes('.') || valStr.lastIndexOf(',') > valStr.lastIndexOf('.'))) {
+            currentVal = parseFloat(valStr.replace(/\./g, '').replace(',', '.'));
+        } else {
+            currentVal = parseFloat(valStr.replace(/,/g, ''));
+        }
+        
+        if (isNaN(currentVal)) currentVal = @Model.CurrentPrice.ToString(System.Globalization.CultureInfo.InvariantCulture) + @Model.MinStep.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
         const newVal = currentVal + amount;
         
-        // Format back with comma
-        amountInput.value = newVal.toFixed(2).replace('.', ',');
+        // Format back for Bulgarian locale (comma)
+        const nf = new Intl.NumberFormat('bg-BG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        amountInput.value = nf.format(newVal).replace(/\u00A0/g, ' ').trim();
         
         // Trigger visual feedback
         amountInput.classList.add('is-valid');

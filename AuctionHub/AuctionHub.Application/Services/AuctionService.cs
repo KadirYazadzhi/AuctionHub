@@ -874,6 +874,14 @@ public class AuctionService : IAuctionService
             currentAutoBidLimit = autoBid?.MaxAmount;
         }
 
+        // Calculate true current minimum step (5% rule for items over 100)
+        decimal minStep = auction.IsDutchAuction ? 0 : auction.MinIncrease;
+        if (!auction.IsDutchAuction && auction.CurrentPrice >= 1000.00m)
+        {
+            decimal dynamicStep = Math.Round(auction.CurrentPrice * 0.05m, 2);
+            if (dynamicStep > minStep) minStep = dynamicStep;
+        }
+
         return new AuctionDetailsDto
         {
             Id = auction.Id,
@@ -884,6 +892,7 @@ public class AuctionService : IAuctionService
             CurrentPrice = auction.CurrentPrice,
             StartPrice = auction.StartPrice,
             MinIncrease = auction.MinIncrease,
+            MinStep = minStep,
             BuyItNowPrice = auction.BuyItNowPrice,
             ReservePrice = auction.ReservePrice,
             IsDutchAuction = auction.IsDutchAuction,
@@ -1173,6 +1182,32 @@ public class AuctionService : IAuctionService
     }
 
 
+    public async Task<(int ImageId, string Url, string Message)> AddImageAsync(Guid auctionPublicId, Stream imageStream, string fileName, string userId)
+    {
+        var auction = await _context.Auctions
+            .Include(a => a.Images)
+            .FirstOrDefaultAsync(a => a.PublicId == auctionPublicId);
+
+        if (auction == null) return (-1, "", "Auction not found.");
+        if (auction.SellerId != userId) return (-1, "", "Forbidden.");
+
+        var uploadResult = await _photoService.AddPhotoAsync(imageStream, fileName);
+        if (!uploadResult.Success) return (-1, "", "Upload to Cloudinary failed.");
+
+        var newImg = new AuctionImage
+        {
+            Url = uploadResult.Url,
+            PublicId = uploadResult.PublicId,
+            AuctionId = auction.Id
+        };
+
+        _context.AuctionImages.Add(newImg);
+        auction.Images.Add(newImg);
+        await _context.SaveChangesAsync();
+
+        return (newImg.Id, newImg.Url, "Success");
+    }
+
     public async Task<(bool Success, string Message, string? OldImageUrl)> UpdateAuctionAsync(Guid publicId, AuctionFormDto model, string userId)
     {
         var auction = await _context.Auctions
@@ -1216,13 +1251,24 @@ public class AuctionService : IAuctionService
         }
 
         // 2. Upload new files to Cloudinary
+        var newlyAddedImages = new List<AuctionImage>();
         for (int i = 0; i < model.ImageStreams.Count; i++)
         {
             var uploadResult = await _photoService.AddPhotoAsync(model.ImageStreams[i], model.ImageFileNames[i]);
-            if (uploadResult.Success)
+            if (!uploadResult.Success)
             {
-                auction.Images.Add(new AuctionImage { Url = uploadResult.Url, PublicId = uploadResult.PublicId });
+                return (false, $"Failed to upload image '{model.ImageFileNames[i]}'.", null);
             }
+
+            var newImg = new AuctionImage 
+            { 
+                Url = uploadResult.Url, 
+                PublicId = uploadResult.PublicId,
+                AuctionId = auction.Id 
+            };
+            _context.AuctionImages.Add(newImg); 
+            auction.Images.Add(newImg); // Add to collection too!
+            newlyAddedImages.Add(newImg);
         }
 
         // 3. Add new external URLs
@@ -1230,28 +1276,34 @@ public class AuctionService : IAuctionService
         {
             if (!string.IsNullOrWhiteSpace(url))
             {
-                auction.Images.Add(new AuctionImage { Url = url });
+                var newImg = new AuctionImage { Url = url, AuctionId = auction.Id };
+                _context.AuctionImages.Add(newImg);
+                auction.Images.Add(newImg); // Add to collection too!
+                newlyAddedImages.Add(newImg);
             }
         }
 
         // 4. Update Main Image
-        if (!string.IsNullOrEmpty(model.ImageUrl))
+        // If model.ImageUrl is empty or a data URL (cleared by JS), pick the first available
+        if (string.IsNullOrEmpty(model.ImageUrl) || model.ImageUrl.StartsWith("data:"))
         {
-            auction.ImageUrl = model.ImageUrl;
-        }
-        else if (auction.Images.Any())
-        {
-            // If the user cleared the ImageUrl (base64 cleanup), or it was empty, 
-            // pick the first available image as the new cover.
-            var firstImg = auction.Images.FirstOrDefault();
-            if (firstImg != null)
+            if (auction.Images.Any())
             {
-                auction.ImageUrl = firstImg.Url;
+                auction.ImageUrl = auction.Images.First().Url;
+            }
+            else if (newlyAddedImages.Any())
+            {
+                auction.ImageUrl = newlyAddedImages.First().Url;
+            }
+            else
+            {
+                auction.ImageUrl = "/images/no-image.png";
             }
         }
         else
         {
-            auction.ImageUrl = "/images/no-image.png";
+            // The user explicitly kept or set an existing image URL
+            auction.ImageUrl = model.ImageUrl;
         }
 
         auction.Title = model.Title;
@@ -1565,7 +1617,14 @@ public class AuctionService : IAuctionService
         if (user == null) return (false, "User not found.");
         
         // We require the user to have at least the current minimum bid available
-        decimal minRequired = auction.CurrentPrice + auction.MinIncrease;
+        decimal minStep = auction.IsDutchAuction ? 0 : auction.MinIncrease;
+        if (!auction.IsDutchAuction && auction.CurrentPrice >= 1000.00m)
+        {
+            decimal dynamicStep = Math.Round(auction.CurrentPrice * 0.05m, 2);
+            if (dynamicStep > minStep) minStep = dynamicStep;
+        }
+
+        decimal minRequired = auction.CurrentPrice + minStep;
         if (maxAmount < minRequired) return (false, $"Your maximum bid must be at least {minRequired:C}.");
         if (user.WalletBalance < minRequired) return (false, "Insufficient funds to start auto-bidding.");
 
@@ -1685,7 +1744,7 @@ public class AuctionService : IAuctionService
 
             // DYNAMIC MINIMUM STEP: 5% of current price for items over 100€ (Skip for Dutch)
             decimal currentMinStep = auction.IsDutchAuction ? 0 : auction.MinIncrease;
-            if (!auction.IsDutchAuction && auction.CurrentPrice >= 100.00m)
+            if (!auction.IsDutchAuction && auction.CurrentPrice >= 1000.00m)
             {
                 decimal dynamicStep = Math.Round(auction.CurrentPrice * 0.05m, 2);
                 if (dynamicStep > currentMinStep) currentMinStep = dynamicStep;
@@ -1823,7 +1882,7 @@ public class AuctionService : IAuctionService
         
         // Calculate the true minimum step needed right now
         decimal currentMinStep = auction.MinIncrease;
-        if (auction.CurrentPrice >= 100.00m)
+        if (auction.CurrentPrice >= 1000.00m)
         {
             decimal dynamicStep = Math.Round(auction.CurrentPrice * 0.05m, 2);
             if (dynamicStep > currentMinStep) currentMinStep = dynamicStep;

@@ -23,19 +23,31 @@ public class DecimalModelBinder : IModelBinder
             return Task.CompletedTask;
         }
 
-        // Standardize: Replace comma with dot and remove any whitespace
-        string standardizedValue = value.Replace(",", ".").Trim();
-
-        // If there are multiple dots (e.g. from thousand separators), keep only the last one
-        int lastDotIndex = standardizedValue.LastIndexOf('.');
-        if (lastDotIndex != -1)
+        // Extremely robust parsing for Bulgarian/International formats
+        // 1. Remove all spaces and currency symbols
+        string cleanValue = value.Replace(" ", "").Replace("€", "").Replace("$", "").Replace("\u00A0", "").Trim();
+        
+        // 2. Identify the decimal separator.
+        // We look for the LAST separator (dot or comma).
+        int lastComma = cleanValue.LastIndexOf(',');
+        int lastDot = cleanValue.LastIndexOf('.');
+        
+        // Determine which one is the decimal separator (the one that appears last)
+        if (lastComma > lastDot)
         {
-            string integerPart = standardizedValue.Substring(0, lastDotIndex).Replace(".", "");
-            string fractionalPart = standardizedValue.Substring(lastDotIndex + 1);
-            standardizedValue = integerPart + "." + fractionalPart;
+            // Comma is the decimal separator (European/BG style)
+            // Remove all dots (thousand separators) and replace comma with dot for InvariantCulture
+            cleanValue = cleanValue.Replace(".", "").Replace(",", ".");
         }
+        else if (lastDot > lastComma)
+        {
+            // Dot is the decimal separator (US/International style)
+            // Remove all commas (thousand separators)
+            cleanValue = cleanValue.Replace(",", "");
+        }
+        // If they are equal (both -1), cleanValue is just the number string already.
 
-        if (!decimal.TryParse(standardizedValue, NumberStyles.Any, CultureInfo.InvariantCulture, out var result))
+        if (!decimal.TryParse(cleanValue, NumberStyles.Any, CultureInfo.InvariantCulture, out var result))
         {
             bindingContext.ModelState.TryAddModelError(bindingContext.ModelName, "Invalid decimal value.");
             return Task.CompletedTask;

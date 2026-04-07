@@ -13,9 +13,12 @@ public class TransactionsController : AdminBaseController
         _walletService = walletService;
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(int? page)
     {
-        var transactions = await _walletService.GetAllTransactionsAsync(100);
+        int pageSize = 15;
+        int pageNumber = page ?? 1;
+
+        var transactions = await _walletService.GetPaginatedTransactionsAsync(pageNumber, pageSize);
 
         return View(transactions);
     }
