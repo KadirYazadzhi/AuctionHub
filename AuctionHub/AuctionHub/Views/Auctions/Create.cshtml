@@ -24,6 +24,7 @@
                         
                         <form asp-action="Create" method="post" enctype="multipart/form-data" id="auctionForm">
                             <div asp-validation-summary="ModelOnly" class="text-danger mb-4"></div>
+                            <input type="hidden" id="ImageUrl" name="ImageUrl" />
                             <input type="hidden" id="AdditionalImageUrlsJson" name="AdditionalImageUrlsJson" />
 
                             <!-- Step 1: Basic Information -->
@@ -297,7 +298,7 @@
                     
                     <div id="previewCardContainer" class="animate-pulse-slow">
                         <div class="card h-100 border-0 shadow-lg rounded-4 overflow-hidden" id="previewCard">
-                            <div class="position-absolute top-0 start-0 m-3 z-1">
+                            <div class="position-absolute top-0 start-0 m-3" style="z-index: 5;">
                                 <span class="badge bg-dark bg-opacity-75 backdrop-blur rounded-pill px-3 py-2 shadow-sm" id="previewCategory">Category</span>
                             </div>
                             
@@ -305,8 +306,12 @@
                                 <span class="badge bg-warning text-dark shadow-sm rounded-pill px-3 py-2 fw-bold">PROMOTED</span>
                             </div>
 
-                            <div class="ratio ratio-4x3 overflow-hidden bg-light d-flex align-items-center justify-content-center">
-                                <img id="previewImage" src="https://via.placeholder.com/400x300?text=No+Image" class="img-fluid object-fit-cover transition-transform" style="transition: transform 0.5s ease;" />
+                            <div class="ratio ratio-4x3 overflow-hidden bg-light d-flex align-items-center justify-content-center border-bottom">
+                                <div id="noImagePlaceholder" class="text-center p-5">
+                                    <i class="bi bi-image text-muted display-1 opacity-25"></i>
+                                    <p class="text-muted small mt-2">No images added yet</p>
+                                </div>
+                                <img id="previewImage" src="" class="img-fluid object-fit-cover transition-transform d-none" style="transition: transform 0.5s ease;" />
                             </div>
 
                             <div class="card-body p-4">
@@ -346,13 +351,30 @@
     .image-upload-zone:hover { background-color: #f8f9fa !important; border-color: var(--bs-primary) !important; }
     .thumb-wrapper { position: relative; aspect-ratio: 1/1; overflow: hidden; border-radius: 12px; cursor: pointer; }
     .thumb-wrapper img { width: 100%; height: 100%; object-fit: cover; }
-    .thumb-remove { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; background: rgba(220, 53, 69, 0.9); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; border: none; }
+    .thumb-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s; padding: 5px; }
+    .thumb-wrapper:hover .thumb-overlay { opacity: 1; }
+    .thumb-remove { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; background: rgba(220, 53, 69, 0.9); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; border: none; z-index: 10; }
     .promotion-card { border: 2px solid transparent !important; transition: all 0.3s ease; }
     .promotion-card:has(.form-check-input:checked) { border-color: #ffc107 !important; background-color: rgba(255, 193, 7, 0.2) !important; transform: scale(1.02); }
     .backdrop-blur { backdrop-filter: blur(8px); }
     .animate-pulse-slow { animation: pulse-slow 3s infinite; }
     @@keyframes pulse-slow { 0%, 100% { opacity: 1; } 50% { opacity: 0.95; } }
     .focus-ring:focus { box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.15); border-color: var(--bs-primary) !important; outline: 0; }
+
+    @@media (max-width: 767.98px) {
+        .btn-lg {
+            padding: 0.8rem 1.5rem !important;
+            font-size: 1rem !important;
+        }
+        .form-step h3 {
+            font-size: 1.4rem !important;
+        }
+        .step-num {
+            width: 30px;
+            height: 30px;
+            font-size: 0.9rem;
+        }
+    }
 </style>
 
 @section Scripts {
@@ -501,7 +523,8 @@
                 category: document.getElementById('inputCategory'),
                 price: document.getElementById('inputPrice'),
                 endTime: document.getElementById('inputEndTime'),
-                promo: document.getElementById('promoToggle')
+                promo: document.getElementById('promoToggle'),
+                mainUrl: document.getElementById('ImageUrl')
             };
 
             const previews = {
@@ -510,7 +533,9 @@
                 price: document.getElementById('previewPrice'),
                 time: document.getElementById('previewTime'),
                 badge: document.getElementById('previewPromoteBadge'),
-                card: document.getElementById('previewCard')
+                card: document.getElementById('previewCard'),
+                image: document.getElementById('previewImage'),
+                placeholder: document.getElementById('noImagePlaceholder')
             };
 
             function updatePreview() {
@@ -534,9 +559,22 @@
                     previews.badge.classList.add('d-none');
                     previews.card.classList.remove('border-warning', 'border-2');
                 }
+
+                // Update Image in Preview
+                if (inputs.mainUrl.value) {
+                    previews.image.src = inputs.mainUrl.value;
+                    previews.image.classList.remove('d-none');
+                    previews.placeholder.classList.add('d-none');
+                } else {
+                    previews.image.classList.add('d-none');
+                    previews.placeholder.classList.remove('d-none');
+                }
             }
 
-            Object.values(inputs).forEach(input => input.addEventListener('input', updatePreview));
+            Object.values(inputs).forEach(input => input && input.addEventListener('input', updatePreview));
+            
+            // Initial call to set default values (like 10.00€)
+            updatePreview();
 
             // 3. Price Input Sanitizer
             document.querySelectorAll('.price-input').forEach(input => {
@@ -556,7 +594,20 @@
             const urlInput = document.getElementById('urlInput');
             const addUrlBtn = document.getElementById('addUrlBtn');
             const thumbnailGrid = document.getElementById('thumbnailGrid');
+            const mainImageUrlInput = document.getElementById('ImageUrl');
             const previewImage = document.getElementById('previewImage');
+            const noImagePlaceholder = document.getElementById('noImagePlaceholder');
+
+            function updateMainPreview() {
+                if (mainImageUrlInput.value) {
+                    previewImage.src = mainImageUrlInput.value;
+                    previewImage.classList.remove('d-none');
+                    noImagePlaceholder.classList.add('d-none');
+                } else {
+                    previewImage.classList.add('d-none');
+                    noImagePlaceholder.classList.remove('d-none');
+                }
+            }
 
             fileInput.addEventListener('change', (e) => {
                 const files = e.target.files;
@@ -565,10 +616,6 @@
                         const reader = new FileReader();
                         reader.onload = (f) => {
                             renderThumbnail(f.target.result, true);
-                            // Set first image as main preview
-                            if (i === 0 && thumbnailGrid.children.length === 1) {
-                                previewImage.src = f.target.result;
-                            }
                         };
                         reader.readAsDataURL(files[i]);
                     }
@@ -580,58 +627,102 @@
                 if (url) {
                     additionalUrls.push(url);
                     renderThumbnail(url, false, additionalUrls.length - 1);
-                    
-                    // If it's the first image, set as preview
-                    if (thumbnailGrid.children.length === 1) {
-                        previewImage.src = url;
-                    }
-                    
                     urlInput.value = '';
                     hiddenUrlJson.value = JSON.stringify(additionalUrls);
                 }
             });
 
-            function renderThumbnail(src, isFile, index) {
+            function renderThumbnail(src, isFile, index = -1) {
                 const col = document.createElement('div');
                 col.className = 'col animate-fade-up';
                 col.innerHTML = `
                     <div class="thumb-wrapper shadow-sm border">
                         <img src="${src}" />
-                        ${!isFile ? `<button type="button" class="thumb-remove" onclick="removeUrl(${index}, this)"><i class="bi bi-x"></i></button>` : ''}
+                        <div class="thumb-overlay">
+                            <button type="button" class="btn btn-primary btn-sm rounded-pill py-1 btn-cover" onclick="setAsCover('${src}', this)">
+                                <i class="bi bi-star-fill"></i> Cover
+                            </button>
+                        </div>
+                        ${!isFile ? `<button type="button" class="thumb-remove" onclick="removeUrl(${index}, this)"><i class="bi bi-x"></i></button>` : `<button type="button" class="thumb-remove" onclick="this.closest('.col').remove(); autoSelectCover();"><i class="bi bi-x"></i></button>`}
                     </div>
                 `;
                 thumbnailGrid.appendChild(col);
+                
+                // If it's the first image ever added, set as cover automatically
+                if (!mainImageUrlInput.value) {
+                    setAsCover(src);
+                }
             }
 
-            window.removeUrl = (index, btn) => {
-                additionalUrls.splice(index, 1);
-                btn.closest('.col').remove();
-                hiddenUrlJson.value = JSON.stringify(additionalUrls);
-            };
+            window.setAsCover = (url, btn) => {
+                mainImageUrlInput.value = url;
+                
+                // Update visuals
+                document.querySelectorAll('.thumb-wrapper').forEach(el => el.classList.remove('border-primary', 'border-3'));
+                document.querySelectorAll('.cover-badge').forEach(el => el.remove());
+                document.querySelectorAll('.btn-cover').forEach(el => el.classList.remove('d-none'));
 
-            window.setPresetTime = (days) => {
-                const date = new Date();
-                date.setDate(date.getDate() + days);
-                inputs.endTime.value = date.toISOString().slice(0, 16);
-                updatePreview();
+                const wrapper = btn ? btn.closest('.thumb-wrapper') : document.querySelector(`.thumb-wrapper img[src="${url}"]`)?.closest('.thumb-wrapper');
+                if (wrapper) {
+                    wrapper.classList.add('border-primary', 'border-3');
+                    const coverBtn = wrapper.querySelector('.btn-cover');
+                    if (coverBtn) coverBtn.classList.add('d-none');
+                    wrapper.insertAdjacentHTML('afterbegin', '<span class="badge bg-primary position-absolute top-0 start-0 m-2 shadow-sm rounded-pill cover-badge" style="z-index: 5;">COVER</span>');
+                }
+                
+                updateMainPreview();
             };
+        window.autoSelectCover = () => {
+            const firstImg = thumbnailGrid.querySelector('img');
+            if (firstImg) {
+                setAsCover(firstImg.src);
+            } else {
+                mainImageUrlInput.value = "";
+                updateMainPreview();
+            }
+        };
 
-            const dutchToggle = document.getElementById('dutchToggle');
-            const dutchFields = document.getElementById('dutchFields');
-            if (dutchToggle && dutchFields) {
-                dutchToggle.addEventListener('change', function() {
-                    if(this.checked) {
-                        dutchFields.classList.remove('d-none');
-                        // Disable min increase and buy it now logic if desired
-                        document.getElementById('inputMinIncrease').closest('.col-md-6').style.opacity = '0.5';
-                        document.getElementById('inputBuyItNow').closest('.col-md-6').style.opacity = '0.5';
-                    } else {
-                        dutchFields.classList.add('d-none');
-                        document.getElementById('inputMinIncrease').closest('.col-md-6').style.opacity = '1';
-                        document.getElementById('inputBuyItNow').closest('.col-md-6').style.opacity = '1';
-                    }
-                });
+    // Cleanup base64 before submit to avoid validation/size issues
+    document.getElementById('auctionForm').addEventListener('submit', function() {
+        if (mainImageUrlInput.value.startsWith('data:')) {
+            mainImageUrlInput.value = ""; // Let backend pick the first file
+        }
+    });
+    
+    window.removeUrl = (index, btn) => {
+        const removedUrl = additionalUrls[index];
+        additionalUrls.splice(index, 1);
+        btn.closest('.col').remove();
+        hiddenUrlJson.value = JSON.stringify(additionalUrls);
+        
+        if (mainImageUrlInput.value === removedUrl) {
+            autoSelectCover();
+        }
+    };
+
+    window.setPresetTime = (days) => {
+        const date = new Date();
+        date.setDate(date.getDate() + days);
+        inputs.endTime.value = date.toISOString().slice(0, 16);
+        updatePreview();
+    };
+
+    const dutchToggle = document.getElementById('dutchToggle');
+    const dutchFields = document.getElementById('dutchFields');
+    if (dutchToggle && dutchFields) {
+        dutchToggle.addEventListener('change', function() {
+            if(this.checked) {
+                dutchFields.classList.remove('d-none');
+                // Disable min increase and buy it now logic if desired
+                document.getElementById('inputMinIncrease').closest('.col-md-6').style.opacity = '0.5';
+                document.getElementById('inputBuyItNow').closest('.col-md-6').style.opacity = '0.5';
+            } else {
+                dutchFields.classList.add('d-none');
+                document.getElementById('inputMinIncrease').closest('.col-md-6').style.opacity = '1';
+                document.getElementById('inputBuyItNow').closest('.col-md-6').style.opacity = '1';
             }
         });
+    }
+});
     </script>
 }

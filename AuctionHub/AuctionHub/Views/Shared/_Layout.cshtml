@@ -16,11 +16,80 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true"/>
     <style>
-        /* Modern Toast Styling */
-        .toast-container {
-            z-index: 3000 !important;
+        /* Navbar Grid Fix for Mobile */
+        @@media (max-width: 991.98px) {
+            .navbar-nav-grid {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+                padding: 1rem 0;
+            }
+            .navbar-nav-grid .nav-item {
+                text-align: center;
+                background: rgba(var(--bs-primary-rgb), 0.03);
+                border-radius: 12px;
+            }
+            .navbar-nav-grid .nav-link {
+                padding: 0.8rem !important;
+            }
+            
+            /* Crucial Fix: Allow dropdowns to overflow navbar collapse */
+            .navbar-collapse {
+                overflow: visible !important; 
+                padding-bottom: 20px;
+            }
+            
+            .navbar-nav .dropdown-menu {
+                position: absolute !important;
+                background-color: var(--bg-card);
+                margin-top: 5px !important;
+                z-index: 2000 !important;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.2) !important;
+                right: 0 !important;
+                left: auto !important;
+                border: 1px solid var(--border-color) !important;
+            }
+
+            /* Actions Layout - 2 Rows */
+            .navbar-actions-mobile {
+                display: flex !important;
+                flex-wrap: wrap !important;
+                justify-content: center !important;
+                gap: 15px !important;
+                border-top: 1px solid var(--border-color);
+                padding-top: 20px;
+                margin-top: 10px;
+            }
+            
+            /* First Row: Theme, Notifications, Wallet/Avatar (Partial) */
+            .navbar-actions-mobile > div {
+                order: 1;
+            }
+            
+            /* Second Row: Sell Button */
+            .navbar-actions-mobile .sell-btn-mobile {
+                order: 2 !important;
+                flex: 0 0 100% !important;
+                width: 100% !important;
+                padding: 12px !important;
+                margin-top: 5px;
+            }
+            .navbar-actions-mobile .sell-btn-mobile .sell-btn-text {
+                display: inline !important;
+            }
         }
-        
+
+        /* Global Dark Mode Dropdown Fixes */
+        [data-bs-theme="dark"] .dropdown-menu .fw-bold.text-truncate,
+        [data-bs-theme="dark"] .dropdown-menu div.fw-bold {
+            color: #ffffff !important;
+        }
+        [data-bs-theme="dark"] .dropdown-menu .text-muted {
+            color: rgba(255, 255, 255, 0.6) !important;
+        }
+
+        /* Modern Toast Styling */
+        .toast-container { z-index: 3000 !important; }
         .modern-toast {
             background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(12px) saturate(180%);
@@ -32,39 +101,14 @@
             transform: translateX(120%);
             opacity: 0;
         }
-        
-        .modern-toast.showing {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        
-        .modern-toast.hiding {
-            transform: translateX(120%) scale(0.9);
-            opacity: 0;
-        }
-
+        .modern-toast.showing { transform: translateX(0); opacity: 1; }
+        .modern-toast.hiding { transform: translateX(120%) scale(0.9); opacity: 0; }
         .toast-glow-success { border-left: 6px solid #2ec4b6 !important; }
         .toast-glow-danger { border-left: 6px solid #e71d36 !important; }
         .toast-glow-primary { border-left: 6px solid #4361ee !important; }
-
-        .toast-icon-circle {
-            width: 38px;
-            height: 38px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-        
-        @@keyframes toast-in {
-            from { transform: translateY(-20px) scale(0.9); opacity: 0; }
-            to { transform: translateY(0) scale(1); opacity: 1; }
-        }
-        
-        .animate-toast {
-            animation: toast-in 0.5s ease forwards;
-        }
+        .toast-icon-circle { width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        @@keyframes toast-in { from { transform: translateY(-20px) scale(0.9); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+        .animate-toast { animation: toast-in 0.5s ease forwards; }
     </style>
     <script>
         (function() {
@@ -76,7 +120,7 @@
 </head>
 <body class="d-flex flex-column min-vh-100">
 <header>
-    <nav class="navbar navbar-expand-lg fixed-top bg-white border-bottom shadow-sm">
+    <nav class="navbar navbar-expand-lg fixed-top bg-white border-bottom shadow-sm" style="z-index: 1100;">
         <div class="container">
             <a class="navbar-brand text-primary fw-bold" asp-area="" asp-controller="Home" asp-action="Index">
                 <i class="bi bi-hammer me-2"></i>AuctionHub
@@ -87,7 +131,7 @@
             </button>
             
             <div class="collapse navbar-collapse" id="navbarContent">
-                <ul class="navbar-nav mx-auto mb-3 mb-lg-0 text-center">
+                <ul class="navbar-nav navbar-nav-grid mx-auto mb-3 mb-lg-0">
                     <li class="nav-item">
                         <a class="nav-link fw-semibold" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
                     </li>
@@ -105,9 +149,9 @@
                     </li>
                 </ul>
                 
-                <div class="navbar-actions d-flex flex-column flex-lg-row align-items-center gap-3">
+                <div class="navbar-actions navbar-actions-mobile d-flex align-items-center">
                     
-                    <div class="d-flex align-items-center justify-content-center gap-4 gap-lg-3">
+                    <div class="d-flex align-items-center gap-3 order-lg-0">
                         <button class="btn btn-link nav-link p-0" id="themeToggler" type="button">
                             <i class="bi bi-sun-fill fs-5" id="themeIcon"></i>
                         </button>
@@ -123,18 +167,19 @@
 
                     @if (User.Identity?.IsAuthenticated ?? false)
                     {
-                        <a class="btn btn-primary rounded-pill px-4 w-100 w-lg-auto order-first order-lg-0 sell-btn" asp-area="" asp-controller="Auctions" asp-action="Create">
-                            <i class="bi bi-plus-lg me-lg-1"></i> <span class="sell-btn-text">Sell Item</span>
+                        <a class="btn btn-primary rounded-pill px-4 sell-btn sell-btn-mobile order-first order-lg-1 me-lg-3" asp-area="" asp-controller="Auctions" asp-action="Create">
+                            <i class="bi bi-plus-lg me-1"></i> <span class="sell-btn-text">Sell Item</span>
                         </a>
 
-                        <div class="w-100 text-center w-lg-auto text-lg-start">
+                        <div class="order-lg-2">
                             <partial name="_LoginPartial" />
                         </div>
-                    }                    else
+                    }
+                    else
                     {
-                        <div class="d-flex flex-column flex-lg-row gap-2 w-100 w-lg-auto mt-2 mt-lg-0">
-                            <a class="btn btn-outline-primary rounded-pill px-4" asp-area="Identity" asp-page="/Account/Login">Log In</a>
-                            <a class="btn btn-primary rounded-pill px-4" asp-area="Identity" asp-page="/Account/Register">Get Started</a>
+                        <div class="d-flex flex-row flex-lg-row gap-2 mt-0 mt-lg-0 order-lg-1">
+                            <a class="btn btn-outline-primary rounded-pill px-3 px-lg-4" asp-area="Identity" asp-page="/Account/Login">Log In</a>
+                            <a class="btn btn-primary rounded-pill px-3 px-lg-4" asp-area="Identity" asp-page="/Account/Register">Register</a>
                         </div>
                     }
                 </div>
@@ -288,8 +333,6 @@
     }
 
     function showToast(title, message, link, type, showButton) {
-        // If an alert is already visible on the page (meaning TempData was already rendered by the View)
-        // we skip showing the duplicate toast.
         const existingAlerts = document.querySelectorAll('.alert');
         if (existingAlerts.length > 0) return;
 

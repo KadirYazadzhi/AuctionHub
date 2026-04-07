@@ -162,7 +162,7 @@
                 <div class="sticky-top" style="top: 100px; z-index: 10;">
                     <h5 class="fw-bold mb-4 text-uppercase letter-spacing-1 text-muted small">Live Preview</h5>
                     <div class="card h-100 border-0 shadow-lg rounded-4 overflow-hidden animate-fade-up" id="previewCard">
-                        <div class="position-absolute top-0 start-0 m-3 z-1">
+                        <div class="position-absolute top-0 start-0 m-3" style="z-index: 5;">
                             <span class="badge bg-dark bg-opacity-75 backdrop-blur rounded-pill px-3 py-2 shadow-sm" id="previewCategory">@Model.Categories.FirstOrDefault(c => c.Value == Model.CategoryId.ToString())?.Text</span>
                         </div>
                         

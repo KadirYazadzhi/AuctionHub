@@ -21,6 +21,7 @@ public class ExtendedAuctionServiceTests
     private readonly Mock<ILogger<AuctionService>> _mockLogger;
     private readonly Mock<IPhotoService> _mockPhotoService;
     private readonly Mock<IImageAnalysisService> _mockImageAnalysisService;
+    private readonly Mock<IStatsNotificationService> _mockStatsNotificationService;
 
     public ExtendedAuctionServiceTests()
     {
@@ -30,6 +31,7 @@ public class ExtendedAuctionServiceTests
         _mockLogger = new Mock<ILogger<AuctionService>>();
         _mockPhotoService = new Mock<IPhotoService>();
         _mockImageAnalysisService = new Mock<IImageAnalysisService>();
+        _mockStatsNotificationService = new Mock<IStatsNotificationService>();
     }
 
     private AuctionHubDbContext GetDatabaseContext(string dbName)
@@ -53,7 +55,8 @@ public class ExtendedAuctionServiceTests
             _mockCache.Object,
             _mockLogger.Object,
             _mockPhotoService.Object,
-            _mockImageAnalysisService.Object);
+            _mockImageAnalysisService.Object,
+            _mockStatsNotificationService.Object);
     }
 
     [Fact]

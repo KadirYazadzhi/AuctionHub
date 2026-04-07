@@ -20,6 +20,7 @@ public class AuctionServiceTests
     private readonly Mock<ILogger<AuctionService>> _mockLogger;
     private readonly Mock<IPhotoService> _mockPhotoService;
     private readonly Mock<IImageAnalysisService> _mockImageAnalysisService;
+    private readonly Mock<IStatsNotificationService> _mockStatsNotificationService;
 
     public AuctionServiceTests()
     {
@@ -29,6 +30,7 @@ public class AuctionServiceTests
         _mockLogger = new Mock<ILogger<AuctionService>>();
         _mockPhotoService = new Mock<IPhotoService>();
         _mockImageAnalysisService = new Mock<IImageAnalysisService>();
+        _mockStatsNotificationService = new Mock<IStatsNotificationService>();
     }
 
     private AuctionHubDbContext GetDatabaseContext(string dbName)
@@ -52,7 +54,8 @@ public class AuctionServiceTests
             _mockCache.Object,
             _mockLogger.Object,
             _mockPhotoService.Object,
-            _mockImageAnalysisService.Object);
+            _mockImageAnalysisService.Object,
+            _mockStatsNotificationService.Object);
     }
 
     private static ApplicationUser CreateUser(string id, decimal wallet = 1000m) => new()

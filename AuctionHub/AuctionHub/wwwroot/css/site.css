@@ -632,6 +632,8 @@ html body .card.border-promoted:hover {
     100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
 }
 
+.w-fit-content { width: fit-content !important; }
+
 /* Admin Panel Professional Styling */
 .admin-nav-link {
     color: var(--text-muted);

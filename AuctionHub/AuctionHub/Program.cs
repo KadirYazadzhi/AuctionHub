@@ -65,6 +65,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IBiddingNotificationService, SignalRBiddingNotificationService>();
+builder.Services.AddScoped<IStatsNotificationService, StatsNotificationService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IPhotoService, PhotoService>();
@@ -222,5 +223,6 @@ app.MapControllerRoute(name: "default", pattern: "{controller=Home}/{action=Inde
 app.MapRazorPages();
 app.MapHub<BiddingHub>("/hubs/bidding");
 app.MapHub<ChatHub>("/hubs/chat");
+app.MapHub<StatsHub>("/hubs/stats");
 
 await app.RunAsync();

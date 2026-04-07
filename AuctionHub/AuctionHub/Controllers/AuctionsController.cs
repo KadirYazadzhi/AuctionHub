@@ -97,6 +97,7 @@ public class AuctionsController : Controller
         ViewData["Latitude"] = query.Latitude;
         ViewData["Longitude"] = query.Longitude;
         ViewData["MaxDistance"] = query.MaxDistance;
+        ViewData["SearchLocation"] = query.SearchLocation;
         ViewData["CurrentUsername"] = query.Username;
     }
 

@@ -18,6 +18,7 @@ public class AuctionService : IAuctionService
     private readonly ILogger<AuctionService> _logger;
     private readonly IPhotoService _photoService;
     private readonly IImageAnalysisService _imageAnalysisService;
+    private readonly IStatsNotificationService _statsNotificationService;
 
     public AuctionService(
         IAuctionHubDbContext context, 
@@ -26,7 +27,8 @@ public class AuctionService : IAuctionService
         IDistributedCache cache,
         ILogger<AuctionService> logger,
         IPhotoService photoService,
-        IImageAnalysisService imageAnalysisService)
+        IImageAnalysisService imageAnalysisService,
+        IStatsNotificationService statsNotificationService)
     {
         _context = context;
         _notificationService = notificationService;
@@ -35,6 +37,7 @@ public class AuctionService : IAuctionService
         _logger = logger;
         _photoService = photoService;
         _imageAnalysisService = imageAnalysisService;
+        _statsNotificationService = statsNotificationService;
     }
 
     public async Task<PaginatedList<AuctionDto>> GetAuctionsAsync(AuctionQueryDto queryDto)
@@ -424,6 +427,8 @@ public class AuctionService : IAuctionService
                 $"💰 Payment for '{auction.Title}' released: {finalSellerAmount:C} (Commission: {commissionAmount:C}).", 
                 $"/Auctions/Details/{auction.PublicId}");
 
+            await RefreshHomeStatsAsync();
+
             return (true, $"Delivery confirmed! {finalSellerAmount:C} released to your wallet.");
         }
         catch (Exception)
@@ -448,6 +453,8 @@ public class AuctionService : IAuctionService
         auction.IsDeleted = true;
 
         await _context.SaveChangesAsync();
+        await RefreshHomeStatsAsync();
+
         return (true, "Auction cancelled successfully.");
     }
 
@@ -602,6 +609,83 @@ public class AuctionService : IAuctionService
         await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(stats), options);
 
         return stats;
+    }
+
+    private async Task RefreshHomeStatsAsync()
+    {
+        try
+        {
+            var now = DateTime.UtcNow;
+            var dayAgo = now.AddDays(-1);
+
+            var stats = new HomeStatsDto();
+
+            // 1. Active Auctions Count
+            stats.ActiveAuctionsCount = await _context.Auctions
+                .CountAsync(a => !a.IsDeleted && a.IsActive && a.EndTime > now);
+
+            // 2. Daily Volume (Sum of all sales/purchases in last 24h)
+            stats.DailyVolume = await _context.Transactions
+                .Where(t => (t.TransactionType == "Sale" || t.TransactionType == "Purchase") && t.TransactionDate >= dayAgo)
+                .SumAsync(t => t.Amount);
+
+            // 3. Total Users Count
+            stats.TotalUsersCount = await _context.Users.CountAsync();
+
+            // 4. Category Counts (All categories for easy lookup)
+            stats.CategoryCounts = await _context.Categories
+                .Select(c => new 
+                { 
+                    c.Name, 
+                    Count = c.Auctions.Count(a => !a.IsDeleted && a.IsActive && a.EndTime > now) 
+                })
+                .ToDictionaryAsync(x => x.Name, x => x.Count);
+
+            // 5. Featured Categories (Top 4)
+            stats.FeaturedCategories = await _context.Categories
+                .OrderByDescending(c => c.Auctions.Count(a => !a.IsDeleted && a.IsActive && a.EndTime > now))
+                .Take(4)
+                .Select(c => new CategoryDto
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    AuctionsCount = c.Auctions.Count(a => !a.IsDeleted && a.IsActive && a.EndTime > now)
+                })
+                .ToListAsync();
+
+            // If less than 4, fill with defaults
+            if (stats.FeaturedCategories.Count < 4)
+            {
+                var existingIds = stats.FeaturedCategories.Select(c => c.Id).ToList();
+                var remaining = await _context.Categories
+                    .Where(c => !existingIds.Contains(c.Id))
+                    .Take(4 - stats.FeaturedCategories.Count)
+                    .Select(c => new CategoryDto
+                    {
+                        Id = c.Id,
+                        Name = c.Name,
+                        AuctionsCount = c.Auctions.Count(a => !a.IsDeleted && a.IsActive && a.EndTime > now)
+                    })
+                    .ToListAsync();
+                
+                stats.FeaturedCategories.AddRange(remaining);
+            }
+
+            // Update Cache
+            var cacheKey = "home_stats";
+            var options = new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+            };
+            await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(stats), options);
+
+            // Broadcast via SignalR
+            await _statsNotificationService.UpdateHomeStatsAsync(stats);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error refreshing home stats.");
+        }
     }
 
     public async Task<(bool Success, string Message)> PromoteAuctionAsync(int auctionId, string userId)
@@ -1077,6 +1161,8 @@ public class AuctionService : IAuctionService
                     $"/Auctions/Details/{auction.PublicId}");
             }
 
+            await RefreshHomeStatsAsync();
+
             return (auction.Id, "Success");
         }
         catch (Exception)
@@ -1434,6 +1520,14 @@ public class AuctionService : IAuctionService
             query = query.Where(a => !a.IsActive || a.EndTime <= DateTime.UtcNow);
         }
 
+        // Location Filtering (City/District)
+        if (!string.IsNullOrWhiteSpace(dto.SearchLocation))
+        {
+            var normalizedLocation = dto.SearchLocation.ToLower();
+            query = query.Where(a => (a.City != null && a.City.ToLower().Contains(normalizedLocation)) || 
+                                     (a.District != null && a.District.ToLower().Contains(normalizedLocation)));
+        }
+
         if (!string.IsNullOrEmpty(dto.SearchTerm))
         {
             var normalizedSearch = dto.SearchTerm.ToLower();
@@ -1693,7 +1787,9 @@ public class AuctionService : IAuctionService
             await _context.SaveChangesAsync();
             await dbTransaction.CommitAsync();
 
-            return (true, "Bid placed successfully.");
+            await RefreshHomeStatsAsync();
+
+            return (true, "Your bid has been placed successfully.");
         }
         catch (DbUpdateConcurrencyException)
         {
@@ -2032,6 +2128,8 @@ public class AuctionService : IAuctionService
 
             await _context.SaveChangesAsync();
             await dbTransaction.CommitAsync();
+
+            await RefreshHomeStatsAsync();
 
             return (true, "Congratulations! You have purchased this item.");
         }

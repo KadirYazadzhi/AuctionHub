@@ -3,25 +3,25 @@
 @inject SignInManager<ApplicationUser> SignInManager
 @inject UserManager<ApplicationUser> UserManager
 
-<ul class="navbar-nav align-items-center">
+<ul class="navbar-nav align-items-center flex-row gap-2 gap-lg-0">
 @if (SignInManager.IsSignedIn(User))
 {
     var currentUser = await UserManager.GetUserAsync(User);
     var balance = currentUser?.WalletBalance ?? 0.00m;
 
-    <li class="nav-item me-lg-2 mb-2 mb-lg-0">
+    <li class="nav-item me-lg-2">
         <a class="btn btn-sm btn-light rounded-pill border fw-bold text-primary px-3 d-inline-flex align-items-center text-nowrap"
            asp-area="" asp-controller="Wallet" asp-action="Index"
            title="My Wallet"
-           style="min-width: fit-content;">
+           style="min-width: fit-content; font-size: 0.85rem;">
             <i class="bi bi-wallet2 me-2"></i>
             <span>@balance.ToString("C")</span>
         </a>
     </li>
 
     <li class="nav-item dropdown">
-        <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <div class="avatar-xs bg-primary text-white rounded-circle d-flex align-items-center justify-content-center overflow-hidden" style="width: 32px; height: 32px;">
+        <a class="nav-link dropdown-toggle d-flex align-items-center gap-2 p-0" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <div class="avatar-xs bg-primary text-white rounded-circle d-flex align-items-center justify-content-center overflow-hidden border" style="width: 34px; height: 34px;">
                 @if (!string.IsNullOrEmpty(currentUser?.ProfilePictureUrl))
                 {
                     <img src="@currentUser.ProfilePictureUrl" class="w-100 h-100 object-fit-cover" alt="@currentUser.DisplayName" />
@@ -33,8 +33,8 @@
             </div>
             <span class="fw-bold d-none d-lg-inline">@currentUser?.DisplayName</span>
         </a>
-        <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4 mt-3 py-2" aria-labelledby="userDropdown" style="min-width: 220px;">
-            <li class="px-3 py-2 border-bottom mb-2 d-lg-none">
+        <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4 mt-2 py-2 position-absolute" aria-labelledby="userDropdown" style="min-width: 220px; right: 0; left: auto;">
+            <li class="px-3 py-2 border-bottom mb-2">
                 <span class="text-muted small">Signed in as</span>
                 <div class="fw-bold text-truncate">@currentUser?.DisplayName</div>
             </li>
@@ -103,10 +103,10 @@
 else
 {
     <li class="nav-item">
-        <a class="btn btn-link nav-link px-3" asp-area="Identity" asp-page="/Account/Login">Log In</a>
+        <a class="btn btn-link nav-link px-2" asp-area="Identity" asp-page="/Account/Login">Log In</a>
     </li>
     <li class="nav-item">
-        <a class="btn btn-primary rounded-pill px-4 ms-2" asp-area="Identity" asp-page="/Account/Register">Get Started</a>
+        <a class="btn btn-primary rounded-pill px-3 ms-1" asp-area="Identity" asp-page="/Account/Register">Get Started</a>
     </li>
 }
 </ul>

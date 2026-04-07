@@ -19,7 +19,6 @@ public class AuctionFormModel
     public IFormFile? ImageFile { get; set; }
 
     [Display(Name = "Or Image URL")]
-    [Url]
     public string? ImageUrl { get; set; }
 
     [Required]

@@ -3,12 +3,12 @@
     ViewData["Title"] = "Manage Categories";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4 animate-fade-up">
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 animate-fade-up">
     <div>
         <h2 class="fw-bold mb-1">Categories</h2>
         <p class="text-muted">Organize your marketplace structure.</p>
     </div>
-    <a asp-action="Create" class="btn btn-primary rounded-pill px-4 shadow-sm hover-lift">
+    <a asp-action="Create" class="btn btn-primary rounded-pill px-4 shadow-sm hover-lift w-fit-content">
         <i class="bi bi-plus-lg me-2"></i> Add New
     </a>
 </div>
@@ -30,7 +30,7 @@
                         <tr>
                             <td class="ps-4 py-3">
                                 <div class="d-flex align-items-center">
-                                    <div class="icon-box-sm bg-primary-subtle text-primary rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                    <div class="icon-box-sm bg-primary-subtle text-primary rounded-circle me-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px;">
                                         <i class="bi bi-tag-fill"></i>
                                     </div>
                                     <span class="fw-bold text-dark">@item.Name</span>
