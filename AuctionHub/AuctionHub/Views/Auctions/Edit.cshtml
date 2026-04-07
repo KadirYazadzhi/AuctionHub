@@ -225,6 +225,11 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
+        // Fix for jQuery Validation with Bulgarian comma
+        $.validator.methods.number = function (value, element) {
+            return this.optional(element) || /^-?(?:\d+|\d{1,3}(?:[\s\.]\d{3})+)(?:[\,]\d+)?$/.test(value);
+        };
+
         document.addEventListener('DOMContentLoaded', function() {
             let removedIds = [];
             let additionalUrls = [];
@@ -372,6 +377,11 @@
                 if (inputs.mainUrl.value.startsWith('data:')) {
                     inputs.mainUrl.value = ""; // Let backend pick the first new file
                 }
+            });
+
+            // Ensure initial prices are formatted with comma for consistency
+            document.querySelectorAll('.price-input').forEach(input => {
+                if (input.value) input.value = input.value.replace('.', ',');
             });
 
             updatePreview();
