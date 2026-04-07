@@ -48,15 +48,19 @@
 ### 🛡️ Administration & Moderation
 * **Global Dashboard:** Advanced metrics (Platform Volume, User Growth, System Integrity).
 * **Audit Logs:** Full traceability of all admin actions (suspensions, setting changes, user management).
+* **System Integrity:** Precision timestamping and consistency checks for all financial and auction operations.
 * **Dispute Resolution:** Integrated system for admins to mediate and resolve transaction conflicts.
 * **System Controls:** Dynamic management of commission rates, promotion fees, and platform-wide settings.
 
 ### 🔔 Social & Engagement
+* **Real-time Chat:** Instant messaging between users for item inquiries and negotiation.
 * **Community Feed:** Public comments and discussions on every auction listing.
 * **Reputation System:** Five-star reviews and feedback allowed only after verified successful trades.
 * **Seller Following:** Users can follow favorite sellers to get notified of new listings.
 * **Notifications:** Real-time alerts for outbids, wins, and social interactions.
-* **AI Image Moderation:** Automated safety check for all uploaded images to prevent inappropriate content.
+* **Dual AI Moderation:** 
+    * **Hugging Face:** Cloud-based NSFW detection.
+    * **Local AI:** Support for private, local-hosted moderation services.
 
 ---
 
@@ -79,6 +83,10 @@
 **Seller Analytics**
 *Dynamic charts showing views and engagement for listed items.*
 <img src="./preview/seller-analytics-preview.png" width="100%" alt="Seller Analytics Dashboard" />
+
+**Personal Profile & Activity**
+*User-specific dashboard for tracking participation and won auctions.*
+<img src="./preview/profile-analytics-preview.png" width="100%" alt="Profile Analytics" />
 
 **My Wallet**
 *The financial hub showing balance, escrowed funds, and detailed ledger.*
@@ -109,6 +117,23 @@
 *Audit trail of all financial movements in the system.*
 <img src="./preview/admin-panel-transaction-preview.png" width="100%" alt="Admin Transactions" />
 
+**Reports & Analytics**
+*Platform-wide reporting on user reports and system activity.*
+<img src="./preview/admin-panel-reports-preview.png" width="100%" alt="Admin Reports" />
+
+**System Settings**
+*Dynamic configuration of platform fees, rules, and AI thresholds.*
+<img src="./preview/admin-panel-settings-preview.png" width="100%" alt="Admin Settings" />
+
+---
+
+## ⚙️ How It Works
+
+1. **Listing:** Sellers create auctions, setting start prices, categories, and optional "Buy It Now" or "Dutch" mechanics.
+2. **Bidding:** Buyers place bids in real-time. Funds are automatically "held" in their wallet (Escrow) to guarantee payment.
+3. **Completion:** When the timer hits zero, the highest bidder wins. The system transfers funds to the seller, minus platform commission.
+4. **Verification:** Buyers and sellers can leave feedback once the transaction is finalized.
+
 ---
 
 ## 🏗️ Technical Architecture
@@ -129,8 +154,27 @@ The project follows **Clean Architecture** principles, ensuring a strict separat
 | **Database** | MS SQL Server |
 | **Caching** | Redis (Distributed Cache) |
 | **Storage** | Cloudinary (Cloud Image API) |
-| **AI Moderation** | Hugging Face (NSFW Image Detection) |
+| **AI Moderation** | Hugging Face & Local AI (Custom) |
 | **Testing** | xUnit, Moq, FluentAssertions |
+| **Security** | Google reCAPTCHA (V2/V3) |
+
+---
+
+## 💾 Database Schema
+
+The system uses a highly normalized MS SQL Server database designed for financial integrity and performance.
+
+<img src="./preview/database-scheme.png" width="100%" alt="Database Schema" />
+
+---
+
+## 📂 Project Structure
+
+* **AuctionHub:** The main Web MVC project (Controllers, Views, Hubs, wwwroot).
+* **AuctionHub.Application:** Business logic, service implementations, and DTOs.
+* **AuctionHub.Domain:** Core entities, business rules, and shared abstractions.
+* **AuctionHub.Infrastructure:** Data access (EF Core), Migrations, and External Service integrations.
+* **AuctionHub.Tests:** Comprehensive unit and integration test suite covering 65%+ of logic.
 
 ---
 
@@ -140,29 +184,49 @@ The project follows **Clean Architecture** principles, ensuring a strict separat
 The application requires several external services. Create a `.env` file in the root directory with the following keys:
 
 ```env
-# --- Database ---
-ConnectionStrings__DefaultConnection="Server=YOUR_SERVER;Database=AuctionHubDb;User Id=YOUR_USER;Password=YOUR_PASSWORD;TrustServerCertificate=True;"
-
-# --- Identity & OAuth ---
-# Required for social login functionality
-Authentication__Google__ClientId="your_google_id"
-Authentication__Google__ClientSecret="your_google_secret"
-Authentication__GitHub__ClientId="your_github_id"
-Authentication__GitHub__ClientSecret="your_github_secret"
-
-# --- Cloudinary (Image Storage) ---
-# Required for uploading auction images
-Cloudinary__CloudName="your_cloud_name"
-Cloudinary__ApiKey="your_api_key"
-Cloudinary__ApiSecret="your_api_secret"
+# --- Database (Standard & Extended) ---
+ConnectionStrings__DefaultConnection="Server=<YOUR_SERVER>;Database=AuctionHubDb;User Id=<YOUR_USER>;Password=<YOUR_PASSWORD>;TrustServerCertificate=True;Encrypt=False;"
+DB_SERVER="<YOUR_SERVER_IP_PORT>"
+DB_NAME="AuctionHubDb"
+DB_USER="<YOUR_USER>"
+DB_PASSWORD="<YOUR_PASSWORD>"
 
 # --- Redis (Caching & SignalR) ---
-# Required for distributed scaling and real-time performance
-Redis__Configuration="localhost:6379,password=your_redis_password"
+REDIS_URL="localhost:6379"
+Redis__Configuration="localhost:6379,password=<YOUR_REDIS_PASSWORD>"
 
-# --- AI Image Analysis (Hugging Face) ---
-# Get your free token at: https://huggingface.co/settings/tokens
-AI__HuggingFaceToken="your_hugging_face_token_here"
+# --- Identity & OAuth ---
+Authentication__Google__ClientId="<YOUR_GOOGLE_CLIENT_ID>"
+Authentication__Google__ClientSecret="<YOUR_GOOGLE_CLIENT_SECRET>"
+Authentication__GitHub__ClientId="<YOUR_GITHUB_CLIENT_ID>"
+Authentication__GitHub__ClientSecret="<YOUR_GITHUB_CLIENT_SECRET>"
+
+# --- Cloudinary (Image Storage) ---
+Cloudinary__CloudName="<YOUR_CLOUD_NAME>"
+Cloudinary__ApiKey="<YOUR_API_KEY>"
+Cloudinary__ApiSecret="<YOUR_API_SECRET>"
+
+# --- AI Image Analysis ---
+AI__HuggingFaceToken="<YOUR_HUGGING_FACE_TOKEN>"
+AI__ModerationServiceUrl="http://<YOUR_LOCAL_AI_URL>/classify"
+
+# --- Email Settings ---
+EmailSettings__ApiToken="<YOUR_EMAIL_API_TOKEN>"
+EmailSettings__InboxId="<YOUR_INBOX_ID>"
+EmailSettings__Host="<YOUR_SMTP_HOST>"
+EmailSettings__Port="<YOUR_SMTP_PORT>"
+EmailSettings__Username="<YOUR_SMTP_USERNAME>"
+EmailSettings__Password="<YOUR_SMTP_PASSWORD>"
+
+# --- Security ---
+GoogleReCaptcha__SiteKey="<YOUR_RECAPTCHA_SITE_KEY>"
+GoogleReCaptcha__SecretKey="<YOUR_RECAPTCHA_SECRET_KEY>"
+
+# --- Initial Admin Account (Seeding) ---
+ADMIN_EMAIL="<ADMIN_EMAIL>"
+ADMIN_PASSWORD="<ADMIN_PASSWORD>"
+ADMIN_FIRST_NAME="System"
+ADMIN_LAST_NAME="Admin"
 ```
 
 ### 2. Standard Local Setup
@@ -207,7 +271,7 @@ This application is fully production-ready and hosted on a **self-managed K3s (L
 * **Resilience:** Redis-backed SignalR allows the application to scale across multiple pods without losing real-time state.
 * **Monitoring:** Integrated health checks and automated background job monitoring via Hangfire.
 
-> 📂 **Detailed Kubernetes Docs:** A comprehensive guide on how to deploy this entire stack (including SQL and Redis) on K3s, along with the YAML manifests, can be found in the `/deployment` folder (coming soon).
+> 📂 **Detailed Kubernetes Docs:** A comprehensive guide on how to deploy this entire stack (including SQL and Redis) on K3s, along with the YAML manifests, can be found in the [**/deploy**](./deploy) folder.
 
 ---
 *Project created for SoftUni ASP.NET Advanced Course.*

@@ -19,7 +19,7 @@ spec:
         command: ['sh', '-c', "until nc -zv mssql-svc 1433; do echo waiting for mssql; sleep 2; done;"]
       containers:
       - name: auctionhub-web
-        image: YOUR_REGISTRY/auctionhub-web:YOUR_VERSION
+        image: <YOUR_REGISTRY_IP>:<PORT>/auctionhub-web:<VERSION>
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
@@ -34,7 +34,7 @@ spec:
         - name: ASPNETCORE_ENVIRONMENT
           value: "Production"
         
-        # Database Settings
+        # Individual database settings (Critical for Program.cs)
         - name: DB_SERVER
           value: "mssql-svc"
         - name: DB_NAME
@@ -47,14 +47,14 @@ spec:
               name: auctionhub-secrets
               key: DB_PASSWORD
         
-        # Connection String
+        # Full Connection String (for compatibility)
         - name: ConnectionStrings__DefaultConnection
           valueFrom:
             secretKeyRef:
               name: auctionhub-secrets
               key: ConnectionStrings__DefaultConnection
 
-        # Redis Settings
+        # Redis settings
         - name: REDIS_URL
           valueFrom:
             secretKeyRef:
@@ -91,29 +91,43 @@ spec:
           valueFrom:
             secretKeyRef: { name: auctionhub-secrets, key: github-clientsecret }
 
-        # Email, AI & Admin
-        - name: EmailSettings__ApiToken
-          valueFrom:
-            secretKeyRef: { name: auctionhub-secrets, key: email-apitoken }
-        - name: EmailSettings__Password
-          valueFrom:
-            secretKeyRef: { name: auctionhub-secrets, key: EmailSettings__Password }
+        # AI
         - name: AI__HuggingFaceToken
           valueFrom:
             secretKeyRef: { name: auctionhub-secrets, key: AI__HuggingFaceToken }
+        - name: AI__ModerationServiceUrl
+          valueFrom:
+            secretKeyRef: { name: auctionhub-secrets, key: AI__ModerationServiceUrl }
+        
+        # Email Settings
+        - name: EmailSettings__ApiToken
+          valueFrom: { secretKeyRef: { name: auctionhub-secrets, key: email-apitoken } }
+        - name: EmailSettings__Password
+          valueFrom: { secretKeyRef: { name: auctionhub-secrets, key: EmailSettings__Password } }
+        - name: EmailSettings__Host
+          valueFrom: { secretKeyRef: { name: auctionhub-secrets, key: EmailSettings__Host } }
+        - name: EmailSettings__Port
+          valueFrom: { secretKeyRef: { name: auctionhub-secrets, key: EmailSettings__Port } }
+        - name: EmailSettings__Username
+          valueFrom: { secretKeyRef: { name: auctionhub-secrets, key: EmailSettings__Username } }
+
+        # Google reCAPTCHA
         - name: GoogleReCaptcha__SiteKey
           valueFrom:
             secretKeyRef: { name: auctionhub-secrets, key: GoogleReCaptcha__SiteKey }
-        - name: ADMIN_PASSWORD
+        - name: GoogleReCaptcha__SecretKey
           valueFrom:
-            secretKeyRef: { name: auctionhub-secrets, key: ADMIN_PASSWORD }
-        - name: ADMIN_FIRST_NAME
-          valueFrom:
-            secretKeyRef: { name: auctionhub-secrets, key: ADMIN_FIRST_NAME }
-        - name: ADMIN_LAST_NAME
-          valueFrom:
-            secretKeyRef: { name: auctionhub-secrets, key: ADMIN_LAST_NAME }
+            secretKeyRef: { name: auctionhub-secrets, key: GoogleReCaptcha__SecretKey }
 
+        # Admin Account Seeding
+        - name: ADMIN_EMAIL
+          valueFrom: { secretKeyRef: { name: auctionhub-secrets, key: ADMIN_EMAIL } }
+        - name: ADMIN_PASSWORD
+          valueFrom: { secretKeyRef: { name: auctionhub-secrets, key: ADMIN_PASSWORD } }
+        - name: ADMIN_FIRST_NAME
+          valueFrom: { secretKeyRef: { name: auctionhub-secrets, key: ADMIN_FIRST_NAME } }
+        - name: ADMIN_LAST_NAME
+          valueFrom: { secretKeyRef: { name: auctionhub-secrets, key: ADMIN_LAST_NAME } }
 ---
 apiVersion: v1
 kind: Service
@@ -134,10 +148,17 @@ metadata:
   name: auctionhub-ingress
   annotations:
     kubernetes.io/ingress.class: traefik
-    cert-manager.io/cluster-issuer: letsencrypt-prod # Update according to your setup
+    traefik.ingress.kubernetes.io/service.sticky.cookie: "true"
+    traefik.ingress.kubernetes.io/service.sticky.cookie.name: "AF_STICKY"
+    # HTTPOnly and Secure (MANDATORY for HTTPS)
+    traefik.ingress.kubernetes.io/service.sticky.cookie.httponly: "true"
+    traefik.ingress.kubernetes.io/service.sticky.cookie.secure: "true"
+    # SameSite setting for WSS requests compatibility
+    traefik.ingress.kubernetes.io/service.sticky.cookie.samesite: "none"
+    cert-manager.io/cluster-issuer: <YOUR_CLUSTER_ISSUER>
 spec:
   rules:
-  - host: your-domain.com
+  - host: <YOUR_DOMAIN>
     http:
       paths:
       - path: /
@@ -149,5 +170,5 @@ spec:
               number: 80
   tls:
   - hosts:
-    - your-domain.com
+    - <YOUR_DOMAIN>
     secretName: auction-tls-cert
