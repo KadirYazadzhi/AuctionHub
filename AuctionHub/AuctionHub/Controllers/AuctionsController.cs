@@ -539,6 +539,10 @@ public class AuctionsController : Controller
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (currentUserId == null) return Challenge();
 
+        // Manual validation for prices to handle commas reliably
+        if (model.StartPrice <= 0) ModelState.AddModelError(nameof(model.StartPrice), "Price must be greater than 0.");
+        if (model.MinIncrease <= 0) ModelState.AddModelError(nameof(model.MinIncrease), "Minimum increase must be greater than 0.");
+
         if (model.ImageFile != null)
         {
             var validation = _photoService.ValidateImage(model.ImageFile.Length, model.ImageFile.ContentType, model.ImageFile.FileName);

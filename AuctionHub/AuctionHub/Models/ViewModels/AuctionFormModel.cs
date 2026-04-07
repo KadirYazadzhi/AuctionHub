@@ -22,20 +22,16 @@ public class AuctionFormModel
     public string? ImageUrl { get; set; }
 
     [Required]
-    [Range(0.01, double.MaxValue, ErrorMessage = "Price must be greater than 0.")]
     public decimal StartPrice { get; set; }
 
     [Required]
-    [Range(0.01, double.MaxValue, ErrorMessage = "Minimum increase must be greater than 0.")]
     [Display(Name = "Minimum Bid Increase")]
     public decimal MinIncrease { get; set; }
 
     [Display(Name = "Buy It Now Price (Optional)")]
-    [Range(0.01, double.MaxValue, ErrorMessage = "Price must be greater than 0.")]
     public decimal? BuyItNowPrice { get; set; }
 
     [Display(Name = "Reserve Price (Optional)")]
-    [Range(0.01, double.MaxValue, ErrorMessage = "Reserve price must be greater than 0.")]
     public decimal? ReservePrice { get; set; }
 
     // --- Dutch Auction ---

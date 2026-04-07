@@ -18,39 +18,24 @@ public class DecimalModelBinder : IModelBinder
 
         var value = valueProviderResult.FirstValue;
 
-        if (string.IsNullOrEmpty(value))
+        if (string.IsNullOrWhiteSpace(value))
         {
             return Task.CompletedTask;
         }
 
-        // Replace comma with dot to standardize parsing
-        // If both . and , are present, assume the last one is the decimal separator
-        // and others are thousand separators.
-        
-        int lastComma = value.LastIndexOf(',');
-        int lastDot = value.LastIndexOf('.');
-        
-        if (lastComma > lastDot)
+        // Standardize: Replace comma with dot and remove any whitespace
+        string standardizedValue = value.Replace(",", ".").Trim();
+
+        // If there are multiple dots (e.g. from thousand separators), keep only the last one
+        int lastDotIndex = standardizedValue.LastIndexOf('.');
+        if (lastDotIndex != -1)
         {
-            // Comma is the decimal separator. Remove all dots, and all commas except the last one.
-            string beforeLastComma = value.Substring(0, lastComma);
-            string afterLastComma = value.Substring(lastComma + 1);
-            value = beforeLastComma.Replace(".", "").Replace(",", "") + "." + afterLastComma;
-        }
-        else if (lastDot > lastComma)
-        {
-            // Dot is the decimal separator. Remove all commas, and all dots except the last one.
-            string beforeLastDot = value.Substring(0, lastDot);
-            string afterLastDot = value.Substring(lastDot + 1);
-            value = beforeLastDot.Replace(",", "").Replace(".", "") + "." + afterLastDot;
-        }
-        else
-        {
-            // No separators or just one type. Standard replacement.
-            value = value.Replace(",", ".");
+            string integerPart = standardizedValue.Substring(0, lastDotIndex).Replace(".", "");
+            string fractionalPart = standardizedValue.Substring(lastDotIndex + 1);
+            standardizedValue = integerPart + "." + fractionalPart;
         }
 
-        if (!decimal.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var result))
+        if (!decimal.TryParse(standardizedValue, NumberStyles.Any, CultureInfo.InvariantCulture, out var result))
         {
             bindingContext.ModelState.TryAddModelError(bindingContext.ModelName, "Invalid decimal value.");
             return Task.CompletedTask;
